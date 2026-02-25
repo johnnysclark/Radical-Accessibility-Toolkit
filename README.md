@@ -25,20 +25,22 @@ The controller and Rhino never communicate directly. The JSON file is the only c
 
 ## Requirements
 
-- **Python 3.8+** (stdlib only, no pip installs)
+- **Python 3.8+** (stdlib only for the controller — no pip installs needed)
 - **Rhino 8** (for the watcher; the controller runs independently)
 - **Windows** (Rhino requirement; controller works cross-platform)
+- **Optional:** `pip install mcp` for the MCP server (AI assistant integration)
 
 ## Quick Start
 
 **1. Run the controller:**
 ```
+cd layout-jig
 python controller_cli.py
 ```
 
 **2. In Rhino 8, open EditPythonScript and run:**
 ```python
-exec(open("C:/path/to/rhino_watcher.py").read())
+exec(open("C:/path/to/layout-jig/rhino_watcher.py").read())
 ```
 
 The watcher polls state.json every 0.5 seconds and rebuilds geometry on every change.
@@ -58,15 +60,26 @@ OK: Bay A aperture 'd1' added: door, x-gridline 0, 3.0 x 7.0 ft.
 (full model description, screen-reader-friendly)
 ```
 
-## Files
+## Repository Structure
+
+```
+layout-jig/
+  controller_cli.py .... Terminal CLI (Python 3, stdlib only)
+  rhino_watcher.py ..... Rhino file watcher (IronPython 2.7)
+  tactile_print.py ..... STL mesh generation + section cuts + Bambu printing
+  mcp_server.py ........ MCP server for AI assistant integration
+  state.json ........... Canonical model artifact (the design)
+  MANUAL.docx .......... Full user documentation (19 sections)
+```
 
 | File | Runtime | Purpose |
 |------|---------|---------|
-| `controller_cli.py` | Python 3 | Terminal interface. Validates input, manages undo, writes state.json. |
+| `controller_cli.py` | Python 3 | Terminal interface. Validates input, manages undo/history, writes state.json. |
 | `rhino_watcher.py` | IronPython 2.7 (inside Rhino) | Watches state.json, rebuilds geometry on change. Read-only on state. |
+| `tactile_print.py` | Python 3 | Watertight STL meshes, section cut slicing, SVG export, Bambu printer pipeline. |
+| `mcp_server.py` | Python 3 | MCP wrapper exposing CLI commands as tools for Claude Desktop / Cursor. |
 | `state.json` | — | The canonical model artifact. Complete design state in human-readable JSON. |
-| `tactile_print.py` | Python 3 | Generates watertight STL meshes for 3D printing. Bambu Lab printer integration. |
-| `MANUAL.docx` | — | User documentation. |
+| `MANUAL.docx` | — | 19-section user manual covering every command and workflow. |
 
 ## Features
 
@@ -83,6 +96,14 @@ OK: Bay A aperture 'd1' added: door, x-gridline 0, 3.0 x 7.0 ft.
 **Tactile output:** PIAF-optimized line weights for swell paper. Four weight tiers: heavy (columns), medium (corridors/walls), light (gridlines), fine (hatches).
 
 **3D printing:** Extrude walls to a configurable cut height, generate watertight STL, slice with OrcaSlicer, and send directly to a Bambu Lab printer — all from the terminal.
+
+**Section cuts:** Slice the 3D wall mesh with a vertical plane and export the profile as SVG. Useful for producing tactile section drawings.
+
+**Text-to-speech:** Built-in Windows TTS speaks every command response aloud. Configurable speech rate. Enable with `tts on` or the `--tts` startup flag.
+
+**History and snapshots:** Every command is automatically saved to a numbered history folder. Named snapshots (`snapshot save checkpoint`) let you bookmark and restore design states.
+
+**MCP server:** AI assistants (Claude Desktop, Cursor) can drive the jig conversationally through the Model Context Protocol. Five tools: `run_command`, `describe`, `list_bays`, `get_state`, `get_help`.
 
 ## Command Reference
 
@@ -112,6 +133,32 @@ tactile3d on                   tactile3d cut_height 4
 
 bambu config ip 192.168.1.100
 bambu preview                  bambu print
+
+tts on                         tts rate 5
+section x 42                   section export
+snapshot save checkpoint        snapshot load checkpoint
+history list                   history count
+```
+
+## MCP Server (AI Integration)
+
+The MCP server lets Claude Desktop or Cursor control the jig conversationally:
+
+```
+pip install mcp
+python layout-jig/mcp_server.py --state layout-jig/state.json
+```
+
+Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "layout-jig": {
+      "command": "python",
+      "args": ["path/to/layout-jig/mcp_server.py", "--state", "path/to/layout-jig/state.json"]
+    }
+  }
+}
 ```
 
 ## Architecture Principles
@@ -121,6 +168,7 @@ bambu preview                  bambu print
 - **Crash-only viewer.** Rhino can crash anytime. The design lives in state.json, not in Rhino's memory.
 - **Zero dependencies.** The controller uses Python stdlib only. No pip, no conda, no venv.
 - **Atomic writes.** State is written via tmp file + os.replace. The watcher never reads a half-written file.
+- **History is automatic.** Every mutation is saved. Named snapshots for intentional checkpoints.
 
 ## Project Context
 
