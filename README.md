@@ -1,10 +1,14 @@
-# Layout Jig
+# Radical Accessibility Project
 
-A terminal-driven architectural plan generator built for blind and low-vision architecture students. Part of the [Radical Accessibility Project](https://github.com/johnnysclark/radical-accessibility) at UIUC School of Architecture.
+Terminal-driven architectural design tools built for blind and low-vision architecture students. Part of the Radical Accessibility Project at UIUC School of Architecture.
 
-The tool treats non-visual interaction as the primary design case. All design intent is expressed through typed commands and confirmed through text output compatible with screen readers (JAWS, NVDA) and braille displays.
+The project treats non-visual interaction as the primary design case. All design intent is expressed through typed commands and confirmed through text output compatible with screen readers (JAWS, NVDA) and braille displays.
 
-## How It Works
+## Tools
+
+### [Layout Jig](layout-jig/) — 2D/3D Architectural Plan Generator
+
+A terminal CLI that generates architectural floor plans with structural grids, walls, apertures, corridors, rooms, and braille labels. Outputs to Rhino via a file-watching pattern.
 
 ```
 Terminal (controller_cli.py)
@@ -21,31 +25,8 @@ Rhino 8 (rhino_watcher.py)
     2D plan drawing + optional 3D tactile model
 ```
 
-The controller and Rhino never communicate directly. The JSON file is the only coupling. If Rhino crashes, nothing is lost — restart Rhino, run the watcher, everything rebuilds from state.json.
+**Features:** Rectangular/radial grids, walls with doors/windows/portals, corridors, cell rooms with hatch patterns, braille legends, PIAF-optimized line weights, 3D printing pipeline (Bambu Lab), section cuts, text-to-speech, history/snapshots, MCP server for AI integration.
 
-## Requirements
-
-- **Python 3.8+** (stdlib only for the controller — no pip installs needed)
-- **Rhino 8** (for the watcher; the controller runs independently)
-- **Windows** (Rhino requirement; controller works cross-platform)
-- **Optional:** `pip install mcp` for the MCP server (AI assistant integration)
-
-## Quick Start
-
-**1. Run the controller:**
-```
-cd layout-jig
-python controller_cli.py
-```
-
-**2. In Rhino 8, open EditPythonScript and run:**
-```python
-exec(open("C:/path/to/layout-jig/rhino_watcher.py").read())
-```
-
-The watcher polls state.json every 0.5 seconds and rebuilds geometry on every change.
-
-**3. Type commands in the terminal:**
 ```
 >> set bay A origin 20 10
 OK: Bay A origin = (20.0, 10.0). Was (18.0, 8.0).
@@ -53,128 +34,108 @@ OK: Bay A origin = (20.0, 10.0). Was (18.0, 8.0).
 >> wall A on
 OK: Bay A walls ON, 6-inch thick.
 
->> aperture A add d1 door x 0 10 3 7
-OK: Bay A aperture 'd1' added: door, x-gridline 0, 3.0 x 7.0 ft.
-
 >> describe
 (full model description, screen-reader-friendly)
 ```
 
-## Repository Structure
+[Full Layout Jig documentation](layout-jig/)
+
+---
+
+### [Arch-Alt-Text](arch-alt-text/) — Architectural Image Describer
+
+A terminal CLI that describes architectural images for blind users using Claude's vision API. Produces structured Macro / Meso / Micro descriptions optimized for screen readers.
+
+Replaces visual image interpretation with detailed text descriptions covering composition, materials, spatial relationships, and multi-sensory analogies.
 
 ```
-layout-jig/
-  controller_cli.py .... Terminal CLI (Python 3, stdlib only)
-  rhino_watcher.py ..... Rhino file watcher (IronPython 2.7)
-  tactile_print.py ..... STL mesh generation + section cuts + Bambu printing
-  mcp_server.py ........ MCP server for AI assistant integration
-  state.json ........... Canonical model artifact (the design)
-  MANUAL.docx .......... Full user documentation (19 sections)
+python arch-alt-text/arch_alt_text.py
+
+>> describe farnsworth_plan.jpg
+Processing... this may take a moment.
+
+Title: Farnsworth House — Floor Plan
+
+Macro: A measured architectural floor plan rendered in fine black lines
+on white background depicts a single-story residential pavilion...
+
+Meso: The rectangular plan occupies the center of the sheet, oriented
+with its long axis running left to right...
+
+Micro: Eight wide-flange steel columns support the roof plane, spaced
+in two rows of four along the long edges...
 ```
 
-| File | Runtime | Purpose |
-|------|---------|---------|
-| `controller_cli.py` | Python 3 | Terminal interface. Validates input, manages undo/history, writes state.json. |
-| `rhino_watcher.py` | IronPython 2.7 (inside Rhino) | Watches state.json, rebuilds geometry on change. Read-only on state. |
-| `tactile_print.py` | Python 3 | Watertight STL meshes, section cut slicing, SVG export, Bambu printer pipeline. |
-| `mcp_server.py` | Python 3 | MCP wrapper exposing CLI commands as tools for Claude Desktop / Cursor. |
-| `state.json` | — | The canonical model artifact. Complete design state in human-readable JSON. |
-| `MANUAL.docx` | — | 19-section user manual covering every command and workflow. |
+**Features:**
+- Structured output: Title, Macro (3 sentences), Meso (4+ sentences), Micro (8+ sentences)
+- Handles photos, drawings, plans, sections, diagrams, charts, simulations, fabrication images
+- Interactive mode with command history and description archive
+- Single-shot mode for scripting: `python arch_alt_text.py photo.jpg`
+- Saves descriptions as text files beside the original image
+- Multi-sensory analogies (tactile, acoustic, thermal) to strengthen spatial imagination
+- Python stdlib only — no pip installs. Just needs an Anthropic API key.
 
-## Features
-
-**Structural grids:** Rectangular and radial grids with configurable bay counts, spacing (regular or irregular), rotation, and z-ordering for overlapping grids.
-
-**Walls and apertures:** Walls on gridlines with doors (arc swing symbol), windows (glass line), and portals (bracket marks). Full control over placement, dimensions, hinge side, and swing direction.
-
-**Corridors:** Single or double-loaded corridors along any gridline with configurable width, dashed centerline, and hatch fill.
-
-**Cell rooms:** Subdivide bays into named rooms with area calculations, hatch patterns, and braille labels.
-
-**Legend:** Auto-generated braille + English legend with hatch swatches and aperture symbols.
-
-**Tactile output:** PIAF-optimized line weights for swell paper. Four weight tiers: heavy (columns), medium (corridors/walls), light (gridlines), fine (hatches).
-
-**3D printing:** Extrude walls to a configurable cut height, generate watertight STL, slice with OrcaSlicer, and send directly to a Bambu Lab printer — all from the terminal.
-
-**Section cuts:** Slice the 3D wall mesh with a vertical plane and export the profile as SVG. Useful for producing tactile section drawings.
-
-**Text-to-speech:** Built-in Windows TTS speaks every command response aloud. Configurable speech rate. Enable with `tts on` or the `--tts` startup flag.
-
-**History and snapshots:** Every command is automatically saved to a numbered history folder. Named snapshots (`snapshot save checkpoint`) let you bookmark and restore design states.
-
-**MCP server:** AI assistants (Claude Desktop, Cursor) can drive the jig conversationally through the Model Context Protocol. Five tools: `run_command`, `describe`, `list_bays`, `get_state`, `get_help`.
-
-## Command Reference
-
+**Setup:**
 ```
-describe ............... Full model description
-list bays .............. Compact bay table
-undo ................... Revert last change
-help ................... All commands
-
-set bay A origin 20 10         set bay A bays 6 3
-set bay A spacing 24 24        set bay A rotation 30
-set bay A grid_type radial     set bay A z_order 2
-
-wall A on                      wall A thickness 0.5
-corridor A on                  corridor A width 8
-corridor A axis x              corridor A position 1
-
-aperture A add d1 door x 0 10 3 7
-aperture A set d1 swing negative
-aperture A list                aperture A remove d1
-
-cell A 0,0 name "Office"       cell A 0,0-2,1 name "Open Plan"
-cell A rooms                   cell A auto_corridor
-
-room list                      legend on
-tactile3d on                   tactile3d cut_height 4
-
-bambu config ip 192.168.1.100
-bambu preview                  bambu print
-
-tts on                         tts rate 5
-section x 42                   section export
-snapshot save checkpoint        snapshot load checkpoint
-history list                   history count
+cd arch-alt-text
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+python arch_alt_text.py
 ```
 
-## MCP Server (AI Integration)
-
-The MCP server lets Claude Desktop or Cursor control the jig conversationally:
-
+**Commands:**
 ```
-pip install mcp
-python layout-jig/mcp_server.py --state layout-jig/state.json
+describe <path-or-url> .... Describe an image
+save ....................... Save last description as .txt beside the image
+last ....................... Repeat the last description
+history .................... List all past descriptions
+history <n> ................ Show description number N
+model <name> ............... Change the Claude model
+help ....................... All commands
+quit ....................... Exit
 ```
 
-Add to `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "layout-jig": {
-      "command": "python",
-      "args": ["path/to/layout-jig/mcp_server.py", "--state", "path/to/layout-jig/state.json"]
-    }
-  }
-}
-```
+---
 
 ## Architecture Principles
 
+All tools in this project follow these principles:
+
 - **Text is the universal interface.** Every command is typed. Every response is printed. Everything works with screen readers.
-- **The JSON is the design.** state.json captures complete design intent. The Rhino viewport is a rendering, not the source of truth.
-- **Crash-only viewer.** Rhino can crash anytime. The design lives in state.json, not in Rhino's memory.
-- **Zero dependencies.** The controller uses Python stdlib only. No pip, no conda, no venv.
-- **Atomic writes.** State is written via tmp file + os.replace. The watcher never reads a half-written file.
-- **History is automatic.** Every mutation is saved. Named snapshots for intentional checkpoints.
+- **The JSON is the design.** State files capture complete design intent. Viewports are renderings, not the source of truth.
+- **Crash-only viewer.** Rhino can crash anytime. The design lives in state files, not in application memory.
+- **Zero dependencies.** Controllers use Python stdlib only. No pip, no conda, no venv.
+- **Atomic writes.** State is written via tmp file + os.replace. Watchers never read half-written files.
+- **Accessibility is not an add-on.** If it can't be heard, felt, or read by a screen reader, it doesn't ship.
+
+## Requirements
+
+- **Python 3.8+** (stdlib only for controllers — no pip installs)
+- **Rhino 8** (for layout-jig watcher; controllers run independently)
+- **Windows** (Rhino requirement; controllers work cross-platform)
+- **Anthropic API key** (for arch-alt-text)
+
+## Repository Structure
+
+```
+radical-accessibility/
+  arch-alt-text/
+    arch_alt_text.py ..... Image description CLI (Python 3, Claude vision API)
+  layout-jig/
+    controller_cli.py .... Terminal CLI (Python 3, stdlib only)
+    rhino_watcher.py ..... Rhino file watcher (IronPython 2.7)
+    tactile_print.py ..... STL mesh generation + Bambu printing
+    mcp_server.py ........ MCP server for AI assistant integration
+    state.json ........... Canonical model artifact
+    MANUAL.docx .......... Full user documentation
+```
 
 ## Project Context
 
-This tool is part of a research project exploring what happens when architectural design tools are built for blindness first. The thesis: accessibility constraints produce genuinely better workflows — crash resilience, semantic clarity, auditable state, and full keyboard operability emerge naturally when visual interaction is removed as a dependency.
+This project explores what happens when architectural design tools are built for blindness first. The thesis: accessibility constraints produce genuinely better workflows — crash resilience, semantic clarity, auditable state, and full keyboard operability emerge naturally when visual interaction is removed as a dependency.
 
 The primary user is Daniel, a blind graduate architecture student at UIUC who co-designs all tools and uses JAWS/NVDA with a braille display.
+
+Led by John Clark, architecture professor at UIUC School of Architecture.
 
 ## License
 
