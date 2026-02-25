@@ -1,0 +1,356 @@
+{
+  "schema": "plan_layout_jig_v2.3",
+  "meta": {
+    "created": "2026-02-23 10:21:07",
+    "last_saved": "2026-02-24 18:36:56",
+    "notes": "Plan Layout Jig v2.3"
+  },
+  "site": {
+    "origin": [
+      0.0,
+      0.0
+    ],
+    "width": 180.0,
+    "height": 260.0
+  },
+  "style": {
+    "column_size": 1.5,
+    "heavy_lineweight_mm": 1.4,
+    "light_lineweight_mm": 0.08,
+    "corridor_lineweight_mm": 0.35,
+    "wall_lineweight_mm": 0.25,
+    "label_text_height": 0.3,
+    "braille_text_height": 0.5,
+    "corridor_dash_len": 3.0,
+    "corridor_gap_len": 2.0,
+    "background_pad": 2.0,
+    "label_offset": 3.0,
+    "arc_segments": 16
+  },
+  "bays": {
+    "A": {
+      "grid_type": "rectangular",
+      "z_order": 0,
+      "origin": [
+        18,
+        8
+      ],
+      "rotation_deg": 0.0,
+      "bays": [
+        6,
+        3
+      ],
+      "spacing": [
+        24,
+        24
+      ],
+      "spacing_x": null,
+      "spacing_y": null,
+      "rings": 4,
+      "ring_spacing": 20.0,
+      "arms": 8,
+      "arc_deg": 360.0,
+      "arc_start_deg": 0.0,
+      "corridor": {
+        "enabled": true,
+        "axis": "x",
+        "position": 1,
+        "width": 8.0,
+        "loading": "double",
+        "hatch": "Hatch1",
+        "hatch_scale": 4.0
+      },
+      "walls": {
+        "enabled": true,
+        "thickness": 0.5
+      },
+      "apertures": [
+        {
+          "id": "d1",
+          "type": "door",
+          "axis": "x",
+          "gridline": 0,
+          "corner": 10.0,
+          "width": 3.0,
+          "height": 7.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w1",
+          "type": "window",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 8.0,
+          "width": 6.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "p1",
+          "type": "portal",
+          "axis": "x",
+          "gridline": 2,
+          "corner": 30.0,
+          "width": 10.0,
+          "height": 9.0,
+          "hinge": "start",
+          "swing": "positive"
+        }
+      ],
+      "void_center": [
+        90,
+        44
+      ],
+      "void_size": [
+        30,
+        18
+      ],
+      "void_shape": "rectangle",
+      "label": "Bay A",
+      "braille": "⠃⠁⠽ ⠁"
+    },
+    "B": {
+      "grid_type": "radial",
+      "z_order": 2,
+      "origin": [
+        90,
+        145
+      ],
+      "rotation_deg": 0.0,
+      "bays": [
+        3,
+        3
+      ],
+      "spacing": [
+        24,
+        24
+      ],
+      "spacing_x": null,
+      "spacing_y": null,
+      "rings": 3,
+      "ring_spacing": 20,
+      "arms": 8,
+      "arc_deg": 360.0,
+      "arc_start_deg": 0.0,
+      "corridor": {
+        "enabled": false,
+        "axis": "x",
+        "position": 1,
+        "width": 8.0,
+        "loading": "double",
+        "hatch": "none",
+        "hatch_scale": 4.0
+      },
+      "walls": {
+        "enabled": false,
+        "thickness": 0.5
+      },
+      "apertures": [],
+      "void_center": [
+        90,
+        145
+      ],
+      "void_size": [
+        20,
+        20
+      ],
+      "void_shape": "circle",
+      "label": "Bay B",
+      "braille": "⠃⠁⠽ ⠃"
+    },
+    "C": {
+      "grid_type": "rectangular",
+      "z_order": 1,
+      "origin": [
+        30,
+        210
+      ],
+      "rotation_deg": 0.0,
+      "bays": [
+        4,
+        1
+      ],
+      "spacing": [
+        24,
+        30
+      ],
+      "spacing_x": null,
+      "spacing_y": null,
+      "rings": 4,
+      "ring_spacing": 20.0,
+      "arms": 8,
+      "arc_deg": 360.0,
+      "arc_start_deg": 0.0,
+      "corridor": {
+        "enabled": true,
+        "axis": "y",
+        "position": 2,
+        "width": 8.0,
+        "loading": "single",
+        "hatch": "Hatch1",
+        "hatch_scale": 4.0
+      },
+      "walls": {
+        "enabled": false,
+        "thickness": 0.5
+      },
+      "apertures": [],
+      "void_center": [
+        78,
+        225
+      ],
+      "void_size": [
+        20,
+        14
+      ],
+      "void_shape": "rectangle",
+      "label": "Bay C",
+      "braille": "⠃⠁⠽ ⠉"
+    }
+  },
+  "blocks": {
+    "door": {
+      "symbol": "arc_swing",
+      "label_prefix": "D",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.35
+    },
+    "window": {
+      "symbol": "glass_line",
+      "label_prefix": "W",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.25
+    },
+    "portal": {
+      "symbol": "bracket_arrow",
+      "label_prefix": "P",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.35
+    },
+    "room": {
+      "symbol": "boundary_label",
+      "show_label": true,
+      "label_height": 3.0,
+      "tactile_weight_mm": 0.5
+    }
+  },
+  "rooms": {
+    "bay_A": {
+      "type": "bay",
+      "source_bay": "A",
+      "label": "Bay A",
+      "braille": "⠃⠁⠽ ⠁",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "void_A": {
+      "type": "void",
+      "source_bay": "A",
+      "label": "Bay A Void",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "bay_B": {
+      "type": "bay",
+      "source_bay": "B",
+      "label": "Bay B",
+      "braille": "⠃⠁⠽ ⠃",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "void_B": {
+      "type": "void",
+      "source_bay": "B",
+      "label": "Bay B Void",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "bay_C": {
+      "type": "bay",
+      "source_bay": "C",
+      "label": "Bay C",
+      "braille": "⠃⠁⠽ ⠉",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "void_C": {
+      "type": "void",
+      "source_bay": "C",
+      "label": "Bay C Void",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "landscape": {
+      "type": "landscape",
+      "source_bay": null,
+      "label": "Landscape",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    }
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right",
+    "custom_origin": [
+      0,
+      0
+    ],
+    "width": 40.0,
+    "title": "Legend",
+    "title_braille": "",
+    "show_braille": true,
+    "show_hatches": true,
+    "show_apertures": true,
+    "swatch_size": 5.0,
+    "row_height": 7.0,
+    "text_height": 2.0,
+    "braille_height": 2.5,
+    "border_weight_mm": 0.5,
+    "padding": 3.0
+  },
+  "tactile3d": {
+    "enabled": false,
+    "wall_height": 9.0,
+    "cut_height": 4.0,
+    "floor_thickness": 0.5,
+    "floor_enabled": true,
+    "auto_export": false,
+    "export_path": "./tactile3d_export.stl",
+    "scale_factor": 1.0
+  },
+  "hatch_library_path": "./hatches/",
+  "print": {
+    "scale_ft_per_inch": 8,
+    "paper_width_in": 24.0,
+    "paper_height_in": 36.0,
+    "margin_in": 0.5,
+    "dpi": 300,
+    "format": "png",
+    "request_id": 0
+  },
+  "bambu": {
+    "printer_ip": "",
+    "access_code": "",
+    "serial_number": "",
+    "printer_model": "p1s",
+    "print_scale": 200,
+    "stl_path": "./tactile_model.stl",
+    "slicer_path": ""
+  }
+}
