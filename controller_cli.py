@@ -25,7 +25,7 @@ Usage
   python controller_cli.py
   python controller_cli.py --state "/path/to/state.json"
 """
-import argparse, copy, json, math, os, sys, time
+import argparse, copy, json, math, os, subprocess, sys, time
 from datetime import datetime
 
 SCHEMA = "plan_layout_jig_v2.3"
@@ -51,6 +51,92 @@ def _atomic_write(path, text):
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(text)
     os.replace(tmp, path)
+
+def _speak(text, rate=2):
+    """Fire-and-forget TTS via PowerShell SpeechSynthesizer.
+
+    Strips OK:/ERROR: prefixes for cleaner speech.
+    Returns True on success, False if speech fails.
+    """
+    clean = text.strip()
+    for prefix in ("OK: ", "ERROR: ", "CHANGED: "):
+        if clean.startswith(prefix):
+            clean = clean[len(prefix):]
+            break
+    # Escape single quotes for PowerShell
+    escaped = clean.replace("'", "''")
+    ps_cmd = (
+        f"Add-Type -AssemblyName System.Speech;"
+        f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+        f"$s.Rate={int(rate)};"
+        f"$s.Speak('{escaped}')"
+    )
+    try:
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except Exception:
+        return False
+
+def _history_dir(state_file):
+    """Return path to the history/ folder alongside the state file."""
+    return os.path.join(os.path.dirname(os.path.abspath(state_file)), "history")
+
+def _history_save(state_file, state, seq_num):
+    """Write a numbered history snapshot: history/0001.json, etc."""
+    hdir = _history_dir(state_file)
+    os.makedirs(hdir, exist_ok=True)
+    fname = os.path.join(hdir, f"{seq_num:04d}.json")
+    _atomic_write(fname, json.dumps(state, indent=2, ensure_ascii=False))
+
+def _history_delete_last(state_file, seq_num):
+    """Remove the last numbered history file on undo."""
+    hdir = _history_dir(state_file)
+    fname = os.path.join(hdir, f"{seq_num:04d}.json")
+    if os.path.exists(fname):
+        os.remove(fname)
+
+def _history_count(state_file):
+    """Count numbered history files (0001.json, 0002.json, ...)."""
+    hdir = _history_dir(state_file)
+    if not os.path.isdir(hdir):
+        return 0
+    return sum(1 for f in os.listdir(hdir)
+               if f.endswith(".json") and f[:4].isdigit())
+
+def _history_list(state_file):
+    """List all files in the history folder (numbered + snapshots)."""
+    hdir = _history_dir(state_file)
+    if not os.path.isdir(hdir):
+        return [], []
+    files = sorted(f for f in os.listdir(hdir) if f.endswith(".json"))
+    numbered = [f for f in files if f[:4].isdigit()]
+    snapshots = [f for f in files if f.startswith("snapshot_")]
+    return numbered, snapshots
+
+def _snapshot_save(state_file, state, name):
+    """Write a named snapshot: history/snapshot_<name>.json."""
+    hdir = _history_dir(state_file)
+    os.makedirs(hdir, exist_ok=True)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+    fname = os.path.join(hdir, f"snapshot_{safe}.json")
+    _atomic_write(fname, json.dumps(state, indent=2, ensure_ascii=False))
+    return fname
+
+def _snapshot_load(state_file, name):
+    """Load a named snapshot. Returns the state dict or raises ValueError."""
+    hdir = _history_dir(state_file)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+    fname = os.path.join(hdir, f"snapshot_{safe}.json")
+    if not os.path.isfile(fname):
+        # Try exact match
+        available = [f[9:-5] for f in os.listdir(hdir)
+                     if f.startswith("snapshot_") and f.endswith(".json")] if os.path.isdir(hdir) else []
+        avail_s = ", ".join(available) if available else "(none)"
+        raise ValueError(f"Snapshot '{name}' not found. Available: {avail_s}")
+    with open(fname, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def _fmt(p):
     return f"({p[0]:.1f}, {p[1]:.1f})"
@@ -161,6 +247,12 @@ def _default_bambu():
         "stl_path": "./tactile_model.stl",
         "slicer_path": "",          # path to OrcaSlicer executable
     }
+
+def _default_tts():
+    return {"enabled": False, "rate": 2}
+
+def _default_section():
+    return {"axis": None, "offset": None, "last_export_path": None}
 
 def _default_bay(name, origin,
                  grid_type="rectangular", z_order=0,
@@ -635,6 +727,22 @@ def describe(state):
                  f"stl_path={bam.get('stl_path','./tactile_model.stl')}")
     if bam.get("slicer_path"):
         lines.append(f"  slicer={bam['slicer_path']}")
+    lines.append("")
+
+    # ── TTS ──
+    tts = state.get("tts", {})
+    lines.append(f"TTS: {'ON' if tts.get('enabled') else 'OFF'}  "
+                 f"rate={tts.get('rate', 2)}")
+    lines.append("")
+
+    # ── Section Cut ──
+    sec = state.get("section", {})
+    if sec.get("axis"):
+        lines.append(f"SECTION CUT: {sec['axis'].upper()}={sec['offset']:.1f} ft")
+        if sec.get("last_export_path"):
+            lines.append(f"  Last export: {sec['last_export_path']}")
+    else:
+        lines.append("SECTION CUT: not defined")
     lines.append("")
 
     # ── Hatch library ──
@@ -1468,10 +1576,182 @@ def _cmd_set_bay(state, tokens):
                      "arc_start_deg, void_center, void_size, void_shape, label, braille")
 
 # ══════════════════════════════════════════════════════════
+# SECTION CUT
+# ══════════════════════════════════════════════════════════
+
+def cmd_section(state, tokens):
+    """Section cut commands: section x|y <offset>, preview, export, list, clear."""
+    if "section" not in state:
+        state["section"] = _default_section()
+    sec = state["section"]
+    if len(tokens) < 2:
+        raise ValueError("Usage: section x|y <offset> | preview | export [path] | list | clear")
+    sub = tokens[1].lower()
+
+    if sub in ("x", "y"):
+        if len(tokens) < 3:
+            raise ValueError(f"section {sub} <offset>")
+        offset = _float(tokens[2], "offset")
+        sec["axis"] = sub
+        sec["offset"] = offset
+        return state, f"OK: Section cut set to {sub.upper()}={offset:.1f} ft."
+
+    if sub == "list":
+        if sec["axis"] is None:
+            return state, "Section cut: not defined. Use 'section x|y <offset>'."
+        msg = (f"Section cut: {sec['axis'].upper()}={sec['offset']:.1f} ft")
+        if sec.get("last_export_path"):
+            msg += f"\n  Last export: {sec['last_export_path']}"
+        return state, msg
+
+    if sub == "clear":
+        sec["axis"] = None
+        sec["offset"] = None
+        sec["last_export_path"] = None
+        return state, "OK: Section cut cleared."
+
+    if sub in ("preview", "export"):
+        if sec["axis"] is None:
+            raise ValueError("No section cut defined. Use 'section x|y <offset>' first.")
+        try:
+            import tactile_print as tp
+        except ImportError:
+            raise RuntimeError(
+                "tactile_print.py not found. Place it in the same folder.")
+        triangles = tp.build_mesh(state)
+        if not triangles:
+            raise RuntimeError("No mesh geometry. Enable walls on at least one bay.")
+        segments = tp.section_cut(triangles, sec["axis"], sec["offset"])
+
+        if sub == "preview":
+            if not segments:
+                return state, (f"Section {sec['axis'].upper()}={sec['offset']:.1f}: "
+                               f"0 segments. Plane misses all geometry.")
+            all_u = [p[0] for s in segments for p in s]
+            all_v = [p[1] for s in segments for p in s]
+            u_ext = max(all_u) - min(all_u)
+            v_ext = max(all_v) - min(all_v)
+            return state, (f"Section {sec['axis'].upper()}={sec['offset']:.1f}: "
+                           f"{len(segments)} segments, "
+                           f"extent {u_ext:.1f} x {v_ext:.1f} ft.")
+
+        # export
+        path = tokens[2] if len(tokens) > 2 else None
+        if path is None:
+            path = f"./section_{sec['axis']}_{sec['offset']:.0f}.svg"
+
+        title = f"Section {sec['axis'].upper()}={sec['offset']:.1f} ft"
+        svg = tp.section_to_svg(segments, title=title)
+        _atomic_write(path, svg)
+        sec["last_export_path"] = path
+        return state, (f"OK: Section exported — {len(segments)} segments to {path}")
+
+    raise ValueError("Section subcommands: x|y <offset>, preview, export [path], list, clear")
+
+# ══════════════════════════════════════════════════════════
+# HISTORY & SNAPSHOTS
+# ══════════════════════════════════════════════════════════
+
+def cmd_history(state, tokens, state_file=None):
+    """History commands: history list|count."""
+    if len(tokens) < 2:
+        raise ValueError("Usage: history list|count")
+    sub = tokens[1].lower()
+    if sub == "count":
+        n = _history_count(state_file) if state_file else 0
+        return state, f"History: {n} entries."
+    if sub == "list":
+        if not state_file:
+            return state, "History not available (no state file)."
+        numbered, snapshots = _history_list(state_file)
+        lines = [f"History: {len(numbered)} entries, {len(snapshots)} snapshots."]
+        if numbered:
+            show = numbered[-20:]  # last 20
+            if len(numbered) > 20:
+                lines.append(f"  (showing last 20 of {len(numbered)})")
+            for f in show:
+                seq = f[:4]
+                lines.append(f"  {seq}: {f}")
+        if snapshots:
+            lines.append("Named snapshots:")
+            for f in snapshots:
+                name = f[9:-5]  # strip snapshot_ and .json
+                lines.append(f"  {name}")
+        return state, "\n".join(lines)
+    raise ValueError("History subcommands: list, count")
+
+def cmd_snapshot(state, tokens, state_file=None):
+    """Snapshot commands: snapshot save|load|list <name>."""
+    if len(tokens) < 2:
+        raise ValueError("Usage: snapshot save|load|list <name>")
+    sub = tokens[1].lower()
+    if sub == "list":
+        if not state_file:
+            return state, "Snapshots not available (no state file)."
+        _, snapshots = _history_list(state_file)
+        if not snapshots:
+            return state, "No named snapshots. Use 'snapshot save <name>' to create one."
+        lines = [f"Named snapshots ({len(snapshots)}):"]
+        for f in snapshots:
+            name = f[9:-5]
+            fpath = os.path.join(_history_dir(state_file), f)
+            sz = os.path.getsize(fpath)
+            mt = time.ctime(os.path.getmtime(fpath))
+            lines.append(f"  {name}  ({sz:,} bytes, {mt})")
+        return state, "\n".join(lines)
+    if sub == "save":
+        if len(tokens) < 3:
+            raise ValueError("snapshot save <name>")
+        name = tokens[2]
+        if not state_file:
+            raise ValueError("Cannot save snapshot (no state file).")
+        fpath = _snapshot_save(state_file, state, name)
+        return state, f"OK: Snapshot '{name}' saved to {fpath}."
+    if sub == "load":
+        if len(tokens) < 3:
+            raise ValueError("snapshot load <name>")
+        name = tokens[2]
+        if not state_file:
+            raise ValueError("Cannot load snapshot (no state file).")
+        loaded = _snapshot_load(state_file, name)
+        return loaded, f"OK: Snapshot '{name}' loaded."
+    raise ValueError("Snapshot subcommands: save, load, list")
+
+# ══════════════════════════════════════════════════════════
+# TTS
+# ══════════════════════════════════════════════════════════
+
+def cmd_tts(state, tokens):
+    """Text-to-speech control: tts [on|off|rate <-10..10>]."""
+    if "tts" not in state:
+        state["tts"] = _default_tts()
+    tts = state["tts"]
+    if len(tokens) < 2:
+        status = "ON" if tts["enabled"] else "OFF"
+        return state, f"TTS: {status}, rate={tts['rate']}."
+    sub = tokens[1].lower()
+    if sub == "on":
+        tts["enabled"] = True
+        return state, "OK: TTS enabled."
+    if sub == "off":
+        tts["enabled"] = False
+        return state, "OK: TTS disabled."
+    if sub == "rate":
+        if len(tokens) < 3:
+            raise ValueError("tts rate <-10..10>")
+        v = int(tokens[2])
+        if v < -10 or v > 10:
+            raise ValueError("Rate must be between -10 and 10.")
+        old = tts["rate"]
+        tts["rate"] = v
+        return state, f"OK: TTS rate = {v}. Was {old}."
+    raise ValueError("TTS subcommands: on, off, rate <-10..10>")
+
+# ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
 # ══════════════════════════════════════════════════════════
 
-def apply_command(state, tokens):
+def apply_command(state, tokens, state_file=None):
     if not tokens: return state, ""
     cmd = tokens[0].lower()
     if cmd in ("quit","q","exit"):   return state, "__QUIT__"
@@ -1494,6 +1774,10 @@ def apply_command(state, tokens):
     if cmd == "legend":   return cmd_legend(state, tokens)
     if cmd == "tactile3d": return cmd_tactile3d(state, tokens)
     if cmd == "bambu":    return cmd_bambu(state, tokens)
+    if cmd == "tts":      return cmd_tts(state, tokens)
+    if cmd == "section":  return cmd_section(state, tokens)
+    if cmd == "history":  return cmd_history(state, tokens, state_file)
+    if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -1621,6 +1905,25 @@ HATCH LIBRARY:
   hatch path <folder>
   hatch add <name> <source_image_path>
 
+SECTION CUT (SVG export of vertical slice):
+  section x|y <offset> ....... define cut plane
+  section preview ............. show segment count and extent
+  section export [path] ....... export SVG (default: ./section_<axis>_<offset>.svg)
+  section list ................ current section settings
+  section clear ............... remove section definition
+
+HISTORY & SNAPSHOTS:
+  history list ............... show last 20 history entries + snapshots
+  history count .............. number of history entries
+  snapshot save <name> ....... save current state as named snapshot
+  snapshot load <name> ....... restore a named snapshot
+  snapshot list .............. list all named snapshots
+
+TEXT-TO-SPEECH:
+  tts ........................ show TTS status
+  tts on|off ................. enable/disable speech
+  tts rate <-10..10> ......... speech rate (-10=slowest, 10=fastest)
+
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>
   print
@@ -1630,6 +1933,8 @@ def main():
     ap = argparse.ArgumentParser(description="Plan Layout Jig — Terminal CLI")
     ap.add_argument("--state", default=_default_state_path(),
                     help="Path to the JSON state file")
+    ap.add_argument("--tts", action="store_true",
+                    help="Enable text-to-speech on startup")
     args = ap.parse_args(); state_file = os.path.abspath(args.state)
     try: state = load_state(state_file)
     except Exception as e: print(f"[ERROR] {e}"); sys.exit(1)
@@ -1643,9 +1948,30 @@ def main():
     if "auto_export" not in state.get("tactile3d",{}):
         state["tactile3d"]["auto_export"] = False
     if "bambu" not in state: state["bambu"] = _default_bambu()
+    if "tts" not in state: state["tts"] = _default_tts()
+    if "section" not in state: state["section"] = _default_section()
+    if args.tts:
+        state["tts"]["enabled"] = True
+
+    # TTS availability check
+    tts_available = True
+
+    def _out(text):
+        """Print text and optionally speak it via TTS."""
+        nonlocal tts_available
+        print(text)
+        if tts_available and state.get("tts", {}).get("enabled"):
+            rate = state.get("tts", {}).get("rate", 2)
+            ok = _speak(text, rate=rate)
+            if not ok:
+                tts_available = False
+
     undo_stack = []
-    print("PLAN LAYOUT JIG v2.3 — Terminal CLI")
+    history_seq = _history_count(state_file)
+    _out("PLAN LAYOUT JIG v2.3 — Terminal CLI")
     print(f"State: {state_file}")
+    if state.get("tts", {}).get("enabled"):
+        print("TTS: ON")
     print("Type 'help' for commands, 'describe' for full model info.\n")
     save_state(state_file, state)
     while True:
@@ -1653,31 +1979,39 @@ def main():
         except (EOFError, KeyboardInterrupt): print("\nExiting."); break
         if not raw: continue
         tokens = tokenize(raw); before = copy.deepcopy(state)
-        try: state, msg = apply_command(state, tokens)
-        except Exception as e: print(f"Error: {e}"); continue
+        try: state, msg = apply_command(state, tokens, state_file=state_file)
+        except Exception as e: _out(f"Error: {e}"); continue
         if msg == "__QUIT__": break
         if msg == "__HELP__": print(HELP_TEXT); continue
         if msg == "__STATUS__":
             print(f"State: {state_file}")
             try: st = os.stat(state_file); print(f"Modified: {time.ctime(st.st_mtime)}  Size: {st.st_size} bytes")
             except: pass
+            print(f"History: {history_seq} entries")
             continue
         if msg == "__DESCRIBE__": print(describe(state)); continue
         if msg == "__LIST_BAYS__": print(list_bays(state)); continue
         if msg == "__UNDO__":
-            if undo_stack: state = undo_stack.pop(); save_state(state_file, state); print("Undo.")
-            else: print("Nothing to undo.")
+            if undo_stack:
+                state = undo_stack.pop()
+                save_state(state_file, state)
+                _history_delete_last(state_file, history_seq)
+                history_seq = max(0, history_seq - 1)
+                _out("Undo.")
+            else: _out("Nothing to undo.")
             continue
-        if msg == "__PRINT__": undo_stack.append(before); print(do_print(state, state_file)); continue
+        if msg == "__PRINT__": undo_stack.append(before); _out(do_print(state, state_file)); continue
         undo_stack.append(before)
         try:
-            save_state(state_file, state); print(msg)
+            save_state(state_file, state); _out(msg)
+            history_seq += 1
+            _history_save(state_file, state, history_seq)
             # Clear one-shot export flag after save so it doesn't
             # re-trigger on subsequent commands
             t3 = state.get("tactile3d")
             if t3 and t3.get("_export_once"):
                 t3["_export_once"] = False
-        except Exception as e: state = before; undo_stack.pop(); print(f"[ERROR] {e}")
+        except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")
     try: save_state(state_file, state)
     except: pass
 

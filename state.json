@@ -2,7 +2,7 @@
   "schema": "plan_layout_jig_v2.3",
   "meta": {
     "created": "2026-02-23 10:21:07",
-    "last_saved": "2026-02-24 18:36:56",
+    "last_saved": "2026-02-24 20:10:00",
     "notes": "Plan Layout Jig v2.3"
   },
   "site": {
@@ -352,5 +352,14 @@
     "print_scale": 200,
     "stl_path": "./tactile_model.stl",
     "slicer_path": ""
+  },
+  "tts": {
+    "enabled": false,
+    "rate": 2
+  },
+  "section": {
+    "axis": null,
+    "offset": null,
+    "last_export_path": null
   }
 }

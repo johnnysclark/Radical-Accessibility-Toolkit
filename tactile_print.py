@@ -269,6 +269,119 @@ def build_mesh(state):
 
 
 # ══════════════════════════════════════════════════════════
+# SECTION CUT — slice mesh with constant-axis plane
+# ══════════════════════════════════════════════════════════
+
+def _lerp_edge(v_in, v_out, d_in, d_out):
+    """Linearly interpolate between two 3D points at the plane crossing.
+
+    d_in and d_out are signed distances from the cutting plane.
+    Returns the intersection point as (x, y, z).
+    """
+    t = d_in / (d_in - d_out)
+    return (v_in[0] + t * (v_out[0] - v_in[0]),
+            v_in[1] + t * (v_out[1] - v_in[1]),
+            v_in[2] + t * (v_out[2] - v_in[2]))
+
+
+def section_cut(triangles, axis, offset):
+    """Slice a triangle mesh with a constant-X or constant-Y plane.
+
+    Args:
+        triangles: list of (normal, v0, v1, v2) from build_mesh()
+        axis: "x" or "y" — the axis the plane is perpendicular to
+        offset: the position along that axis where the plane sits
+
+    Returns a list of 2D line segments [((u1,v1),(u2,v2)), ...]
+    where u is the in-plane horizontal axis and v is the Z axis.
+    For axis="x": u=Y, v=Z.  For axis="y": u=X, v=Z.
+    """
+    ax = 0 if axis.lower() == "x" else 1
+    segments = []
+
+    for _, v0, v1, v2 in triangles:
+        verts = [v0, v1, v2]
+        dists = [v[ax] - offset for v in verts]
+
+        # Classify vertices as inside (>=0) or outside (<0)
+        pos = [i for i in range(3) if dists[i] >= 0]
+        neg = [i for i in range(3) if dists[i] < 0]
+
+        # No intersection if all on one side
+        if len(pos) == 0 or len(neg) == 0:
+            # Check for exact plane-coincident edge (dist == 0)
+            on_plane = [i for i in range(3) if abs(dists[i]) < 1e-9]
+            if len(on_plane) == 2:
+                i, j = on_plane
+                vi, vj = verts[i], verts[j]
+                # Project to 2D: (other_axis, z)
+                other = 1 if ax == 0 else 0
+                p1 = (vi[other], vi[2])
+                p2 = (vj[other], vj[2])
+                if abs(p1[0] - p2[0]) > 1e-9 or abs(p1[1] - p2[1]) > 1e-9:
+                    segments.append((p1, p2))
+            continue
+
+        # Find the two intersection points
+        cross_pts = []
+        for p_idx in pos:
+            for n_idx in neg:
+                pt = _lerp_edge(verts[p_idx], verts[n_idx],
+                                dists[p_idx], dists[n_idx])
+                cross_pts.append(pt)
+
+        if len(cross_pts) >= 2:
+            other = 1 if ax == 0 else 0
+            p1 = (cross_pts[0][other], cross_pts[0][2])
+            p2 = (cross_pts[1][other], cross_pts[1][2])
+            if abs(p1[0] - p2[0]) > 1e-9 or abs(p1[1] - p2[1]) > 1e-9:
+                segments.append((p1, p2))
+
+    return segments
+
+
+def section_to_svg(segments, title="Section Cut", stroke_width=0.5):
+    """Generate an SVG string from 2D section line segments.
+
+    Uses scale(1,-1) to flip Y for architectural Z-up convention.
+    """
+    if not segments:
+        return '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+
+    # Compute bounds
+    all_u = [p[0] for seg in segments for p in seg]
+    all_v = [p[1] for seg in segments for p in seg]
+    u_min, u_max = min(all_u), max(all_u)
+    v_min, v_max = min(all_v), max(all_v)
+
+    pad = max((u_max - u_min), (v_max - v_min)) * 0.05 + 1.0
+    vb_x = u_min - pad
+    vb_y = -(v_max + pad)  # flipped
+    vb_w = (u_max - u_min) + 2 * pad
+    vb_h = (v_max - v_min) + 2 * pad
+
+    lines_svg = []
+    for (u1, v1), (u2, v2) in segments:
+        lines_svg.append(
+            f'  <line x1="{u1:.4f}" y1="{-v1:.4f}" '
+            f'x2="{u2:.4f}" y2="{-v2:.4f}" '
+            f'stroke="black" stroke-width="{stroke_width}" '
+            f'stroke-linecap="round"/>')
+
+    title_esc = title.replace("&", "&amp;").replace("<", "&lt;")
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="{vb_x:.4f} {vb_y:.4f} {vb_w:.4f} {vb_h:.4f}" '
+        f'width="{vb_w:.1f}" height="{vb_h:.1f}">\n'
+        f'  <title>{title_esc}</title>\n'
+        f'  <rect x="{vb_x:.4f}" y="{vb_y:.4f}" '
+        f'width="{vb_w:.4f}" height="{vb_h:.4f}" fill="white"/>\n'
+        + "\n".join(lines_svg) + "\n"
+        f'</svg>')
+    return svg
+
+
+# ══════════════════════════════════════════════════════════
 # STL EXPORT — binary format, no dependencies
 # ══════════════════════════════════════════════════════════
 
