@@ -641,3 +641,486 @@ For positioning the Radical Accessibility Project within the ACADIA discourse, r
 18. **Das et al. (2024)** -- How blind people use generative AI
 19. **Stangl et al. (2021)** -- Context-aware image descriptions
 20. **Lundgard & Satyanarayan (2022)** -- Four-level model for accessible descriptions
+
+---
+
+## CROSS-DISCIPLINARY FOUNDATIONS (Deep Dive, Round 2)
+
+The papers above are drawn from computational design and HCI conferences — the expected venues for an ACADIA submission. But the Radical Accessibility Project's argument is fundamentally interdisciplinary. It draws on architectural phenomenology, critical disability studies, cognitive science, acoustic ecology, and the politics of technology. The following works provide the deeper theoretical scaffolding that transforms the paper from a tool demo into a disciplinary critique.
+
+---
+
+### Theme H: Architectural Phenomenology — The Sensory Beyond Vision
+
+These works provide the philosophical foundation for arguing that architecture is fundamentally multi-sensory and that visual dominance in design tools represents an impoverishment, not a neutral default.
+
+#### H.1 Pallasmaa, J. (1996/2005/2012). *The Eyes of the Skin: Architecture and the Senses.*
+- **Already in original review (9.1).** Remains the foundational text.
+
+#### H.2 Zumthor, P. (2006). *Atmospheres: Architectural Environments — Surrounding Objects.*
+- **Publisher:** Birkhäuser
+- **Summary:** Zumthor identifies nine generators of architectural atmosphere: The Body of Architecture, Material Compatibility, The Sound of a Space, The Temperature of a Space, Surrounding Objects, Between Composure and Seduction, Tension between Interior and Exterior, Levels of Intimacy, and The Light of Things. Crucially, only one of these nine — Light — is primarily visual. Sound, temperature, material feel, and spatial tension are all non-visual.
+- **Relevance:** Zumthor's nine generators provide an operational vocabulary for what the project's tools must capture. The CLI's semantic model (bays, corridors, columns, voids) describes the "Body of Architecture." The planned sonification pipeline could address "The Sound of a Space." The project demonstrates that computational tools can encode Zumthor's multi-sensory architecture, not just its visual projection.
+
+#### H.3 Böhme, G. (2017). *The Aesthetics of Atmospheres.* Ed. Jean-Paul Thibaud.
+- **Publisher:** Routledge
+- **Summary:** Argues that spatial atmospheres exert tangible emotional effects by appealing directly to the senses. Architecture is experienced through bodily, multi-sensory perception before intellectual comprehension. Develops a "new aesthetics" grounded in embodied experience rather than visual contemplation.
+- **Relevance:** Böhme's theory that we experience space sensorially *before* we understand it visually directly supports the project's thesis. If atmosphere precedes vision, then tools that bypass vision and work through text, sound, and touch are not lesser — they may access architectural experience more directly.
+
+#### H.4 Pérez-Gómez, A. (2016). *Attunement: Architectural Meaning after the Crisis of Modern Science.*
+- **Publisher:** MIT Press
+- **Summary:** Argues that architecture's essential task is attunement between human beings and their environment. Draws on embodied cognition research to argue that the built environment is a constituent part of consciousness. Perception is established as something we *do*, not something that happens to us — proactive, not merely reactive.
+- **Relevance:** "Attunement" reframes architecture as an active, embodied relationship — not a picture. This supports the project's argument that Daniel's tactile, auditory, and command-line engagement with architecture is not a workaround for "real" (visual) design but a different — possibly deeper — form of architectural attunement.
+
+#### H.5 Holl, S., Pallasmaa, J., & Pérez-Gómez, A. (1994/2006). *Questions of Perception: Phenomenology of Architecture.*
+- **Publisher:** A+U / William Stout
+- **Summary:** Three interlocking essays — Holl on "phenomenal zones" (color, light, shadow, time, sound), Pallasmaa on "An Architecture of the Seven Senses," Pérez-Gómez on "The Space of Architecture: Meaning as Presence and Representation." Collectively argues that architecture is a multi-sensory phenomenon irreducible to its visual representation.
+- **Relevance:** The canonical collaborative text linking phenomenology and architecture. Pallasmaa's "seven senses" essay directly supports the project's argument that architecture engages senses beyond sight. The project operationalizes this philosophical position through tools.
+
+---
+
+### Theme I: The Phenomenology and Cognition of Blindness
+
+These works address how blind people actually perceive, navigate, and understand space — the empirical foundation for the project's design decisions.
+
+#### I.1 Merleau-Ponty, M. (1945/1962). *Phenomenology of Perception.*
+- **Publisher:** Routledge (trans. Colin Smith; later trans. Donald Landes, 2012)
+- **Summary:** The foundational phenomenological text on embodied perception. Argues for "the primacy of perception" — that consciousness is fundamentally embodied, not disembodied cognition. Introduces the famous "blind man's cane" example: the cane becomes an extension of the body schema, demonstrating that perception is not limited to biological sense organs.
+- **Relevance:** Provides the deepest philosophical foundation for the project. If perception is embodied and extends through tools (the cane), then the CLI is Daniel's "cane" for architectural design — an extension of his body schema into the design model. However, see Reynolds (I.2) for critical corrections.
+
+#### I.2 Reynolds, J.M. (2017). "Merleau-Ponty, World-Creating Blindness, and the Phenomenology of Non-Normate Bodies."
+- **Venue:** Chiasmi International, Vol. 19, pp. 419–436
+- **URL:** https://philarchive.org/rec/REYMWB
+- **Summary:** Critiques Merleau-Ponty's "blind man's cane" example for omitting social dimensions of disability, misconstruing blindness as world-creating, and operating via an able-bodied simulation. Argues that phenomenology must heed "crip phenomenology" — taking the lived experience of disability as its departure point rather than simulating it from a normate perspective.
+- **Relevance:** Essential corrective. The project must not romanticize or simulate blindness (a common trap in "designing for empathy" approaches). Reynolds' argument supports the project's methodology: Daniel is a co-designer, not a subject. The tools are built *from* his experience, not *about* it.
+
+#### I.3 Saerberg, S. (2010). "'Just go straight ahead': How Blind and Sighted Pedestrians Negotiate Space."
+- **Venue:** The Senses and Society, Vol. 5, No. 3
+- **Summary:** Ethnographic study of how blind pedestrians negotiate spatial environments. Draws on Schütz and Merleau-Ponty to show that blindness constitutes a distinct perceptual lifeworld — not a deficit version of sighted experience. Blind pedestrians rely on sequential, route-based spatial knowledge rather than simultaneous, survey-based knowledge.
+- **Relevance:** The distinction between sequential/route knowledge and simultaneous/survey knowledge maps directly onto the project's interface design. The CLI's sequential command structure (one command at a time, building up a model incrementally) aligns with how blind people naturally build spatial understanding. Visual CAD's simultaneous display of the entire model is inherently survey-based.
+
+#### I.4 Chen, Q., et al. (2024). "Perception beyond sight: Investigating the cognitive maps of congenitally blind individuals in urban environments."
+- **Venue:** ScienceDirect (2024)
+- **URL:** https://www.sciencedirect.com/science/article/pii/S2095263524000281
+- **Summary:** Studies how congenitally blind individuals construct cognitive maps of cities using touch, hearing, smell, safety sense, and experience. Mental maps consist of five elements: links, reference points, areas, separators, and topography.
+- **Relevance:** Provides empirical evidence for how Daniel likely constructs mental models of the architectural designs he creates. The CLI's semantic vocabulary (bays, corridors, columns) maps onto the "reference points" and "areas" that blind cognitive maps prioritize.
+
+#### I.5 Giudice, N.A. (2018). "Navigating without Vision: Principles of Blind Spatial Cognition."
+- **Venue:** Handbook of Behavioral and Cognitive Geography (Edward Elgar)
+- **Summary:** Reviews research on spatial cognition without vision. Key finding: blind people can and do form accurate spatial representations, but through different processes than sighted people — sequential, landmark-based, and language-mediated rather than simultaneous and visual.
+- **Relevance:** The "language-mediated" finding is critical. It means that Daniel's text-based interaction with architecture is not a workaround — it is aligned with how spatial cognition actually works without vision. Language *is* a spatial medium for blind people.
+
+#### I.6 Cattaneo, Z. & Vecchi, T. (2011). *Blind Vision: The Neuroscience of Visual Impairment.*
+- **Publisher:** MIT Press
+- **Summary:** Comprehensive review of neuroscience research on how blindness affects (and does not affect) spatial cognition. Demonstrates that blind individuals develop robust spatial representations through touch, hearing, and language. Challenges deficit models of blindness.
+- **Relevance:** Provides neuroscientific evidence supporting the project's thesis that blindness does not preclude rich spatial reasoning — it merely requires different input modalities. The CLI provides one such modality; the tactile output provides another.
+
+---
+
+### Theme J: Critical Disability Studies and the Politics of Design
+
+These works provide the theoretical framework for arguing that the project is *disciplinarily transformative, not assistive* — that it reveals structural biases in architecture's tool ecosystem.
+
+#### J.1 Hamraie, A. (2017). *Building Access: Universal Design and the Politics of Disability.*
+- **Publisher:** University of Minnesota Press
+- **URL:** https://www.upress.umn.edu/9781517901646/building-access/
+- **Summary:** Blends technoscience studies and design history with critical disability, race, and feminist theories. Traces the co-evolution of accessible design for disabled veterans, a radical disability maker movement, disability rights law, and strategies for diversifying the architecture profession. Introduces "normate template" and "crip technoscience" concepts.
+- **Relevance:** The most important critical-theoretical text for the project's framing. Hamraie's "normate template" concept applies directly to CAD tools: Rhino, Grasshopper, and Revit are designed around a normate template that assumes a sighted, mouse-using operator. The project replaces this template with one that assumes a screen-reader-using, keyboard-operating architect.
+
+#### J.2 Hamraie, A. & Fritsch, K. (2019). "Crip Technoscience Manifesto."
+- **Venue:** Catalyst: Feminism, Theory, Technoscience, Vol. 5, No. 1
+- **URL:** https://catalystjournal.org/index.php/catalyst/article/view/29607
+- **Summary:** Defines "crip technoscience" as a field centering the work disabled people do as "knowers and makers." Challenges the imperatives to be typical, productive, and functioning. Argues that too often in architecture and design, disabled people are treated solely as users, not as makers.
+- **Relevance:** The Crip Technoscience Manifesto provides the theoretical language for the project's most radical claim: Daniel is not a user of accessibility features — he is a maker of architectural knowledge. The project's tools don't accommodate his blindness; they *leverage* it as a source of design insight. The manifesto's commitment to "interdependence as political technology" also frames the controller/viewer separation: Daniel and his sighted collaborators are interdependent, not in a helper/helped relationship.
+
+#### J.3 Gissen, D. (2022). *The Architecture of Disability: Buildings, Cities, and Landscapes beyond Access.*
+- **Publisher:** University of Minnesota Press
+- **URL:** https://www.upress.umn.edu/book-division/books/the-architecture-of-disability
+- **Summary:** Argues against centering "access" in disability design. Disability should not be relegated to access or accommodation alone. The overwhelming focus on access perpetuates inequalities. Proposes instead that disability experience should be a foundation for architectural form — structuring monuments, nature, urbanization, form, interior environments, and tectonics.
+- **Relevance:** Gissen's argument that architecture must go "beyond access" is precisely the project's argument about tools. The project does not merely make Rhino "accessible" (that would be an accommodation). It builds a fundamentally different tool ecosystem where blindness is the primary design case. Gissen is a disabled architect himself — his perspective validates the project's approach.
+
+#### J.4 Boys, J. (2014). *Doing Disability Differently: An Alternative Handbook on Architecture, Dis/ability and Designing for Everyday Life.*
+- **Publisher:** Routledge
+- **Summary:** Reframes disability as generative and creative — a radical, even avant-garde, approach to architectural education and practice. Asks how disability and ability can help us think more explicitly about habitation. Introduces architects to disability studies and challenges compliance-focused thinking.
+- **Relevance:** Boys' framing of disability as "avant-garde" aligns with the project's claim that designing for blindness produces genuinely novel computational design methods. The project can cite Boys to argue that its ACADIA contribution is not a social-good sideshow but a cutting-edge methodological intervention.
+
+#### J.5 Williamson, B. (2019). *Accessible America: A History of Disability and Design.*
+- **Publisher:** NYU Press
+- **URL:** https://nyupress.org/9781479894093/accessible-america/
+- **Summary:** Historical study of how disability advocates harnessed technological design in their quest for access and equality. Shows that access "does not just happen" — when activists, designers, experts, tinkerers, and users address everyday technologies as barriers or as accessible, they define disability as a phenomenon emerging from the material environment.
+- **Relevance:** Provides the historical context for the project's work. Williamson's insight that disability emerges from material environments (not bodies) applies directly to CAD tools: the "disability" of a blind architecture student is produced by the tool environment (visual-only CAD), not by the student. The project eliminates the material barrier.
+
+#### J.6 Winner, L. (1980). "Do Artifacts Have Politics?"
+- **Venue:** Daedalus, Vol. 109, No. 1, pp. 121–136
+- **URL:** https://www.jstor.org/stable/20024652
+- **Summary:** The foundational STS (Science and Technology Studies) text arguing that technologies are not politically neutral — they embody and enforce social arrangements. Technologies can be designed to systematically include or exclude specific groups.
+- **Relevance:** Winner's argument, applied to the project: Rhino's viewport, Grasshopper's visual canvas, and Revit's click-and-drag interface are not neutral instruments that *happen* to be visual. They are artifacts that *have politics* — they enforce a particular social arrangement in which sighted people design and blind people are excluded. The project builds artifacts with different politics.
+
+#### J.7 Wobbrock, J.O., et al. (2011). "Ability-Based Design: Concept, Principles and Examples."
+- **Venue:** ACM Transactions on Accessible Computing, Vol. 3, No. 3
+- **DOI:** https://doi.org/10.1145/1952383.1952384
+- **Summary:** Proposes shifting the focus of accessible design from disability to ability. Instead of asking "What disability does a person have?" asks "What can a person do?" Offers seven ability-based design principles.
+- **Relevance:** The project embodies ability-based design: it asks not "How does Daniel's blindness prevent him from using Rhino?" but "What can Daniel do?" (type, listen, touch, reason spatially through language). The CLI is designed around Daniel's abilities, not his disability.
+
+#### J.8 Ladner, R. (2015). "Design for User Empowerment."
+- **Venue:** ACM Interactions, Vol. 22, No. 2
+- **DOI:** https://doi.org/10.1145/2723869
+- **Summary:** Advocates that users with disabilities should be empowered to solve their own accessibility problems. In its strongest sense, users of technology are empowered to solve their own accessibility problems through self-determination and technical expertise.
+- **Relevance:** The project is a case study in Ladner's "design for user empowerment." Daniel is not a passive recipient of accessibility features — he co-designs the tools, tests them in his studio work, and provides feedback that reshapes the CLI. The project empowers rather than accommodates.
+
+---
+
+### Theme K: Sound, Space, and Aural Architecture
+
+These works provide the theoretical foundation for the project's planned sonification pipeline and for understanding architecture as an auditory phenomenon.
+
+#### K.1 Blesser, B. & Salter, L.-R. (2007). *Spaces Speak, Are You Listening? Experiencing Aural Architecture.*
+- **Publisher:** MIT Press
+- **URL:** https://mitpress.mit.edu/9780262513173/spaces-speak-are-you-listening/
+- **Summary:** Defines "aural architecture" — how we experience space through listening. Integrates acoustics, architecture, music, cognitive psychology, and audio engineering. Demonstrates that we navigate rooms in the dark and "hear" the emptiness of a house without furniture. Sound reveals spatial properties that vision alone cannot convey: reverberation time encodes room volume, early reflections encode wall proximity, frequency response encodes material.
+- **Relevance:** The single most important text for the project's sonification direction. Blesser & Salter's aural architecture provides the mapping vocabulary: room volume → reverb, wall proximity → early reflections, material → frequency response. The project's planned sonification pipeline can be understood as making Blesser's "aural architecture" computable and designable through the CLI.
+
+#### K.2 Schafer, R.M. (1977/1994). *The Soundscape: Our Sonic Environment and the Tuning of the World.*
+- **Publisher:** Destiny Books
+- **Summary:** Foundational text in acoustic ecology. Defines "soundscape" as the sum total of all sounds within a defined area — an intimate reflection of social, technological, and natural conditions. Proposes that acoustic design can improve the quality of sonic environments, combining resources from acoustics, architecture, linguistics, music, psychology, and urban planning.
+- **Relevance:** Schafer's soundscape concept extends beyond natural environments to architectural spaces. The project's sonification pipeline would create "soundscapes" of Daniel's designs, enabling him to evaluate spatial qualities (openness, enclosure, rhythm, density) through sound — an acoustic ecology of architectural intent.
+
+---
+
+### Theme L: Blind Architects in Practice — Case Studies
+
+These case studies demonstrate that blind architects exist, practice, and produce richer spatial designs — direct precedent for the project's thesis.
+
+#### L.1 Vermeersch, P. & Heylighen, A. (2012). "Blindness and Multi-sensoriality in Architecture: The Case of Carlos Mourao Pereira."
+- **Already in original review (2.4).** Remains the primary academic case study.
+
+#### L.2 Chris Downey — Blind Architect, San Francisco.
+- **TED Talk:** "Design with the Blind in Mind" (2013)
+- **URL:** https://www.ted.com/speakers/chris_downey
+- **Key projects:** San Francisco LightHouse for the Blind; Duke Eye Center
+- **Summary:** Lost sight in 2008 after 20 years of practice. Rather than leaving architecture, he reinvented his practice around multi-sensory design. Reads architectural plans by touch using a large-format embossing printer that produces raised tactile drawings. Teaches accessibility and universal design at UC Berkeley.
+- **Relevance:** Downey is the most prominent blind architect practicing today. His use of embossed tactile plans parallels the project's PIAF swell paper pipeline. His decision to "reinvent his career" rather than leave architecture demonstrates that blindness and architectural practice are compatible — the barrier is tools, not ability. Downey works around inaccessible tools; the project builds accessible ones.
+
+---
+
+### Theme M: Text-Based Parametric Design and Interoperability
+
+These works contextualize the project's CLI within the broader landscape of text-based and script-driven architectural design tools.
+
+#### M.1 Leitão, A., Santos, L., & Lopes, J. (2012). "Programming Languages for Generative Design: A Comparative Study."
+- **Venue:** International Journal of Architectural Computing (IJAC), Vol. 10, No. 1
+- **Summary:** Compares visual programming languages (VPLs like Grasshopper) with textual programming languages (TPLs) for architectural design. Finds that modern TPLs can be more productive than VPLs for large-scale and complex design tasks. Introduces Rosetta, a multi-language, multi-CAD generative design tool.
+- **Relevance:** Provides empirical evidence that text-based interaction is not merely "accessible" but often *superior* for complex parametric tasks. The project can cite Leitão to argue that the CLI's text-based approach is not a compromise for accessibility but a design advantage that the field should adopt more broadly.
+
+#### M.2 CadQuery — Python Parametric CAD Scripting Framework.
+- **URL:** https://github.com/CadQuery/cadquery
+- **Summary:** Open-source Python library for parametric 3D CAD modeling. Users write short Python scripts that produce CAD models. Uses a fluent API designed for readability. Demonstrates that script-based CAD can be intuitive and productive.
+- **Relevance:** Validates the project's Python-stdlib-only approach. CadQuery shows that script-based parametric modeling is a viable paradigm, not a workaround. The project's CLI is domain-specific (architecture) where CadQuery is domain-general (mechanical engineering), but the underlying paradigm is the same.
+
+#### M.3 Gibson, J.J. (1979). *The Ecological Approach to Visual Perception.*
+- **Publisher:** Houghton Mifflin (reprinted Psychology Press, 2014)
+- **Summary:** Introduces the theory of affordances — that we perceive the environment directly through its action possibilities, not through abstract mental representations. Perception is relational: affordances exist between organism and environment. A chair "affords sitting" not as an abstract property but as a direct perception by a body of certain proportions.
+- **Relevance:** Gibson's affordance theory, though titled "Visual Perception," is fundamentally about *action*, not sight. Affordances are perceived through all senses. The CLI's commands ("set bay A rotation 30") are linguistic affordances — they offer specific design actions in a format that affords screen-reader interaction. The project can argue, via Gibson, that the CLI's affordances are richer (more precise, more repeatable, more scriptable) than visual CAD's click-and-drag affordances.
+
+---
+
+## Final Summary Table (All New Additions: Papers 31–80)
+
+| # | Short Citation | Venue/Publisher | Year | Primary Theme |
+|---|---------------|-----------------|------|---------------|
+| 31–55 | (see earlier table) | | | |
+| 56 | Zumthor, *Atmospheres* | Birkhäuser | 2006 | Multi-sensory architecture |
+| 57 | Böhme, *Aesthetics of Atmospheres* | Routledge | 2017 | Embodied spatial experience |
+| 58 | Pérez-Gómez, *Attunement* | MIT Press | 2016 | Architecture as embodied attunement |
+| 59 | Holl/Pallasmaa/Pérez-Gómez, *Questions of Perception* | A+U/Stout | 1994 | Phenomenology of architecture |
+| 60 | Merleau-Ponty, *Phenomenology of Perception* | Routledge | 1945 | Embodied perception |
+| 61 | Reynolds, "World-Creating Blindness" | Chiasmi International | 2017 | Crip phenomenology |
+| 62 | Saerberg, "Blind Pedestrians" | Senses and Society | 2010 | Blind spatial lifeworld |
+| 63 | Chen et al., "Perception beyond sight" | ScienceDirect | 2024 | Blind cognitive maps |
+| 64 | Cattaneo & Vecchi, *Blind Vision* | MIT Press | 2011 | Neuroscience of blindness |
+| 65 | Hamraie, *Building Access* | U Minnesota Press | 2017 | Politics of universal design |
+| 66 | Hamraie & Fritsch, "Crip Technoscience Manifesto" | Catalyst | 2019 | Disabled makers |
+| 67 | Gissen, *Architecture of Disability* | U Minnesota Press | 2022 | Beyond access |
+| 68 | Boys, *Doing Disability Differently* | Routledge | 2014 | Disability as generative |
+| 69 | Williamson, *Accessible America* | NYU Press | 2019 | History of disability + design |
+| 70 | Winner, "Do Artifacts Have Politics?" | Daedalus | 1980 | Politics of technology |
+| 71 | Wobbrock et al., "Ability-Based Design" | ACM TACCESS | 2011 | Ability over disability |
+| 72 | Ladner, "Design for User Empowerment" | ACM Interactions | 2015 | User empowerment |
+| 73 | Blesser & Salter, *Spaces Speak* | MIT Press | 2007 | Aural architecture |
+| 74 | Schafer, *The Soundscape* | Destiny Books | 1977 | Acoustic ecology |
+| 75 | Downey, Chris (blind architect) | TED / practice | 2008+ | Blind architect case study |
+| 76 | Leitão et al., "Programming Languages" | IJAC | 2012 | Text vs visual CAD |
+| 77 | CadQuery | Open source | 2018+ | Python parametric CAD |
+| 78 | Gibson, *Ecological Approach* | Psychology Press | 1979 | Affordance theory |
+| 79 | Imrie, "Universalism" | Disability & Rehab | 2012 | UD critique |
+| 80 | Steinfeld & Maisel, *Universal Design* | Wiley | 2012 | UD framework |
+
+---
+
+## Key Gaps in the Literature (Final Assessment, 80 Papers)
+
+With 80 papers spanning computational design, HCI, architectural phenomenology, critical disability studies, cognitive science, acoustic ecology, and STS, the Radical Accessibility Project's unique contribution becomes sharply defined:
+
+1. **No work bridges architectural phenomenology and computational design tools for blind users.** Pallasmaa, Zumthor, and Böhme critique architecture's visual bias philosophically. Heylighen studies blind spatial experience empirically. The HCI community builds accessible modeling tools. The ACADIA community builds text-to-CAD pipelines. **No one connects all four.** The project is the first to operationalize architectural phenomenology's multi-sensory critique through a functioning, screen-reader-native computational design tool used by a blind architecture student in a graduate studio.
+
+2. **Critical disability studies has not entered the ACADIA/CumInCAD discourse.** Hamraie, Gissen, Boys, and Williamson are well-known in disability studies and architectural theory — but they are virtually absent from computational design literature. The project's ACADIA paper can introduce "crip technoscience" and "artifacts have politics" to a community that has discussed accessibility only in terms of equity (Noel et al.) and data justice (Cupkova et al.), not in terms of structural critique.
+
+3. **The "curb cut" argument is waiting to be made for computational design.** The project's text-based, file-decoupled architecture has properties (auditability, scriptability, crash resilience, version-control friendliness) that benefit *all* users, not just blind users. This is the computational design curb cut effect — and no one has articulated it yet.
+
+4. **Cognitive science of blind spatial reasoning supports the CLI paradigm.** Saerberg, Giudice, Cattaneo & Vecchi, and Chen et al. show that blind spatial cognition is sequential, landmark-based, and language-mediated — exactly the interaction model the CLI provides. This is not a coincidence; it is evidence that the CLI is cognitively aligned with how blind users actually build spatial understanding.
+
+5. **Sonification for architectural design authoring remains a white space.** Blesser and Schafer provide the theory; Garcia (1996) prototyped sonification for structural education. But no one has built a sonification pipeline for a blind designer creating new architectural spaces. The project's planned sonification direction has no direct precedent.
+
+6. **The ACADIA community has AI papers without accessibility, and accessibility papers without AI.** Del Campo, Rietschel, and the Text2CAD community build AI-architecture tools that assume sighted users. Noel, Cupkova, and Karastathi call for equity but don't build AI tools. The project sits in the intersection — a functioning AI-compatible (MCP-ready) architecture tool designed for a blind user.
+
+---
+
+## Recommended Reading Order for ACADIA 2026 Framing (Final, by Argument Layer)
+
+**Layer 1: Architecture's Visual Bias (the problem)**
+1. Pallasmaa, *Eyes of the Skin* (1996) — the philosophical critique
+2. Zumthor, *Atmospheres* (2006) — 8/9 generators are non-visual
+3. Winner, "Do Artifacts Have Politics?" (1980) — tools enforce exclusion
+4. Heylighen & Herssens, "Designerly Ways of Not Knowing" (2014) — empirical evidence
+
+**Layer 2: Disability as Generative, Not Deficit (the reframe)**
+5. Hamraie, *Building Access* (2017) — politics of universal design
+6. Hamraie & Fritsch, "Crip Technoscience Manifesto" (2019) — disabled makers
+7. Gissen, *Architecture of Disability* (2022) — beyond access
+8. Boys, *Doing Disability Differently* (2014) — disability as avant-garde
+9. Reynolds, "World-Creating Blindness" (2017) — crip phenomenology
+
+**Layer 3: Blind Spatial Cognition (the evidence)**
+10. Saerberg, "Blind Pedestrians" (2010) — sequential spatial knowledge
+11. Cattaneo & Vecchi, *Blind Vision* (2011) — neuroscience of blind spatial reasoning
+12. Chen et al., "Perception beyond sight" (2024) — blind cognitive maps
+
+**Layer 4: The Tool Landscape (what exists and what's missing)**
+13. Siu et al., "shapeCAD" (2019) — accessible 3D modeling precedent
+14. Siu et al., "A11yShape" (2025) — AI-assisted accessible modeling
+15. Rietschel et al., "Raven / LLMs for Design Scripting" (2024) — LLM-to-CAD state of art
+16. Text2CAD (2024) — NL-to-parametric-CAD
+17. Crawford et al., "Co-designing Tactile Map" (2024) — CAD tools fail blind users
+18. Billah et al., "Designing While Blind" (2023) — authorship gap
+
+**Layer 5: The Project's Contribution (what this makes possible)**
+19. Blesser & Salter, *Spaces Speak* (2007) — aural architecture framework
+20. Lundgard & Satyanarayan, "4-Level Model" (2022) — accessible description framework
+21. Wobbrock et al., "Ability-Based Design" (2011) — design framework
+22. Ladner, "Design for User Empowerment" (2015) — empowerment over accommodation
+
+---
+
+## DEEP FOUNDATIONS (Round 3): Cognitive Science, Ocularcentrism, Design Justice
+
+This final expansion adds four theme clusters that complete the theoretical architecture. Themes N–Q close remaining gaps in cognitive science of haptic/blind spatial development, the philosophical critique of vision's hegemony, disability studies as applied to HCI/technology design, and participatory design / design justice frameworks. These sources provide the deepest evidentiary and ethical foundations for the ACADIA 2026 argument.
+
+---
+
+### Theme N: Cognitive Science of Haptic and Blind Spatial Development
+
+These sources establish the empirical cognitive science behind how blind individuals construct spatial knowledge. They provide hard evidence that spatial understanding does not require vision — a claim the Radical Accessibility Project operationalizes through its CLI-driven, sequential, language-mediated design tools.
+
+#### N.1 Piaget, J. & Inhelder, B. (1956). *The Child's Conception of Space.*
+- **Publisher:** Routledge & Kegan Paul (London). Originally published in French, 1948.
+- **URL:** https://archive.org/details/childsconception0000piag_e5l4
+- **Summary:** Foundational developmental psychology text that includes a chapter on "Perceptual Space, Representational Space, and the Haptic Perception of Shape." Piaget and Inhelder demonstrate that children's earliest spatial understanding is topological (proximity, enclosure, continuity) before becoming projective or Euclidean. Critically, their studies of haptic perception show that children can recognize and classify spatial relationships through touch alone, prior to visual-geometric sophistication. Topology precedes metric geometry in cognitive development.
+- **Relevance:** The project's CLI encodes topological and semantic relationships ("bay A is adjacent to bay B," "corridor runs along axis X") before generating precise geometry. This mirrors Piaget and Inhelder's finding that spatial understanding develops from qualitative/topological to quantitative/metric. The CLI's sequential, relationship-first interaction model is not a compromise — it aligns with how spatial cognition actually develops, with or without vision.
+
+#### N.2 Millar, S. (1994). *Understanding and Representing Space: Theory and Evidence from Studies with Blind and Sighted Children.* / Millar, S. (2008). *Space and Sense.*
+- **Publisher:** Oxford University Press (1994); Psychology Press / Routledge (2008)
+- **URL (1994):** https://global.oup.com/academic/product/understanding-and-representing-space-9780198521426
+- **URL (2008):** https://www.routledge.com/Space-and-Sense/Millar/p/book/9780415651882
+- **Summary:** Millar's 1994 book challenges the assumption that vision is the primary modality for spatial understanding by examining spatial representation in the total absence of vision, comparing findings from congenitally blind and sighted children. Her 2008 *Space and Sense* extends this work, arguing that spatial processing depends crucially on integrating diverse sensory inputs as reference cues — not on any single modality. She demonstrates that touch and movement can substitute for vision in spatial tasks when appropriate reference frames are provided, and that "visual" illusions found in touch depend on common structural factors, not on vision per se.
+- **Relevance:** Millar's central finding — that spatial cognition is modality-independent when adequate reference cues exist — is the cognitive science foundation for the entire project. The CLI provides precisely those reference cues: named bays, labeled axes, numbered dimensions. These are the "external reference frames" that Millar shows enable blind spatial reasoning to match sighted performance. The project's tool design is not accommodating a deficit; it is providing the reference structure that enables full spatial competence.
+
+#### N.3 Hatwell, Y., Streri, A., & Gentaz, E. (Eds.) (2003). *Touching for Knowing: Cognitive Psychology of Haptic Manual Perception.*
+- **Publisher:** John Benjamins (Advances in Consciousness Research, Vol. 53)
+- **URL:** https://benjamins.com/catalog/aicr.53
+- **Summary:** Comprehensive edited volume on the cognitive psychology of haptic (touch-based) perception. Examines exploratory manual behaviors, intramodal haptic abilities, and cross-modal visual-tactual coordination in infants, children, adults, and non-human primates — studying both sighted and blind persons. Key finding: intensive use of touch by blind persons allows them to reach the same levels of spatial knowledge and cognition as sighted peers. Includes chapters on anatomical/neurophysiological bases of tactile perception, Braille reading, raised maps and drawings, sensory substitution displays, and new technologies adapted for blind users.
+- **Relevance:** Directly validates the project's physical-digital pipeline. Hatwell et al.'s evidence that haptic perception achieves equivalent spatial cognition to vision supports the project's investment in tactile output (PIAF swell paper, 3D prints) and tactile input (pegboard). The chapter on raised maps and drawings provides an empirical basis for the project's tactile precedent library. The finding that touch reaches "the same levels of knowledge" refutes the deficit model that treats tactile representation as an inferior substitute.
+
+#### N.4 Thinus-Blanc, C. & Gaunet, F. (1997). "Representation of space in blind persons: vision as a spatial sense?"
+- **Venue:** Psychological Bulletin, Vol. 121, No. 1, pp. 20–42
+- **URL:** https://pubmed.ncbi.nlm.nih.gov/9064698/
+- **Summary:** Major review article addressing the fundamental question of whether vision is necessary for spatial representation. Examines why previous studies produced contradictory findings — some showing profound spatial deficits in early blind participants, others finding no deficits. Proposes that the discrepancies stem from differences in spatial strategies rather than fundamental cognitive limitations. Argues that studying strategies (sequential vs. simultaneous, egocentric vs. allocentric) is more productive than asking whether blind people "can" represent space. The answer depends on what strategies and reference frames are available.
+- **Relevance:** This paper resolves the apparent contradiction in the blind spatial cognition literature and provides a framework the project can cite directly. The CLI provides exactly the kind of strategy-enabling infrastructure Thinus-Blanc and Gaunet call for: sequential command entry (matching blind users' sequential spatial exploration), explicit naming of landmarks and axes (providing allocentric reference frames), and verbal confirmation of spatial relationships (supporting language-mediated spatial reasoning). The tool design is strategy-aligned, not modality-dependent.
+
+#### N.5 Loomis, J.M., Klatzky, R.L., & Golledge, R.G. (2001). "Cognitive Mapping and Wayfinding by Adults Without Vision."
+- **Venue:** Chapter in *Navigating through Environments*, Springer. Multiple related publications 1993–2007.
+- **URL:** https://link.springer.com/chapter/10.1007/978-0-585-33485-1_10
+- **Summary:** Comprehensive research program investigating how adults without vision develop and use cognitive maps. Key findings: (1) spatial representations derived from spatial language can function equivalently to those derived from direct perception; (2) blind individuals can construct survey-level (bird's-eye-view) spatial knowledge under the right conditions; (3) spatialized audio is more reliable and accurate than language alone for route traversal, but language is sufficient for spatial layout understanding. The team also developed and evaluated personal guidance systems for the visually impaired.
+- **Relevance:** The finding that "spatial representations derived from spatial language can function equivalently to those derived from perception" is perhaps the single most powerful piece of evidence for the project's CLI-based approach. Daniel constructs spatial understanding of his designs through textual commands and verbal feedback — exactly the "spatial language" pathway Loomis et al. validate. The project is not a workaround; it leverages a cognitively equivalent pathway to spatial knowledge.
+
+---
+
+### Theme O: Ocularcentrism and the Anti-Visual Tradition
+
+These sources provide the philosophical spine for the project's critique of architecture's visual bias. They establish that the privileging of vision is not natural or inevitable but historical and contestable.
+
+#### O.1 Jay, M. (1993). *Downcast Eyes: The Denigration of Vision in Twentieth-Century French Thought.*
+- **Publisher:** University of California Press
+- **URL:** https://www.amazon.com/Downcast-Eyes-Denigration-Twentieth-Century-Thought/dp/0520088859
+- **Summary:** Monumental intellectual history of the Western critique of vision. Jay traces the tradition of "ocularcentrism" — the privileging of sight as the noblest sense and the primary model for knowledge — from Plato through Descartes to modernity. The book's main subject is the resistance to this visual hegemony in twentieth-century French thought (Bergson, Bataille, Sartre, Merleau-Ponty, Foucault, Derrida, Irigaray). Jay documents how these thinkers challenged vision's supposedly superior access to truth and exposed its complicity with surveillance, spectacle, and domination. He concludes by calling for a plurality of "scopic regimes" rather than defending or abolishing visual primacy.
+- **Relevance:** Jay provides the deepest genealogy of the visual bias the project confronts. Architecture's ocularcentrism is not just a practical problem (tools require screens) but an epistemological one (spatial knowledge is assumed to be visual knowledge). Jay's call for a "plurality of scopic regimes" is precisely what the project enacts: not eliminating vision from architecture but demonstrating that spatial design knowledge can be constructed through text, touch, and sound. The ACADIA paper can cite Jay to frame the project's contribution as part of a broader intellectual tradition challenging visual hegemony, not merely as an assistive technology intervention.
+
+---
+
+### Theme P: Disability Studies in HCI and Technology Design
+
+These sources bridge critical disability studies and technology design, providing frameworks for understanding assistive technology not as charitable accommodation but as a site of political and design innovation.
+
+#### P.1 Mankoff, J., Hayes, G.R., & Kasnitz, D. (2010). "Disability Studies as a Source of Critical Inquiry for the Field of Assistive Technology."
+- **Venue:** Proceedings of the 12th International ACM SIGACCESS Conference on Computers and Accessibility (ASSETS '10). Received ASSETS Paper Impact Award, 2021.
+- **URL:** https://dl.acm.org/doi/10.1145/1878803.1878807
+- **Summary:** Argues that disability studies and assistive technology share common goals but rarely engage each other. Reviews key disability studies literature and presents two case studies showing how disability studies perspectives changed the research questions, methods, and outcomes of assistive technology projects. Key insight: disability studies reframes assistive technology from "fixing" individual deficits to questioning the social and technical systems that create disability in the first place.
+- **Relevance:** This paper is the bridge between the critical disability studies literature (Hamraie, Gissen, Boys) and the HCI/technology design community that builds the tools. The project enacts exactly the shift Mankoff et al. call for: instead of building assistive overlays on top of visual CAD tools (fixing the individual), it redesigns the tool architecture itself (questioning the system). The CLI-to-JSON-to-Rhino pipeline is not an accommodation — it is a redesign motivated by disability studies' insight that the problem is in the tool, not the user.
+
+#### P.2 Shinohara, K. & Wobbrock, J.O. (2011). "In the Shadow of Misperception: Assistive Technology Use and Social Interactions."
+- **Venue:** Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (CHI '11). **Best Paper Award (top 1%).**
+- **URL:** https://dl.acm.org/doi/10.1145/1978942.1979044
+- **Summary:** Interview study of 20 individuals examining how assistive technology use is affected by social and professional contexts. Found two pervasive misperceptions: (1) that assistive devices can functionally eliminate a disability, and (2) that people with disabilities would be helpless without their devices. Also found that functional access consistently took priority over social self-consciousness, and that assistive devices often marked users as "having disabilities" in social settings. Concludes that accessibility should be built into mainstream technologies rather than relegated to specialized devices.
+- **Relevance:** Shinohara and Wobbrock's finding that accessibility should be "built into mainstream technologies" is the design philosophy the project follows. The CLI is not a specialized assistive overlay; it is a mainstream-architecture tool (Python, JSON, Rhino) that happens to be accessible. Daniel uses the same CAD pipeline as any computational designer — just through a different interface. The paper's insight about social stigma also matters: the project's tools don't mark Daniel as "the blind student using special software." He uses the same Rhino, the same file formats, the same output.
+
+#### P.3 Pullin, G. (2009). *Design Meets Disability.*
+- **Publisher:** MIT Press
+- **URL:** https://mitpress.mit.edu/9780262516747/design-meets-disability/
+- **Summary:** Argues that design and disability can inspire each other in ways that transcend mere accommodation. Uses the history of eyeglasses — transformed from medical necessity to fashion statement — as a case study for how disability products can drive design innovation when design culture engages seriously with disability. Interviews leading designers about prosthetics, hearing aids, communication devices, and other assistive technologies. Proposes that the design community's aesthetic and conceptual sophistication, applied to disability, produces objects that are not just functional but culturally meaningful.
+- **Relevance:** Pullin's argument that disability drives design innovation — not just in function but in cultural meaning — directly supports the project's thesis. The CLI-to-JSON pipeline was not designed to be elegant; it was designed for a blind user. But it turns out to be more debuggable, more scriptable, more version-controllable, and more crash-resilient than traditional visual CAD workflows. Like Pullin's eyeglasses, the project's tools started as a necessity and became a design contribution. The ACADIA paper can frame this as the computational design equivalent of Pullin's argument.
+
+---
+
+### Theme Q: Participatory Design, Design Justice, and "Nothing About Us Without Us"
+
+These sources provide the ethical and methodological framework for the project's co-design approach with Daniel. They establish that the project's methodology — disabled users as co-designers, not subjects — is not just ethically correct but epistemologically superior.
+
+#### Q.1 Charlton, J.I. (1998). *Nothing About Us Without Us: Disability Oppression and Empowerment.*
+- **Publisher:** University of California Press
+- **URL:** https://www.jstor.org/stable/10.1525/j.ctt1pnqn9
+- **Summary:** The first book in the disability literature to provide a comprehensive theoretical overview of disability oppression, drawing parallels with racism, sexism, and colonialism. The title phrase — "Nothing about us without us" — originated in the disability rights movement and has become the defining principle of participatory disability research and design. Charlton documents how disability policy, technology, and design have historically been controlled by non-disabled people, producing solutions that address the wrong problems or create new forms of dependency. Illuminated by interviews with disability rights activists across the Third World, Europe, and the United States.
+- **Relevance:** The project's co-design methodology with Daniel directly enacts Charlton's principle. Daniel is not a test subject; he is a co-designer who shapes tool requirements, evaluates outputs, and identifies spatial relationships that sighted developers miss. Every tool in the project exists because Daniel identified a need — the School Jig was designed for his studio project, the tactile graphics pipeline for his precedent studies, the AI description system for his site visits. This is "nothing about us without us" operationalized as a computational design research method.
+
+#### Q.2 Costanza-Chock, S. (2020). *Design Justice: Community-Led Practices to Build the Worlds We Need.*
+- **Publisher:** MIT Press (open access)
+- **URL:** https://designjustice.mitpress.mit.edu/
+- **Summary:** Rethinks design processes to center people who are normally marginalized by design, using collaborative and creative practices. Argues that design typically assumes users are members of the dominant group (male, white, heterosexual, able-bodied, literate, college-educated) and that this assumption is not neutral but actively exclusionary. Proposes design justice principles: center the voices of those most impacted, prioritize community needs over designer expertise, and recognize that design processes are always political. Made available as open access through MIT Press.
+- **Relevance:** Costanza-Chock's design justice framework names what the project does: centering a marginalized user (Daniel) not as a beneficiary but as the primary design authority. The project goes further than Costanza-Chock's framework in one respect — it demonstrates that centering a marginalized user produces tools that are *better for everyone*, not just more equitable. The CLI's crash resilience, scriptability, and version-control friendliness are design justice's curb cut effect made concrete in computational design.
+
+#### Q.3 Levent, N. & Pascual-Leone, A. (Eds.) (2014). *The Multisensory Museum: Cross-Disciplinary Perspectives on Touch, Sound, Smell, Memory, and Space.*
+- **Publisher:** Rowman & Littlefield
+- **URL:** https://www.amazon.com/Multisensory-Museum-Cross-Disciplinary-Perspectives-Memory/dp/0759123543
+- **Summary:** Brings together museum experts and neuroscientists to explore how touch, sound, smell, and memory can create immersive, accessible exhibition experiences. Edited by Nina Levent (executive director of Art Beyond Sight, dedicated to making visual arts accessible to visually impaired people) and Alvaro Pascual-Leone (professor of neurology, Harvard Medical School). Argues that multisensory design is not just an accessibility accommodation but an opportunity to create richer experiences for all visitors. Includes chapters on neuroscience of multisensory perception, curatorial practices, and architectural design for multisensory engagement.
+- **Relevance:** The museum context parallels the architecture studio. Like a gallery, the design studio is assumed to be visual — pin-ups, projections, physical models are all primarily visual artifacts. Levent and Pascual-Leone demonstrate that multisensory design enriches experience for everyone, not just visually impaired visitors. The project makes the same argument for architectural design tools: the CLI + tactile output + audio feedback pipeline creates a richer, more information-dense design environment than visual-only CAD workflows.
+
+---
+
+## Final Summary Table (All New Additions: Papers 31–93)
+
+| # | Short Citation | Venue/Publisher | Year | Primary Theme |
+|---|---------------|-----------------|------|---------------|
+| 31–55 | (see earlier table) | | | |
+| 56 | Zumthor, *Atmospheres* | Birkhäuser | 2006 | Multi-sensory architecture |
+| 57 | Böhme, *Aesthetics of Atmospheres* | Routledge | 2017 | Embodied spatial experience |
+| 58 | Pérez-Gómez, *Attunement* | MIT Press | 2016 | Architecture as embodied attunement |
+| 59 | Holl/Pallasmaa/Pérez-Gómez, *Questions of Perception* | A+U/Stout | 1994 | Phenomenology of architecture |
+| 60 | Merleau-Ponty, *Phenomenology of Perception* | Routledge | 1945 | Embodied perception |
+| 61 | Reynolds, "World-Creating Blindness" | Chiasmi International | 2017 | Crip phenomenology |
+| 62 | Saerberg, "Blind Pedestrians" | Senses and Society | 2010 | Blind spatial lifeworld |
+| 63 | Chen et al., "Perception beyond sight" | ScienceDirect | 2024 | Blind cognitive maps |
+| 64 | Cattaneo & Vecchi, *Blind Vision* | MIT Press | 2011 | Neuroscience of blindness |
+| 65 | Hamraie, *Building Access* | U Minnesota Press | 2017 | Politics of universal design |
+| 66 | Hamraie & Fritsch, "Crip Technoscience Manifesto" | Catalyst | 2019 | Disabled makers |
+| 67 | Gissen, *Architecture of Disability* | U Minnesota Press | 2022 | Beyond access |
+| 68 | Boys, *Doing Disability Differently* | Routledge | 2014 | Disability as generative |
+| 69 | Williamson, *Accessible America* | NYU Press | 2019 | History of disability + design |
+| 70 | Winner, "Do Artifacts Have Politics?" | Daedalus | 1980 | Politics of technology |
+| 71 | Wobbrock et al., "Ability-Based Design" | ACM TACCESS | 2011 | Ability over disability |
+| 72 | Ladner, "Design for User Empowerment" | ACM Interactions | 2015 | User empowerment |
+| 73 | Blesser & Salter, *Spaces Speak* | MIT Press | 2007 | Aural architecture |
+| 74 | Schafer, *The Soundscape* | Destiny Books | 1977 | Acoustic ecology |
+| 75 | Downey, Chris (blind architect) | TED / practice | 2008+ | Blind architect case study |
+| 76 | Leitão et al., "Programming Languages" | IJAC | 2012 | Text vs visual CAD |
+| 77 | CadQuery | Open source | 2018+ | Python parametric CAD |
+| 78 | Gibson, *Ecological Approach* | Psychology Press | 1979 | Affordance theory |
+| 79 | Imrie, "Universalism" | Disability & Rehab | 2012 | UD critique |
+| 80 | Steinfeld & Maisel, *Universal Design* | Wiley | 2012 | UD framework |
+| 81 | Piaget & Inhelder, *Child's Conception of Space* | Routledge | 1956 | Haptic spatial development |
+| 82 | Millar, *Understanding and Representing Space* / *Space and Sense* | OUP / Psychology Press | 1994/2008 | Blind spatial cognition |
+| 83 | Hatwell, Streri & Gentaz, *Touching for Knowing* | John Benjamins | 2003 | Haptic cognition |
+| 84 | Thinus-Blanc & Gaunet, "Representation of space in blind" | Psychological Bulletin | 1997 | Blind spatial strategies |
+| 85 | Loomis, Klatzky & Golledge, "Cognitive Mapping without Vision" | Springer | 2001 | Spatial language equivalence |
+| 86 | Jay, *Downcast Eyes* | UC Press | 1993 | Ocularcentrism critique |
+| 87 | Mankoff, Hayes & Kasnitz, "Disability Studies for AT" | ASSETS '10 | 2010 | DS + assistive tech |
+| 88 | Shinohara & Wobbrock, "Shadow of Misperception" | CHI '11 (Best Paper) | 2011 | AT stigma + mainstream design |
+| 89 | Pullin, *Design Meets Disability* | MIT Press | 2009 | Design + disability innovation |
+| 90 | Charlton, *Nothing About Us Without Us* | UC Press | 1998 | Disability rights + participation |
+| 91 | Costanza-Chock, *Design Justice* | MIT Press | 2020 | Community-led design |
+| 92 | Levent & Pascual-Leone, *Multisensory Museum* | Rowman & Littlefield | 2014 | Multisensory design |
+| 93 | Giudice, "Navigating without Vision" | Chapter (Springer) | 2018 | Blind spatial principles |
+
+---
+
+## Key Gaps in the Literature (Final Assessment, 93 Papers)
+
+With 93 sources spanning computational design, HCI, architectural phenomenology, critical disability studies, cognitive science, acoustic ecology, STS, design justice, and haptic psychology, the Radical Accessibility Project's unique contribution is now sharply defined against six distinct literatures:
+
+1. **No work bridges architectural phenomenology and computational design tools for blind users.** Pallasmaa, Zumthor, and Böhme critique architecture's visual bias philosophically. Jay traces ocularcentrism's intellectual genealogy. Heylighen studies blind spatial experience empirically. The HCI community builds accessible modeling tools. The ACADIA community builds text-to-CAD pipelines. **No one connects all five.** The project is the first to operationalize architectural phenomenology's multi-sensory critique through a functioning, screen-reader-native computational design tool used by a blind architecture student in a graduate studio.
+
+2. **Cognitive science validates the CLI paradigm, but no one has made the connection.** Millar, Thinus-Blanc & Gaunet, and Loomis et al. demonstrate that spatial cognition is modality-independent when adequate reference frames and strategies are available. Piaget and Inhelder show that spatial understanding begins with topological (qualitative) relationships before becoming metric. The CLI's sequential, semantically-labeled, language-mediated interaction model is exactly the strategy-enabling infrastructure this literature calls for — but no computational design researcher has cited this cognitive science to justify an alternative tool paradigm.
+
+3. **Critical disability studies has not entered the ACADIA/CumInCAD discourse.** Hamraie, Gissen, Boys, Williamson, Mankoff et al., and Costanza-Chock are well-known in disability studies, HCI, and architectural theory — but they are virtually absent from computational design literature. The project's ACADIA paper can introduce "crip technoscience," "design justice," and "do artifacts have politics?" to a community that has discussed accessibility only in terms of equity (Noel et al.) and data justice (Cupkova et al.), not in terms of structural critique.
+
+4. **The "curb cut" argument is waiting to be made for computational design.** Pullin demonstrates that designing for disability drives innovation. Shinohara and Wobbrock show that mainstream integration beats specialized accommodation. Levent and Pascual-Leone prove that multisensory design enriches experience for everyone. The project's text-based, file-decoupled architecture has properties (auditability, scriptability, crash resilience, version-control friendliness) that benefit *all* users. This is the computational design curb cut effect — and no one has articulated it yet.
+
+5. **Sonification for architectural design authoring remains a white space.** Blesser and Schafer provide the theory; Garcia (1996) prototyped sonification for structural education. But no one has built a sonification pipeline for a blind designer creating new architectural spaces. The project's planned sonification direction has no direct precedent.
+
+6. **Participatory design with disabled co-designers in computational architecture is undocumented.** Charlton's "nothing about us without us" is a foundational principle in disability rights. Costanza-Chock extends it to design justice. Vermeersch et al. apply participatory methods with blind users in architectural design. But no ACADIA or CumInCAD paper describes a computational design tool co-designed with a blind architecture student as a research partner (not a user study subject). The project's methodology is itself a contribution.
+
+---
+
+## Recommended Reading Order for ACADIA 2026 Framing (Final, by Argument Layer)
+
+**Layer 1: Architecture's Visual Bias (the problem)**
+1. Jay, *Downcast Eyes* (1993) — the deepest genealogy of ocularcentrism
+2. Pallasmaa, *Eyes of the Skin* (1996) — the architectural critique
+3. Zumthor, *Atmospheres* (2006) — 8/9 generators are non-visual
+4. Winner, "Do Artifacts Have Politics?" (1980) — tools enforce exclusion
+5. Heylighen & Herssens, "Designerly Ways of Not Knowing" (2014) — empirical evidence
+
+**Layer 2: Disability as Generative, Not Deficit (the reframe)**
+6. Hamraie, *Building Access* (2017) — politics of universal design
+7. Hamraie & Fritsch, "Crip Technoscience Manifesto" (2019) — disabled makers
+8. Gissen, *Architecture of Disability* (2022) — beyond access
+9. Boys, *Doing Disability Differently* (2014) — disability as avant-garde
+10. Reynolds, "World-Creating Blindness" (2017) — crip phenomenology
+11. Pullin, *Design Meets Disability* (2009) — design innovation through disability
+
+**Layer 3: Blind Spatial Cognition (the evidence)**
+12. Millar, *Understanding and Representing Space* (1994) / *Space and Sense* (2008) — modality-independent spatial cognition
+13. Thinus-Blanc & Gaunet, "Representation of space" (1997) — strategy over modality
+14. Loomis, Klatzky & Golledge, "Cognitive Mapping" (2001) — spatial language equivalence
+15. Piaget & Inhelder, *Child's Conception of Space* (1956) — topology before metric
+16. Saerberg, "Blind Pedestrians" (2010) — sequential spatial knowledge
+17. Cattaneo & Vecchi, *Blind Vision* (2011) — neuroscience of blind spatial reasoning
+18. Chen et al., "Perception beyond sight" (2024) — blind cognitive maps
+
+**Layer 4: The Tool Landscape (what exists and what's missing)**
+19. Siu et al., "shapeCAD" (2019) — accessible 3D modeling precedent
+20. Siu et al., "A11yShape" (2025) — AI-assisted accessible modeling
+21. Rietschel et al., "Raven / LLMs for Design Scripting" (2024) — LLM-to-CAD state of art
+22. Text2CAD (2024) — NL-to-parametric-CAD
+23. Crawford et al., "Co-designing Tactile Map" (2024) — CAD tools fail blind users
+24. Billah et al., "Designing While Blind" (2023) — authorship gap
+25. Mankoff, Hayes & Kasnitz, "Disability Studies for AT" (2010) — reframing assistive tech
+26. Shinohara & Wobbrock, "Shadow of Misperception" (2011) — mainstream over specialized
+
+**Layer 5: The Project's Ethical and Methodological Foundation (how we work)**
+27. Charlton, *Nothing About Us Without Us* (1998) — participatory principle
+28. Costanza-Chock, *Design Justice* (2020) — community-led design
+29. Levent & Pascual-Leone, *Multisensory Museum* (2014) — multisensory benefits all
+
+**Layer 6: The Project's Contribution (what this makes possible)**
+30. Blesser & Salter, *Spaces Speak* (2007) — aural architecture framework
+31. Lundgard & Satyanarayan, "4-Level Model" (2022) — accessible description framework
+32. Wobbrock et al., "Ability-Based Design" (2011) — design framework
+33. Ladner, "Design for User Empowerment" (2015) — empowerment over accommodation
