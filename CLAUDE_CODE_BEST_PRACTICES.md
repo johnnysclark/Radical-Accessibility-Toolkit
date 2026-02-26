@@ -20,8 +20,9 @@ A practical reference for running Claude Code effectively, with emphasis on scre
 12. [Memory System](#memory-system)
 13. [Switching Models](#switching-models)
 14. [Subagents and Background Tasks](#subagents-and-background-tasks)
-15. [Remote Control](#remote-control)
-16. [Quick Reference Card](#quick-reference-card)
+15. [Setting Up Custom Agents](#setting-up-custom-agents)
+16. [Remote Control](#remote-control)
+17. [Quick Reference Card](#quick-reference-card)
 
 ---
 
@@ -630,6 +631,283 @@ Set this environment variable before launching Claude Code.
 
 ---
 
+## Setting Up Custom Agents
+
+Beyond the built-in subagents (Explore, Plan, General-purpose), you can create your own agents tailored to specific tasks. Custom agents are defined as markdown files with a YAML header that specifies their name, tools, model, and behavior.
+
+### Where Agent Files Live
+
+Agent definitions are markdown files stored in an `agents` folder inside your `.claude` directory. There are two scopes:
+
+Project agents at `.claude/agents/` in your project folder. These are specific to the project and can be checked into git so your team shares them.
+
+User agents at `~/.claude/agents/` in your home folder. These are personal agents available in every project on your machine.
+
+When a project agent and a user agent have the same name, the project agent takes priority.
+
+### Creating an Agent with /agents
+
+The easiest way to create an agent is interactively:
+
+```
+/agents
+```
+
+This shows a menu where you can:
+- View all available agents (built-in, user-level, project-level)
+- Create a new agent (choose user-level or project-level, then configure)
+- Edit or delete existing custom agents
+
+Select "Create new agent" and follow the prompts. You can choose "Generate with Claude" to describe what you want and let Claude write the configuration, or "Manually configure" to set each field yourself.
+
+### Agent File Format
+
+An agent file is a markdown file with YAML frontmatter at the top. The frontmatter configures the agent. The markdown body becomes the agent's system prompt, which tells it how to behave.
+
+Here is the general structure:
+
+```
+---
+name: agent-name
+description: When Claude should use this agent
+tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+
+You are a specialist in [domain]. When invoked:
+
+1. First step
+2. Second step
+3. Third step
+
+Focus on:
+- Key concern A
+- Key concern B
+```
+
+### Frontmatter Fields
+
+Required fields:
+
+- `name`: A unique identifier using lowercase letters and hyphens. Example: `code-reviewer`.
+- `description`: Tells Claude when to delegate work to this agent. Be specific. Example: "Expert code reviewer. Use after writing or modifying code."
+
+Optional fields:
+
+- `tools`: Which tools the agent can use, as a comma-separated list. If omitted, the agent inherits all tools from the main conversation. Available tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task.
+- `disallowedTools`: Tools to explicitly deny, even if they would be inherited.
+- `model`: Which AI model the agent uses. Options: `opus`, `sonnet`, `haiku`, or `inherit` (same as main conversation, this is the default).
+- `maxTurns`: Maximum number of turns before the agent stops. Useful for keeping agents focused.
+- `permissionMode`: How the agent handles permission prompts. Options: `default` (ask for each), `acceptEdits` (auto-approve file edits), `plan` (read-only mode).
+- `background`: Set to `true` to always run this agent as a background task.
+- `memory`: Enable persistent memory across sessions. Options: `user` (all projects), `project` (this project, shared via git), `local` (this project, private).
+- `skills`: A list of skill names to preload into the agent's context.
+
+### Example: Read-Only Code Reviewer
+
+Create this file at `.claude/agents/code-reviewer.md`:
+
+```
+---
+name: code-reviewer
+description: Reviews code for quality, security, and maintainability. Use after writing or modifying code.
+tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+
+You are a senior code reviewer. When invoked:
+
+1. Run git diff to see recent changes.
+2. Read the modified files.
+3. Provide structured feedback.
+
+Review checklist:
+- Code clarity and readability
+- Proper error handling
+- No exposed secrets or API keys
+- Input validation where needed
+- Security vulnerabilities
+
+Organize feedback by priority:
+- Critical (must fix before merging)
+- Warning (should fix)
+- Suggestion (consider improving)
+
+Include specific code examples showing how to fix each issue.
+```
+
+This agent can read files and run git commands but cannot write or edit files. It uses Sonnet for speed.
+
+### Example: Debugger
+
+Create this file at `.claude/agents/debugger.md`:
+
+```
+---
+name: debugger
+description: Investigates errors, test failures, and unexpected behavior. Use when encountering bugs or crashes.
+tools: Read, Edit, Bash, Grep, Glob
+model: inherit
+---
+
+You are an expert debugger. When invoked:
+
+1. Capture the error message and stack trace.
+2. Identify the file and line where the failure occurs.
+3. Read the surrounding code for context.
+4. Form a hypothesis about the root cause.
+5. Implement a minimal fix.
+6. Verify the fix works.
+
+For each issue provide:
+- Root cause explanation
+- The specific code fix
+- How to verify it works
+- How to prevent similar issues
+```
+
+This agent can edit files to apply fixes.
+
+### Example: Accessibility Checker
+
+Create this file at `.claude/agents/accessibility-checker.md`:
+
+```
+---
+name: accessibility-checker
+description: Verifies CLI output is screen-reader friendly. Use after adding or changing any user-facing output.
+tools: Read, Grep, Glob
+model: haiku
+---
+
+You are an accessibility auditor for CLI tools used by blind and low-vision users with screen readers.
+
+When invoked, check all user-facing output for:
+
+1. Every response starts with OK: or ERROR: prefix.
+2. No tables, no multi-column layouts, no box-drawing characters.
+3. No ASCII art or decorative separators.
+4. Output is under 20 lines where possible.
+5. Error messages include what failed, why, and how to fix.
+6. All options are numbered when asking questions.
+7. No color-only indicators (information must be in the text).
+8. READY: printed after completing a command.
+
+Report each violation with the file, line number, and the specific text that needs to change.
+```
+
+This agent is read-only and runs on Haiku for speed since it only needs to scan text.
+
+### Invoking Custom Agents
+
+Claude automatically delegates to your custom agents when it recognizes a matching task from the agent's description. You can also invoke them explicitly:
+
+```
+Use the code-reviewer agent to check my latest changes.
+```
+
+```
+Have the debugger investigate why the corridor command crashes.
+```
+
+```
+Run the accessibility-checker on the controller CLI output.
+```
+
+### Agent Memory
+
+Agents can remember things across sessions if you enable the `memory` field:
+
+```
+---
+name: code-reviewer
+description: Reviews code for quality
+tools: Read, Grep, Glob, Bash
+memory: project
+---
+```
+
+With `memory: project`, the agent saves learnings to `.claude/agent-memory/code-reviewer/`. It remembers patterns, recurring issues, and conventions it has discovered. This memory persists between sessions.
+
+Memory scope options:
+
+- `user`: Remembered across all projects. Stored at `~/.claude/agent-memory/`.
+- `project`: Remembered for this project, shared with team via git. Stored at `.claude/agent-memory/`.
+- `local`: Remembered for this project, private to you. Stored at `.claude/agent-memory-local/`.
+
+### Sharing Agents with Your Team
+
+Project agents live in `.claude/agents/` and can be checked into git:
+
+```
+git add .claude/agents/
+git commit -m "Add code-reviewer and accessibility-checker agents"
+git push
+```
+
+When teammates clone the repo, they automatically have access to the same agents.
+
+### Restricting Agent Tools for Safety
+
+To create a read-only agent, only list read tools:
+
+```
+tools: Read, Grep, Glob
+```
+
+To create an agent that can run commands but not modify files:
+
+```
+tools: Read, Grep, Glob, Bash
+disallowedTools: Write, Edit
+```
+
+To create an agent that can only run specific shell commands, use hooks. Define a `PreToolUse` hook in the agent frontmatter that validates commands before execution:
+
+```
+---
+name: db-reader
+description: Runs read-only database queries
+tools: Bash
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/validate-readonly.sh"
+---
+```
+
+The validation script receives the command as JSON on stdin. Exit code 0 allows it, exit code 2 blocks it.
+
+### Defining Agents at Launch
+
+For temporary agents you do not want saved to disk, define them when launching Claude Code:
+
+```
+claude --agents "{\"reviewer\": {\"description\": \"Code reviewer\", \"prompt\": \"You are a code reviewer.\", \"tools\": [\"Read\", \"Grep\", \"Glob\"], \"model\": \"sonnet\"}}"
+```
+
+These agents exist only for the current session.
+
+### Listing All Available Agents
+
+From the terminal without starting a session:
+
+```
+claude agents
+```
+
+From inside a session:
+
+```
+/agents
+```
+
+Both show all available agents grouped by source: built-in, user-level, project-level, and plugin-provided.
+
+---
+
 ## Remote Control
 
 Remote Control lets you continue a local Claude Code session from your phone, tablet, or any web browser. Claude keeps running on your machine — nothing moves to the cloud. The web or mobile interface is just a window into the local session.
@@ -754,6 +1032,7 @@ Slash commands:
 - /resume: Resume old session
 - /copy: Copy last response
 - /cost: Show token usage
+- /agents: List, create, or edit custom agents
 - /remote-control (or /rc): Start remote control from current session
 - /status: Show current model and account info
 - /exit: Quit
