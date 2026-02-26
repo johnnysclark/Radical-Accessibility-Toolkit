@@ -4,6 +4,27 @@ A practical reference for running Claude Code effectively, with emphasis on scre
 
 ---
 
+## Table of Contents
+
+1. [Before You Start](#before-you-start)
+2. [Essential Keyboard Shortcuts](#essential-keyboard-shortcuts)
+3. [Slash Commands](#slash-commands)
+4. [Permission Modes](#permission-modes)
+5. [Running Shell Commands Directly](#running-shell-commands-directly)
+6. [File References](#file-references)
+7. [Session Management](#session-management)
+8. [Headless Mode (Non-Interactive)](#headless-mode-non-interactive)
+9. [Context Window Management](#context-window-management)
+10. [Best Practices for Productive Sessions](#best-practices-for-productive-sessions)
+11. [Screen Reader Specific Tips](#screen-reader-specific-tips)
+12. [Memory System](#memory-system)
+13. [Switching Models](#switching-models)
+14. [Subagents and Background Tasks](#subagents-and-background-tasks)
+15. [Remote Control](#remote-control)
+16. [Quick Reference Card](#quick-reference-card)
+
+---
+
 ## Before You Start
 
 Claude Code is an interactive terminal agent. You type prompts in natural language, and it reads, writes, and runs code on your behalf. It works entirely through text in a terminal window.
