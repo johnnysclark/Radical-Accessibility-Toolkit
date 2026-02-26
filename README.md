@@ -4,7 +4,7 @@ Terminal-driven architectural design tools built for blind and low-vision archit
 
 The project treats non-visual interaction as the primary design case. All design intent is expressed through typed commands and confirmed through text output compatible with screen readers (JAWS, NVDA) and braille displays.
 
-Led by John Clark and Hugh Swiatek, UIUC School of Architecture. The primary user and co-designer is Daniel, a blind sophomore architecture student.
+Led by John Clark and Hugh Swiatek, UIUC School of Architecture. The primary user and co-designer is Daniel Bein, a blind sophomore architecture student.  Ethan Anderson, Isaac Tu, and Laura Heuser as student researchers.
 
 ## Tools
 
