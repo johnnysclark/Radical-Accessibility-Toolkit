@@ -609,6 +609,92 @@ Set this environment variable before launching Claude Code.
 
 ---
 
+## Remote Control
+
+Remote Control lets you continue a local Claude Code session from your phone, tablet, or any web browser. Claude keeps running on your machine — nothing moves to the cloud. The web or mobile interface is just a window into the local session.
+
+This is useful when you start a task at your desk and want to monitor or continue it from the couch, from another room, or from your phone while away from the computer. Your local filesystem, MCP servers, tools, and project configuration all stay available because the session is still running locally.
+
+### Requirements
+
+- A Max subscription plan (Pro plan support coming soon). API keys are not supported.
+- You must be signed in. Run `claude` and use `/login` if you have not signed in yet.
+- You must have run `claude` in your project directory at least once to accept the workspace trust dialog.
+
+### Starting a New Remote Session
+
+Navigate to your project folder and run:
+
+```
+claude remote-control
+```
+
+The terminal displays a session URL and stays running, waiting for remote connections. Press Spacebar to show a QR code you can scan with your phone.
+
+Optional flags:
+
+- `--verbose`: Show detailed connection and session logs.
+- `--sandbox`: Enable filesystem and network sandboxing for the session.
+- `--no-sandbox`: Explicitly disable sandboxing (this is the default).
+
+### Starting Remote Control from an Existing Session
+
+If you are already in a Claude Code session and want to make it remotely accessible:
+
+```
+/remote-control
+```
+
+Or the shorter alias:
+
+```
+/rc
+```
+
+This carries over your current conversation history and displays the session URL and QR code. Tip: use `/rename` before `/remote-control` to give the session a descriptive name that is easy to find on other devices.
+
+### Connecting from Another Device
+
+Once a remote session is active, connect from another device using any of these methods:
+
+1. Open the session URL in any browser. The URL is displayed in the terminal when you start remote control.
+2. Scan the QR code with your phone to open it in the Claude mobile app.
+3. Open claude.ai/code or the Claude app and find the session by name in the session list. Remote sessions show a computer icon with a green dot when online.
+
+The Claude app is available for iOS and Android. Inside Claude Code, run `/mobile` to get a download QR code.
+
+### Working from Multiple Devices at Once
+
+The conversation stays in sync across all connected devices. You can send messages from your terminal, your browser, and your phone interchangeably. This means a sighted collaborator can watch the session on a large screen while Daniel operates it from the terminal with a screen reader.
+
+### Keeping Sessions Alive
+
+- The terminal must stay open. If you close the terminal or stop the process, the session ends.
+- If your laptop sleeps or your network drops, the session reconnects automatically when your machine comes back online.
+- If your machine cannot reach the network for roughly 10 minutes, the session times out and the process exits. Run `claude remote-control` again to start a new one.
+
+### Enabling Remote Control for All Sessions
+
+By default, remote control only activates when you explicitly run it. To enable it automatically for every session:
+
+1. Run `/config` inside Claude Code.
+2. Set "Enable Remote Control for all sessions" to true.
+
+Set it back to false to disable automatic remote control.
+
+### Security
+
+Remote control uses outbound HTTPS only. It never opens inbound ports on your machine. All traffic goes through the Anthropic API over TLS. The connection uses short-lived credentials scoped to a single purpose.
+
+### Remote Control vs Claude Code on the Web
+
+Both use the claude.ai/code interface, but they are different:
+
+- Remote Control runs on your machine. Your local files, MCP servers, and configuration stay available. Use this when you are in the middle of local work and want to continue from another device.
+- Claude Code on the Web runs on Anthropic cloud infrastructure. Use this when you want to work on a repo you have not cloned locally, or to run multiple tasks in parallel without tying up your machine.
+
+---
+
 ## Quick Reference Card
 
 Shortcut, what it does:
@@ -647,5 +733,12 @@ Slash commands:
 - /resume: Resume old session
 - /copy: Copy last response
 - /cost: Show token usage
+- /remote-control (or /rc): Start remote control from current session
 - /status: Show current model and account info
 - /exit: Quit
+
+Terminal commands:
+
+- claude remote-control: Start a new remote-accessible session
+- claude -c: Continue most recent session
+- claude -r "name": Resume a named session
