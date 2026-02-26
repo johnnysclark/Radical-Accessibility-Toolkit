@@ -314,6 +314,301 @@ After Claude responds, use your screen reader's review cursor to navigate:
 
 ---
 
+## Memory System
+
+Claude Code has a memory system that persists instructions and context across sessions. When you start a new session, Claude reads your memory files and knows your project conventions, preferences, and architecture without being told again.
+
+### The CLAUDE.md File
+
+The core of the memory system is a file called CLAUDE.md. This is a plain text markdown file that you place in your project root. Claude reads it at the start of every session. Think of it as a permanent instruction sheet.
+
+To create one for your project:
+
+```
+/init
+```
+
+This creates a CLAUDE.md file with a starter template. Edit it to describe your project. Good things to put in CLAUDE.md:
+
+- Build and test commands (how to run the project, how to run tests)
+- Code style rules (naming conventions, indentation, import ordering)
+- Architecture notes (what the key files are, how modules connect)
+- Things Claude should never do (never delete the state file, never use f-strings in IronPython)
+- Preferred workflow (always read a file before editing it, always run tests after changes)
+
+### Memory Hierarchy
+
+Claude Code checks multiple locations for instructions, from broadest to most specific. More specific files override broader ones:
+
+1. User memory at `~/.claude/CLAUDE.md`: Your personal preferences that apply to every project. Example: "Always use 2-space indentation. Never add comments unless I ask."
+2. User rules at `~/.claude/rules/*.md`: Topic-specific personal rules. You can have separate files like `code-style.md`, `testing.md`, `security.md`.
+3. Project memory at `./CLAUDE.md` or `./.claude/CLAUDE.md`: Team-shared project instructions. Checked into git so everyone on the team gets the same rules.
+4. Project rules at `./.claude/rules/*.md`: Modular project rules organized by topic.
+5. Project local memory at `./CLAUDE.local.md`: Your personal overrides for this project only. Automatically added to .gitignore so it stays private.
+
+### Auto Memory
+
+Claude also maintains automatic memory at `~/.claude/projects/<project-hash>/memory/`. This is where Claude saves things it learns during your sessions, such as patterns it noticed, debugging solutions, or architectural details.
+
+The auto memory directory contains:
+
+- MEMORY.md: A concise index file. The first 200 lines load automatically at the start of every session. Keep it short.
+- Topic files like debugging.md, patterns.md, api-conventions.md: Detailed notes that Claude reads on demand when relevant.
+
+To view and edit your memory files:
+
+```
+/memory
+```
+
+This shows a picker of all memory files. Select one to edit, or toggle auto memory on and off.
+
+### Telling Claude to Remember Something
+
+You can explicitly ask Claude to remember something across sessions:
+
+```
+Remember that we always use os.path instead of pathlib in this project.
+Remember that Daniel prefers corridor widths in whole numbers.
+Always run tests in the layout-jig folder after changing the controller.
+```
+
+Claude writes these to your auto memory files. They persist across sessions.
+
+To make Claude forget something:
+
+```
+Stop remembering the rule about corridor widths.
+```
+
+Claude will find and remove the relevant entry from the memory files.
+
+### Importing Other Files
+
+CLAUDE.md files can reference other files using the @ syntax:
+
+```
+@README.md
+@docs/architecture.md
+```
+
+The first time you use imports in a project, Claude asks for a one-time approval. After that, imported files are pulled in automatically.
+
+### Best Practices for Memory
+
+- Keep MEMORY.md under 200 lines. Only the first 200 lines load automatically.
+- Put detailed notes in separate topic files and reference them from MEMORY.md.
+- Review your memory files periodically. Remove outdated entries.
+- Use project CLAUDE.md for team conventions. Use CLAUDE.local.md for your personal setup.
+- Be specific. "Use snake_case for JSON keys" is better than "format code properly."
+
+---
+
+## Switching Models
+
+Claude Code can run different AI models. Each model has different strengths in speed, cost, and reasoning depth.
+
+### Available Models
+
+- Opus: The most capable model. Best for complex reasoning, architectural decisions, multi-file refactoring, and tasks that require deep understanding. Slower and more expensive.
+- Sonnet: The balanced model. Good for everyday coding, file edits, bug fixes, and most tasks. Faster and cheaper than Opus.
+- Haiku: The fast model. Good for simple tasks, quick lookups, and background work. Fastest and cheapest.
+
+### How to Switch Models
+
+There are four ways to switch.
+
+Method 1, the /model command:
+
+```
+/model
+```
+
+This opens an interactive picker. Use Up and Down arrow keys to highlight a model. Press Enter to select it. The change takes effect immediately on the next response.
+
+Method 2, the Alt+P shortcut:
+
+Press Alt+P (Option+P on macOS) at any time. This opens the model picker without clearing whatever you have typed in the prompt. Navigate with arrow keys, select with Enter.
+
+Method 3, at launch:
+
+```
+claude --model opus
+claude --model sonnet
+claude --model haiku
+```
+
+Method 4, set a permanent default in your settings file at `~/.claude/settings.json`:
+
+```json
+{
+  "model": "opus"
+}
+```
+
+### Effort Level (Opus Only)
+
+When using Opus, you can adjust how much reasoning effort it applies. In the /model picker, when Opus is highlighted, use Left and Right arrow keys to adjust:
+
+- Low effort: Faster, cheaper. Good for straightforward tasks.
+- Medium effort: Balanced. Good for most work.
+- High effort (default): Deepest reasoning. Good for complex problems.
+
+You can also set this in settings:
+
+```json
+{
+  "effortLevel": "medium"
+}
+```
+
+Or as an environment variable:
+
+```
+set CLAUDE_CODE_EFFORT_LEVEL=medium
+```
+
+### Fast Mode
+
+Fast mode makes Opus respond roughly 2.5 times faster at higher token cost. It does not switch to a different model. It is the same Opus with a speed configuration change.
+
+Toggle it on or off:
+
+```
+/fast
+```
+
+When fast mode is on, a small lightning icon appears next to your prompt. Fast mode is best for interactive work where you are iterating quickly. Turn it off for long autonomous tasks where cost matters more than speed.
+
+### Extended Thinking
+
+Press Alt+T (Option+T on macOS) to toggle extended thinking mode. This lets Claude reason more deeply on complex problems before responding. Useful for architectural decisions, difficult bugs, or when you want Claude to really think through a problem.
+
+### Checking Which Model You Are Using
+
+```
+/status
+```
+
+This shows your current model, account information, and connectivity status.
+
+---
+
+## Subagents and Background Tasks
+
+Claude Code can run specialized agents in the background while you continue working in the main conversation. This lets you parallelize work: one agent researches the codebase while another runs tests while you continue talking to Claude in the foreground.
+
+### What Subagents Are
+
+Subagents are independent AI sessions that run inside your main Claude Code session. Each subagent gets its own context window and set of tools. When a subagent finishes, its results flow back to the main conversation.
+
+Claude has several built-in subagent types:
+
+- Explore: A fast, read-only agent for searching codebases. It can read files and search but cannot edit anything. Runs on the Haiku model for speed.
+- Plan: A research agent that analyzes code and designs implementation plans. Read-only. Cannot make changes.
+- General-purpose: A full-capability agent that can read, write, edit, and run commands. Used for complex multi-step tasks.
+
+### How Subagents Get Used
+
+Claude decides when to use subagents based on the task. If you ask Claude to search for something across the codebase, it may automatically launch an Explore subagent. If you ask it to plan a refactor, it may launch a Plan subagent.
+
+You can also ask explicitly:
+
+```
+Search the codebase for all files that reference the corridor command. Use the Explore agent.
+```
+
+```
+Plan how to add a new export command to the CLI. Use the Plan agent.
+```
+
+### Running Tasks in Parallel
+
+To run multiple things at the same time, ask Claude directly:
+
+```
+In parallel, search for all uses of atomic_write and also find all JSON schema definitions.
+```
+
+```
+Run these three things in parallel: search for corridor references, search for bay references, and search for void references.
+```
+
+Claude launches multiple subagents simultaneously. Each works independently. Results come back as they finish.
+
+### Background Tasks
+
+When Claude is working on something that takes a while, you can send it to the background:
+
+Press Ctrl+B while a task is running. If you use tmux, press Ctrl+B twice (the first Ctrl+B is the tmux prefix).
+
+You can also ask Claude to run something in the background from the start:
+
+```
+Run the test suite in the background and let me know when it finishes.
+```
+
+```
+In the background, search the entire codebase for deprecated function calls.
+```
+
+While background tasks run, you can continue typing prompts and getting responses in the foreground. Claude notifies you when a background task completes.
+
+### Managing Background Tasks
+
+To see what is running in the background:
+
+```
+/tasks
+```
+
+Or press Ctrl+T to toggle the task list in the terminal status area.
+
+The task list shows each background task with its status: pending, in progress, or complete.
+
+To stop all background agents:
+
+Press Ctrl+F twice (press it once, then again within 3 seconds to confirm).
+
+### Practical Examples
+
+Example 1, parallel research:
+
+```
+I need to understand how the state file works. In parallel:
+1. Find all places that read state.json
+2. Find all places that write to state.json
+3. Find the schema definition
+```
+
+Claude launches three Explore agents simultaneously. Results come back within seconds.
+
+Example 2, background test run:
+
+```
+Run the full test suite in the background. While that runs, let's work on the new describe command.
+```
+
+Claude starts the tests in the background. You continue working. When tests finish, Claude reports the results.
+
+Example 3, background code review:
+
+```
+In the background, review the watcher code for any places where we delete objects we did not create. Meanwhile, let's add the new hatch pattern.
+```
+
+### Disabling Background Tasks
+
+If background tasks cause issues, disable them:
+
+```
+set CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
+```
+
+Set this environment variable before launching Claude Code.
+
+---
+
 ## Quick Reference Card
 
 Shortcut, what it does:
@@ -332,6 +627,11 @@ Shortcut, what it does:
 - Y or Enter: Approve a tool use
 - N or Escape: Reject a tool use
 - ! command: Run a shell command directly
+- Alt+P: Open model picker
+- Alt+T: Toggle extended thinking
+- Ctrl+B: Send current task to background
+- Ctrl+T: Toggle task list
+- Ctrl+F Ctrl+F: Kill all background agents
 
 Slash commands:
 
@@ -340,7 +640,12 @@ Slash commands:
 - /compact: Compress context
 - /plan: Enter plan mode
 - /model: Change model
+- /fast: Toggle fast mode
+- /memory: Edit memory files
+- /init: Create CLAUDE.md for project
+- /tasks: List background tasks
 - /resume: Resume old session
 - /copy: Copy last response
 - /cost: Show token usage
+- /status: Show current model and account info
 - /exit: Quit
