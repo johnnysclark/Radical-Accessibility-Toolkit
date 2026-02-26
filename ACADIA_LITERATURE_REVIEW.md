@@ -4,7 +4,7 @@
 **Last updated:** 2026-02-26
 **Project:** Radical Accessibility Project (UIUC School of Architecture)
 **PI:** John Clark
-**Sources:** 103 entries across ACADIA, CumInCAD, CHI, ASSETS, NeurIPS, IEEE VIS, and cross-disciplinary foundations
+**Sources:** 136 entries across ACADIA, CumInCAD, CHI, ASSETS, NeurIPS, IEEE VIS, and cross-disciplinary foundations
 
 ---
 
@@ -12,7 +12,7 @@
 
 This literature review surveys papers from ACADIA (Association for Computer Aided Design in Architecture), the broader CumInCAD database (CAADRIA, eCAADe, SIGraDi, CAAD Futures), HCI/accessibility conferences (CHI, ASSETS), and cross-disciplinary foundations (phenomenology, cognitive science, disability studies, acoustic ecology) relevant to the Radical Accessibility Project. The project develops tools and workflows that make architectural education fully accessible to blind and low-vision students by treating non-visual interaction as the primary design case. Its core thesis: by designing for blindness first, we create tools that are not only accessible but often superior to their visual-centric counterparts. This is disciplinarily transformative, not assistive -- a critique of architecture's ocularcentrism that produces genuinely novel computational design methods.
 
-Papers are organized into ten thematic sections (A through J). Each entry includes bibliographic details, a summary, and a note on relevance to the project's specific concerns: CLI-driven CAD pipelines, tactile fabrication, sonification, AI-assisted description, screen-reader-native workflows, and inclusive design pedagogy.
+Papers are organized into eleven thematic sections (A through K). Each entry includes bibliographic details, a summary, and a note on relevance to the project's specific concerns: CLI-driven CAD pipelines, tactile fabrication, sonification, AI-assisted description, screen-reader-native workflows, and inclusive design pedagogy.
 
 ---
 
@@ -61,6 +61,32 @@ These works provide the philosophical foundation for arguing that architecture i
 - **Publisher:** Routledge
 - **Summary:** Argues that spatial atmospheres exert tangible emotional effects by appealing directly to the senses. Architecture is experienced through bodily, multi-sensory perception before intellectual comprehension. Develops a "new aesthetics" grounded in embodied experience rather than visual contemplation.
 - **Relevance:** Böhme's theory that we experience space sensorially *before* we understand it visually directly supports the project's thesis. If atmosphere precedes vision, then tools that bypass vision and work through text, sound, and touch are not lesser -- they may access architectural experience more directly.
+
+### A.9 Schön, D.A. (1983). *The Reflective Practitioner: How Professionals Think in Action.*
+- **Publisher:** Basic Books
+- **Summary:** Argues that professional practice -- including design -- is a "reflective conversation with the situation." Designers do not apply rules to problems; they engage in a back-and-forth dialogue where each action reveals new qualities of the situation, which in turn suggest new actions. Introduces the concepts of "reflection-in-action" (thinking while doing) and "knowing-in-action" (the tacit knowledge embedded in skilled performance).
+- **Relevance:** The CLI is a conversation medium. Each command is a "move" in a reflective dialogue; each OK:/ERROR: response is the "situation talking back." Schön's framework reframes the CLI not as a limited interface but as a design conversation -- and arguably a *better* one than visual CAD, where the situation's "talk back" is a silent visual change that the designer must notice. The CLI's verbal feedback makes the reflective conversation explicit and auditable.
+
+### A.10 Varela, F.J., Thompson, E., & Rosch, E. (1991). *The Embodied Mind: Cognitive Science and Human Experience.*
+- **Publisher:** MIT Press (revised edition 2016)
+- **Summary:** The foundational text of enactivism. Argues that cognition is not the internal manipulation of abstract representations but "enaction" -- the bringing forth of domains of significance through embodied action in a coupled organism-environment system. Draws on Merleau-Ponty's phenomenology, Buddhist mindfulness, and autopoietic biology. The key claim: mind is inseparable from bodily engagement with the world.
+- **Relevance:** Extends Merleau-Ponty's phenomenology into cognitive science. If cognition is enacted through embodied engagement rather than detached representation, then Daniel's CLI-mediated engagement with architectural models is not a substitute for "real" (visual) design -- it is a different enactment of spatial cognition, equally valid and potentially revealing of different architectural qualities. The CLI is not a representation of architecture; it is an enactive medium through which architecture is brought forth.
+
+### A.11 Clark, A. & Chalmers, D.J. (1998). "The Extended Mind."
+- **Venue:** Analysis, Vol. 58, No. 1, pp. 7-19
+- **URL:** https://www.jstor.org/stable/3328150
+- **Summary:** The landmark paper arguing that cognitive processes do not stop at the skull. When an external tool (notebook, calculator, software) plays the same functional role as an internal cognitive process, it is part of the mind. Otto's notebook, which he consults for directions because his biological memory is impaired, is functionally equivalent to Inga's biological memory -- both constitute "beliefs" that guide action.
+- **Relevance:** The CLI is Daniel's extended mind for architectural design. Where a sighted designer's cognitive process extends through their eyes into the viewport, Daniel's extends through the CLI into the JSON state model. Clark and Chalmers' criterion -- that the external resource must be reliably available, automatically endorsed, and easily accessible -- is met by the CLI's deterministic, always-available, screen-reader-native interface. The state.json file is Daniel's architectural memory, and the CLI is the cognitive process that accesses it.
+
+### A.12 Sennett, R. (2008). *The Craftsman.*
+- **Publisher:** Yale University Press
+- **Summary:** Explores the intelligence of the hand and the relationship between making and thinking. Argues that craftsmanship -- the desire to do a job well for its own sake -- depends on a continuous dialogue between concrete practices and thinking. The hand is not a dumb executor of the mind's plans; it is an organ of cognition. Skilled practice involves a rhythm of problem-solving and problem-finding where tacit knowledge (what the body knows) guides explicit reasoning.
+- **Relevance:** Sennett's "dialogue between hand and head" maps onto the CLI's command-response loop. Daniel's hands on the keyboard and braille display are his primary cognitive interface with architecture. The CLI's text-in, text-out pattern creates exactly the rhythmic dialogue Sennett describes: type a command (make a move), receive feedback (feel the result), adjust (next move). The project demonstrates that the craftsman's "intelligent hand" need not be a drawing hand.
+
+### A.13 Ingold, T. (2013). *Making: Anthropology, Archaeology, Art and Architecture.*
+- **Publisher:** Routledge
+- **Summary:** Argues that making is a process of growth, not of imposing form on matter. The maker does not execute a preconceived design; they "correspond" with materials, following flows of material and adjusting in real time. Challenges the hylomorphic model (form imposed on passive matter) and proposes that knowledge is generated through the act of making, not applied to it.
+- **Relevance:** Ingold's critique of the hylomorphic model (design as mental image imposed on material) applies to visual CAD's assumption that the designer conceives a form mentally and then draws it. The CLI's incremental, command-by-command workflow embodies Ingold's alternative: knowledge generated through the process of making. Daniel does not conceive a floor plan and then type it in; he discovers the plan through the act of commanding and receiving feedback. The CLI is a medium of correspondence, not imposition.
 
 ---
 
@@ -262,6 +288,30 @@ These works provide the theoretical framework for arguing that the project is *d
 - **Summary:** Argues against centering "access" in disability design. Disability should not be relegated to access or accommodation alone. Proposes that disability experience should be a foundation for architectural form.
 - **Relevance:** Gissen's argument that architecture must go "beyond access" is precisely the project's argument about tools. The project does not merely make Rhino "accessible" (that would be accommodation). It builds a fundamentally different tool ecosystem where blindness is the primary design case.
 
+### C.17 Lifchez, R. (1987). *Rethinking Architecture: Design Students and Physically Disabled People.*
+- **Publisher:** University of California Press
+- **URL:** https://www.degruyter.com/document/doi/10.1525/9780520326934/html
+- **Summary:** Documents an experiment in architectural education at UC Berkeley where approximately 30 disabled individuals (using wheelchairs, letter-boards, walkers, white canes, hearing aids) participated as co-designers in an architecture studio. Lifchez recounts his shift from learning about disabled people through state agencies to direct involvement with Berkeley's politically and socially active disabled community. Argues that disability and access must be integral to design education rather than supplementary topics.
+- **Relevance:** The foundational text for disability-inclusive architectural pedagogy, written nearly 40 years ago. Lifchez's approach -- bringing disabled people into the studio as participants, not subjects -- directly prefigures the project's co-design methodology. The key difference: Lifchez's participants were consumers and critics of design; Daniel is the primary author. Chris Downey now holds the inaugural Lifchez Professor of Practice position at UC Berkeley, directly extending this legacy.
+
+### C.18 Gissen, D. (2018). "Why are there so few disabled architects and architecture students?"
+- **Venue:** The Architect's Newspaper, June 15, 2018
+- **URL:** https://www.archpaper.com/2018/06/disability-education-of-architects/
+- **Summary:** Identifies three structural barriers excluding disabled people from architecture: (1) physically inaccessible facilities at elite schools, (2) a curriculum romanticizing physically demanding site visits that embeds an "athletic aesthetic," and (3) inaccessible construction sites where internships occur. Argues that "multiple generations of architect leaders with disabilities have been lost."
+- **Relevance:** Documents the systemic exclusion that makes a blind architecture student like Daniel so rare. The barriers Gissen identifies extend to tools: inaccessible CAD software is a fourth structural barrier his article does not name, and it is the one the project directly addresses.
+
+### C.19 Mulligan, K., Calder, A., & Mulligan, H. (2018). "Inclusive design in architectural practice: Experiential learning of disability in architectural education."
+- **Venue:** Disability and Health Journal, Vol. 11, No. 2, pp. 237-242
+- **URL:** https://pubmed.ncbi.nlm.nih.gov/28882468/
+- **Summary:** Qualitative study of 24 architecture students' perceptions of inclusive design after an experiential learning module. Three themes: inclusive design is perceived as challenging, students value direct contact with disability perspectives, and genuine attitude changes occur. Concludes that experiential learning with positive examples must be embedded in architectural education.
+- **Relevance:** Documents the current state: disability is taught as a topic to design *for*, not a perspective to design *from*. The project inverts this by positioning Daniel as co-designer, producing exactly the experiential shift Mulligan et al. call for but going further -- the blind student reshapes the tools, not just the curriculum.
+
+### C.20 Nicholson, K.A. (2025). "Where Are My People? Disability in Architecture."
+- **Venue:** ACSA (Association of Collegiate Schools of Architecture)
+- **URL:** https://www.acsa-arch.org/resource/where-are-my-people-disability-in-architecture/
+- **Summary:** Part of ACSA's research series examining marginalized populations in architecture. Investigates the presence and absence of disabled people as students, practitioners, and leaders. Advisory board includes Great Plains ADA Center and multiple university partners.
+- **Relevance:** The most recent and directly relevant institutional survey of disability in architectural education. Provides the institutional context for why the project is necessary: the profession has not systematically addressed the inclusion of disabled practitioners, let alone developed tools for their use.
+
 ---
 
 ## Section D: Equity & Inclusion in Computational Design
@@ -422,6 +472,18 @@ These papers address touch-based interfaces, tactile maps, swell paper, 3D-print
 - **Summary:** Program that takes spreadsheet data and generates both visual charts and tactile graphics automatically, using the Vega-Lite visualization grammar.
 - **Relevance:** The automatic visual-to-tactile translation pattern is exactly what the project's export pipeline does (state.json to Rhino geometry to tactile PIAF export). Validates automatic conversion over manual recreation.
 
+### F.10 Miele, J.A., Landau, S., & Gilden, D. (2006). "Talking TMAP: Automated Generation of Audio-Tactile Maps Using Smith-Kettlewell's TMAP Software."
+- **Venue:** British Journal of Visual Impairment, Vol. 24, No. 2
+- **URL:** https://journals.sagepub.com/doi/abs/10.1177/0264619606064436
+- **Summary:** Describes the Tactile Map Automated Production (TMAP) system from Smith-Kettlewell Eye Research Institute -- a web application combining GIS data with braille embosser technology to produce tactile street maps on demand. The "Talking TMAP" extension adds audio-tactile capability via touch tablet: tapping map elements triggers spoken labels and sounds. Different levels of information are accessed through repeated tapping.
+- **Relevance:** TMAP demonstrates that automated, on-demand tactile media production is feasible and transformative. A follow-up study (Biggs et al., 2022) found that access to TMAP increased blind users' map usage from less than one per year to dozens. The multi-layer information architecture (tap once for name, tap again for detail) parallels the CLI's `show` vs. `describe` commands. Miele's work also influenced shapeCAD, connecting tactile mapping to accessible 3D modeling.
+
+### F.11 Brulé, E. & Bailly, G. (2021). "'Beyond 3D printers': Understanding Long-Term Digital Fabrication Practices for the Education of Visually Impaired or Blind Youth."
+- **Venue:** CHI 2021
+- **URL:** https://dl.acm.org/doi/10.1145/3411764.3445403
+- **Summary:** Reports on a French organization's six-year experience (2013-2019) using digital fabrication for blind education. Traces how professionals defined how digital fabrication could and should be used. Argues for moving "beyond 3D printers" to hybrid approaches supported by laser cutters, documentation processes, and production at regional or national scale.
+- **Relevance:** Provides longitudinal evidence that digital fabrication for blind education requires institutional infrastructure, not just individual tools. The shift from single-technology to hybrid approaches (laser cutters, swell paper, 3D prints) parallels the project's multi-output strategy. The emphasis on documentation and scalable production is relevant as the project considers dissemination beyond Daniel's individual use.
+
 ---
 
 ## Section G: Text-Based & Scripting Approaches to CAD
@@ -471,6 +533,18 @@ These papers explore alternatives to visual-only CAD interaction -- scripting, t
 - **DOI:** 10.1177/14780771251352945
 - **Summary:** How reasoning language models can be utilized for early-stage exploratory design.
 - **Relevance:** Extends toward the conversational, exploratory design interaction the project envisions through MCP -- where Daniel could ask "describe the north elevation" and receive an AI-generated spatial description.
+
+### G.9 Xue, S. & Yen, J. (2009). "Natural Voice-Enabled CAD: Modeling via Natural Discourse."
+- **Venue:** Computer-Aided Design and Applications, Vol. 6, No. 1, pp. 125-136
+- **URL:** https://www.cad-journal.net/files/vol_6/CAD_6(1)_2009_125-136.pdf
+- **Summary:** Proposes a CAD system accepting free-form natural language voice commands rather than fixed vocabularies. Uses "Verb-based CAD Semantic Search" with Phrase Identification and Targeted Word Distilling to parse natural discourse into executable CAD operations. Users say "draw me a circle that has a radius of 2.5 inches" rather than memorizing shortcut commands.
+- **Relevance:** Foundational work on natural-language-first CAD interaction, directly parallel to the CLI approach. The system's core insight -- that CAD commands should accept natural discourse rather than requiring memorized vocabularies -- validates the project's principle that text/speech-based interfaces can be primary, not accommodative.
+
+### G.10 Desolda, G., Esposito, A., Müller, F., & Feger, S. (2023). "Digital Modeling for Everyone: Exploring How Novices Approach Voice-Based 3D Modeling."
+- **Venue:** CHI 2023
+- **URL:** https://dl.acm.org/doi/10.1145/3544548.3581100
+- **Summary:** Examines how novices approach 3D modeling through voice commands. Finds that users naturally structure voice commands hierarchically (creating objects, then modifying properties) and prefer spatial/relational descriptions over absolute coordinates. Users struggled most with specifying precise spatial relationships verbally.
+- **Relevance:** Empirical evidence for how people naturally talk about 3D geometry. The finding that users prefer relational descriptions ("next to," "on top of") over coordinates validates the CLI's semantic approach (`set bay A rotation 30` rather than coordinate input). The precision challenge they identify is exactly what the CLI's structured command vocabulary solves -- constrained, unambiguous commands that avoid the imprecision of freeform speech.
 
 ---
 
@@ -538,6 +612,24 @@ These papers represent the rapidly expanding field of using language models to g
 - **URL:** https://blog.rhino3d.com/2026/02/ant-your-ai-copilot-for-grasshopper-new.html
 - **Summary:** Builds, modifies, and explains Grasshopper definitions from natural language. Translates component logic for LLM processing.
 - **Relevance:** Further evidence the community is moving toward text-to-geometry workflows. Like Raven, assumes sighted verification.
+
+### H.12 El Hizmi, B., Shkolnik, A., Austern, G., & Sterman, Y. (2024). "LLMto3D: Generating Parametric Objects from Text Prompts."
+- **Venue:** ACADIA 2024: Designing Change, Vol. 1, pp. 157-166
+- **URL:** https://cdml-lab.github.io/LLMto3D/
+- **Summary:** Multi-agent LLM pipeline translating natural language descriptions into parametric 3D objects. The first agent deconstructs textual prompts into design elements describing geometry and spatial relations. Unlike image-based 3D generation (NeRF, Gaussian Splatting), produces parametric CAD models that are printable, manufacturable, and dimensionally accurate.
+- **Relevance:** The closest published work to the project's text-to-geometry ambition from within ACADIA. The multi-agent decomposition pattern (text prompt to semantic elements to parametric geometry) maps onto a potential CLI workflow. The gap: zero consideration of accessibility or non-visual verification. Published at the same venue the project targets.
+
+### H.13 Jones, B.T., Hahnlein, F., Zhang, Z., Ahmad, M., Kim, V., & Schulz, A. (2025). "AIDL: A Solver-Aided Hierarchical Language for LLM-Driven CAD Design."
+- **Venue:** Computer Graphics Forum (Pacific Graphics 2025). MIT CSAIL / U. Washington.
+- **URL:** https://arxiv.org/abs/2502.09819
+- **Summary:** Domain-specific language designed for LLMs to generate CAD geometry. Key insight: traditional CAD languages (OpenSCAD) assume a human verifying output visually; AIDL is designed for "blind" AI code generation. Features implicit geometry referencing (no precise coordinates needed), declarative constraints solved by external solvers, and hierarchical structure. GPT-4 with AIDL outperforms GPT-4 with OpenSCAD in few-shot prompting despite never having seen AIDL before.
+- **Relevance:** Exceptionally relevant. AIDL's design philosophy -- that CAD languages should not require spatial reasoning or visual verification from the code author -- maps directly onto the project's thesis. The hierarchical, constraint-based approach (declare relationships, let solvers handle coordinates) is exactly the semantic-over-geometric principle in the project's architecture. A CLI speaking in AIDL-like terms ("column at intersection of bay A and corridor B") rather than coordinates is both LLM-friendly and blind-user-friendly. The strongest theoretical ally for the project's approach from the ML/graphics community.
+
+### H.14 Di Marco, G. (2025). "Agentic, Multimodal LLM for Conversational Architectural Design."
+- **Venue:** Architectural Science Review (published online November 2025)
+- **URL:** https://www.tandfonline.com/doi/full/10.1080/00038628.2025.2586655
+- **Summary:** Proposes ConvoAI, an agentic multimodal LLM integrating behavioral modes and self-iteration for conversational design. Validated in a six-week studio with 11 master's students. Three engagement patterns emerged: Design Partner (problem-space redefinition), Concept Clarifier (visualization + dialogue), Design Assistant (workflow acceleration).
+- **Relevance:** New entrant in conversational AI for architecture. The "Design Partner" mode -- AI reframing design problems through dialogue -- is most relevant to the project's MCP direction. A conversational agent helping Daniel explore design alternatives through text dialogue rather than visual manipulation. The behavioral modes concept (different AI personas for different design phases) could inform how the project structures its MCP integration.
 
 ---
 
@@ -627,6 +719,36 @@ These papers directly address enabling blind and low-vision users to create, int
 - **Summary:** Combines OpenSCAD with GPT-4o for accessible 3D modeling. Four-facet representation: source code, hierarchical model abstraction, AI-generated textual descriptions, and rendered output. Four BLV participants completed modeling tasks (SUS: 80.6).
 - **Relevance:** **The most directly comparable recent system.** Key differences: (1) A11yShape targets general 3D modeling; the project targets architectural design; (2) A11yShape is integrated; the project's decoupled architecture enables independent blind/sighted collaboration; (3) the project's CLI output protocol is screen-reader-specific (OK:/ERROR:).
 
+### I.15 Madugalla, A., Marriott, K., Marinai, S., Capobianco, S., & Goncu, C. (2020). "Creating Accessible Online Floor Plans for Visually Impaired Readers."
+- **Venue:** ACM Transactions on Accessible Computing (TACCESS), Vol. 13, No. 4, Article 15
+- **URL:** https://dl.acm.org/doi/10.1145/3410446
+- **Summary:** Generic model for providing blind readers with access to online floor plans. Supports semi-automatic transcription of architectural drawings into three output formats: text-only descriptions, tactile graphics, and touchscreen displays with audio feedback. Formative user study determined what information blind users need from floor plans; second study evaluated outputs.
+- **Relevance:** Directly addresses the gap the project fills. Blind users cannot access conventional architectural floor plans. The multi-modal output approach (text, tactile, audio) aligns with the project's strategy. The finding that users want both overview and detailed room-by-room information validates the CLI's `show` and `describe` command patterns.
+
+### I.16 Clepper, G., McDonnell, E.J., Findlater, L., & Peek, N. (2025). "'What Would I Want to Make? Probably Everything': Practices and Speculations of Blind and Low Vision Tactile Graphics Creators."
+- **Venue:** CHI 2025
+- **URL:** https://dl.acm.org/doi/10.1145/3706598.3714173
+- **Summary:** Interviews 14 blind and low-vision adults who both use and create tactile graphics. Finds that tactile graphics are intensely valued but access and fluency are compounding challenges. BLV makers constantly navigate tradeoffs between accessible low-fidelity craft materials and less accessible high-fidelity equipment. Centers BLV people as *creators*, not just consumers.
+- **Relevance:** Extremely high. Provides the closest published parallel to Daniel's position as a blind person creating design artifacts. The tradeoff between accessible low-fidelity tools and inaccessible high-fidelity tools is exactly the problem the project solves: making high-fidelity CAD (Rhino) operable through an accessible interface (CLI). Cite as evidence that the project addresses a documented, underserved need.
+
+### I.17 Flores-Saviaga, C., Hanrahan, B.V., Imteyaz, K., Clarke, S., & Savage, S. (2025). "The Impact of Generative AI Coding Assistants on Developers Who Are Visually Impaired."
+- **Venue:** CHI 2025
+- **URL:** https://arxiv.org/abs/2503.16491
+- **Summary:** Studies 10 visually impaired developers using GitHub Copilot through an Activity Theory framework. Finds that AI assistants are beneficial but exacerbate accessibility barriers: excessive suggestion volume, difficult context-switching between AI-generated and user-authored code, and a desire for "AI timeouts." A longitudinal follow-up found participants shifted from Agent mode (AI does everything) to Ask mode (AI answers questions).
+- **Relevance:** Directly relevant as a cautionary tale for integrating AI into the CLI. The project must avoid the "suggestion flood" problem. The CLI's explicit command-response model (type command, get OK/ERROR) is better suited to screen readers than inline suggestions. The finding that blind programmers preferred Ask mode validates the project's philosophy: the CLI remains the primary control surface, and AI features should be consultative rather than autonomous.
+
+### I.18 Seo, J.Y., et al. (2024). "Designing Born-Accessible Courses in Data Science and Visualization."
+- **Venue:** Eurographics / IEEE VGTC Conference on Visualization; arXiv:2403.02568
+- **URL:** https://pmc.ncbi.nlm.nih.gov/articles/PMC11872190/
+- **Summary:** Presents a "born-accessible" approach to teaching data science -- courses designed from the ground up for blind learners, taught by blind instructors, rather than retrofitting accessibility. Nine blind learners participated in a two-week summer course. JooYoung Seo is at UIUC.
+- **Relevance:** The "born-accessible" concept is the pedagogical parallel to the project's "accessibility-first" design principle. The project's CLI tools are "born-accessible CAD" -- designed for blindness from the start, not accommodated after the fact. Seo's course design methodology could inform the project's approach to teaching architecture students to use the tools. As a UIUC colleague, Seo represents a natural collaboration target.
+
+### I.19 Gurita, A.-E. & Vatavu, R.-D. (2025). "When LLM-Generated Code Perpetuates User Interface Accessibility Barriers, How Can We Break the Cycle?"
+- **Venue:** 22nd International Web for All Conference (W4A '25), Sydney
+- **URL:** https://dl.acm.org/doi/10.1145/3744257.3744266
+- **Summary:** Tests whether accessibility-oriented prompting affects WCAG compliance in LLM-generated UIs. Surprisingly, UIs generated with accessibility-oriented prompts had a slightly higher violation rate (17.32%) vs. accessibility-agnostic prompts (15.93%), though they performed better on key criteria (focus visibility, info & relationships).
+- **Relevance:** Relevant to the project's MCP/AI integration. If an AI agent generates interface elements, accessibility cannot be assumed -- it must be enforced by system architecture. Validates the project's approach of baking accessibility into the CLI output protocol (OK:/ERROR: prefixes, labeled lines) rather than relying on AI to generate accessible output spontaneously.
+
 ---
 
 ## Section J: Pipelines, Interoperability & Pedagogy
@@ -662,6 +784,83 @@ These papers address data exchange infrastructure, computational design teaching
 - **Summary:** Larry Sass (MIT Department of Architecture) received the ACADIA Teaching Award of Excellence for his innovative pedagogical approaches that center digital fabrication and making as an integral part of the design process. Sass founded the MIT Design Fabrication Group and has taught digital fabrication and design computing since 2002, developing curricula where students move fluidly between computational representation and physical production.
 - **Relevance:** Sass's pedagogy — centering fabrication as a design method, not just an output step — parallels the project's approach to physical-digital round-tripping. Where Sass treats fabrication as integral to design thinking, the project treats tactile output (PIAF, 3D prints, pegboard) as integral to spatial cognition. The Teaching Award recognizing this fabrication-first pedagogy suggests ACADIA values the same design-through-making ethos that underpins the project's tactile pipeline.
 
+### J.6 UT Austin School of Architecture (2023). "If buildings were invisible, what of architecture would remain?"
+- **Venue:** Graduate design studio, University of Texas at Austin, Spring 2023
+- **URL:** https://soa.utexas.edu/news/if-buildings-were-invisible-what-architecture-would-remain
+- **Summary:** Graduate studio tasking students with designing a new building for the Texas School for the Blind and Visually Impaired (TSBVI). Students researched universal design strategies for wayfinding, placemaking, and wellness. Studio collaborated with TSBVI staff who hosted campus visits and led cane training. Final reviews included Chris Downey as critic.
+- **Relevance:** One of very few documented cases of an architecture studio directly engaging with blindness as a design condition. However, the blind experience remains the *subject* being designed for, not a tool-level transformation -- students used conventional visual tools. This contrasts with the project, where the blind student is authoring geometry through a CLI rather than being a user whose needs are interpreted by sighted designers.
+
+### J.7 NAAB (2020). *Conditions for Accreditation, 2020 Edition.*
+- **Venue:** National Architectural Accrediting Board (regulatory document, revised 2023)
+- **URL:** https://www.naab.org/accreditation/accreditation-criteria
+- **Summary:** Includes "Equity, Diversity, and Inclusion" as a shared value. Condition 5.5 addresses Social Equity, requiring programs to "describe the resources and procedures in place to provide adaptive environments" for students with different needs. Student Performance Criterion PC.8 requires students to understand how design affects diverse users. However, no specific guidance on making design tools, critique formats, or fabrication processes accessible.
+- **Relevance:** NAAB standards address disability in building design (PC.8) and student support (5.5), but are vague about *how* programs accommodate disabled students in studio-based learning. No guidance on accessible CAD tools or alternative critique formats. This gap means accommodating a blind architecture student falls entirely on individual programs -- exactly the situation the project addresses by providing tools.
+
+---
+
+## Section K: Architectural Representation & the Politics of Design Media
+
+These works theorize how representational media (drawings, software, algorithms) actively shape what can be designed and who can design it. They provide the argument that changing the medium of architectural interaction is not an accommodation but an epistemological intervention.
+
+### K.1 Evans, R. (1997). *Translations from Drawing to Building and Other Essays.*
+- **Publisher:** MIT Press / AA Publications
+- **URL:** https://mitpress.mit.edu/9780262550277/translations-from-drawing-to-building-and-other-essays/
+- **Summary:** The definitive text arguing that architectural drawings are not transparent windows onto design intent but active, opaque media that shape, filter, and transform design. The "translation" from drawing to building is productive, not reproductive: it generates surplus meaning, creative possibilities, and "mistakes" that would not exist without the specific characteristics of the representational medium. Every drawing convention -- plan, section, elevation, axonometric, perspective -- carries assumptions about spatial experience and bodily occupation that privilege certain outcomes and suppress others.
+- **Relevance:** Provides the single strongest theoretical foundation for the project's core claim. If the architectural drawing is an active agent that shapes what can be designed, then the CLI is equally active. The project's text commands, JSON state files, and screen-reader output are not impoverished substitutes for drawings -- they are a different representational medium that will generate different architectural possibilities, different "translations," different surplus meanings. Evans transforms the project from an accessibility accommodation into an epistemological proposition: changing the medium of architectural representation changes what architecture can be.
+
+### K.2 Lynn, G. (1999). *Animate Form.*
+- **Publisher:** Princeton Architectural Press
+- **Summary:** The canonical text of the first digital turn's visual-computational paradigm. Used high-end animation software (Maya, 3D Studio) to generate architecture through topological geometries and time-based techniques. Introduced vocabulary -- blobs, hypersurfaces, polysurfaces -- for biomorphic shapes generated through force fields and motion. The accompanying CD-ROM exemplified interactive visual design exploration.
+- **Relevance:** Lynn demonstrates how a specific tool (animation software) generated an entire architectural vocabulary and sensibility -- smooth, curving forms that could not have been conceived without that particular medium. This is strong evidence for the thesis that tools shape design thinking. The CD-ROM, a visual-interactive medium, exemplifies the ocularcentrism the project critiques. The project's non-visual alternative represents a fundamentally different response to the same question of how computation reshapes architecture.
+
+### K.3 Kolarevic, B., ed. (2003). *Architecture in the Digital Age: Design and Manufacturing.*
+- **Publisher:** Spon Press / Taylor & Francis
+- **URL:** https://www.taylorfrancis.com/books/edit/10.4324/9780203634561/architecture-digital-age-branko-kolarevic
+- **Summary:** Compiles contributions on how digital technologies radically change the conception, design, and production of buildings. Organized around digital morphogenesis, digital production, building information modeling, and performance-based design. Documents the moment when digital fabrication collapsed the distance between design file and built artifact -- the "file-to-factory" paradigm.
+- **Relevance:** The "file-to-factory" concept maps directly onto the project's "JSON-to-Rhino" pipeline, where a canonical data file drives downstream realization. The book's emphasis on associative and parametric design aligns with storing design intent semantically rather than geometrically. The critical difference: Kolarevic's contributors universally assume visual-interactive workflows; the project demonstrates the same file-to-factory logic works through text-only interfaces.
+
+### K.4 Allen, S. (2009). *Practice: Architecture, Technique and Representation.* 2nd ed.
+- **Publisher:** Routledge
+- **URL:** https://www.routledge.com/Practice-Architecture-Technique-and-Representation/Allen/p/book/9780415776257
+- **Summary:** Argues that architectural concepts emerge through the materials and procedures of practice -- drawing conventions, notational systems, construction logics -- not from outside the discipline. His essay "Mapping the Unmappable: On Notation" directly addresses how notational systems structure design thinking. "Field Conditions" proposes bottom-up organizational logics rather than top-down compositional hierarchies.
+- **Relevance:** If concepts emerge from representational practices, then a CLI-first workflow generates different architectural thinking. The project's command vocabulary (`set bay A rotation 30`, `corridor A width 8`) constitutes a notational system that, by Allen's logic, produces its own kind of architectural intelligence. The "Field Conditions" emphasis on bottom-up design also resonates with the project's semantic, component-based approach.
+
+### K.5 Picon, A. (2010). *Digital Culture in Architecture.*
+- **Publisher:** Birkhäuser
+- **URL:** https://birkhauser.com/en/book/9783034602594
+- **Summary:** Treats digital tools not as mere software applications but as a *culture* -- a way of thinking, communicating, and organizing practice that reshapes the entire architectural enterprise. Examines the influence of digital culture on architecture, urban design, and product design, arguing that digital simulation leads to increasingly strategic, scenario-based approaches.
+- **Relevance:** If CAD software constitutes a culture, then that culture's assumptions about interaction (visual, mouse-driven) are cultural commitments, not neutral technical choices. The project's CLI culture -- text-based, command-driven, screen-reader-native -- constitutes an alternative digital culture in architecture, with its own norms, aesthetics, and modes of design thinking.
+
+### K.6 Carpo, M. (2011). *The Alphabet and the Algorithm.*
+- **Publisher:** MIT Press (Writing Architecture Series)
+- **URL:** https://mitpress.mit.edu/9780262515801/the-alphabet-and-the-algorithm/
+- **Summary:** Traces two pivotal moments of "identicality": Alberti's invention of architectural design (building as identical copy of drawing) and industrial mass production. Argues the digital age ends identicality -- everything digital is inherently variable. Charts the rise and fall of the identical, comparing postindustrial digital craftsmanship to pre-industrial hand-making. Proposes a new agenda for variable objects, generic authorship, and participatory design.
+- **Relevance:** Carpo's core thesis -- that the representational medium (alphabetic notation vs. algorithmic computation) fundamentally structures what can be designed and who can author it -- directly supports the project. If Alberti's system of identical-copy design privileged the eye and the drawing, then CLI-driven text-based parametric tools represent a genuinely different paradigm of authorship. The project's JSON state (variable, non-identical) aligns with the digital variability Carpo describes.
+
+### K.7 Carpo, M. (2017). *The Second Digital Turn: Design Beyond Intelligence.*
+- **Publisher:** MIT Press (Writing Architecture Series)
+- **URL:** https://mitpress.mit.edu/9780262534024/the-second-digital-turn/
+- **Summary:** Distinguishes two digital turns. The first (1990s CAD/CAM) changed ways of making -- smooth, curving forms. The second changes ways of thinking: tools are now driven by big data, machine learning, and computational search rather than parametric optimization. Designers employ simulation and aggregation to discover forms, bypassing conventional deductive reasoning.
+- **Relevance:** The "second digital turn" framework theorizes the project's AI-assisted workflows (Claude API, conversational agents) as part of a broader disciplinary shift. If the first turn privileged visual-spatial manipulation, the second turn's emphasis on search, data, and machine thinking opens space for non-visual interfaces. A blind user working through text and AI dialogue may be a more advanced instantiation of the second digital turn than a sighted user dragging sliders in Grasshopper.
+
+### K.8 Burry, M. (2011). *Scripting Cultures: Architectural Design and Programming.*
+- **Publisher:** Wiley
+- **URL:** https://onlinelibrary.wiley.com/doi/book/10.1002/9781118670538
+- **Summary:** Argues that scripting -- writing code to customize, extend, or bypass standard CAD software -- constitutes a genuine design method, not merely a technical skill. Treats scripting as both a practical challenge and a cultural/theoretical phenomenon. Demonstrates through case studies (including the Sagrada Familia) that programming enables designers to work around constraints embedded in commercial software.
+- **Relevance:** Burry's central argument -- that scripting lets designers escape constraints embedded in standard tools -- is the theoretical backbone of the project. Commercial CAD embeds assumptions about visual interaction; the project's Python CLI is exactly the "scripting culture" Burry describes: a bespoke tool bypassing Rhino's GUI. His emphasis on scripting as cultural practice (not just workaround) elevates the project from "accessibility accommodation" to "design methodology."
+
+### K.9 Easterling, K. (2014). *Extrastatecraft: The Power of Infrastructure Space.*
+- **Publisher:** Verso
+- **URL:** https://www.versobooks.com/products/30-extrastatecraft
+- **Summary:** Argues that infrastructure is not merely pipes and wires but the hidden rules structuring spaces of everyday life -- free trade zones, smart cities, suburbs, broadband networks, and international standards. Infrastructure space operates as an "operating system" governed by protocols and spatial products beyond traditional governance. Understanding infrastructure as active political medium opens new techniques for resistance.
+- **Relevance:** The "infrastructure space" of architectural education -- Rhino's GUI, Grasshopper's canvas, the assumption that design happens on a screen -- constitutes hidden rules that include and exclude. When built around visual interaction, this infrastructure structurally excludes blind designers as thoroughly as any physical barrier. The project's file-watching architecture (CLI to JSON to Rhino watcher) builds alternative infrastructure space for design -- new protocols encoding different assumptions about who can be a designer.
+
+### K.10 Deamer, P. (2015/2020). *The Architect as Worker* (2015) / *Architecture and Labor* (2020).
+- **Publisher:** Bloomsbury Academic (2015); Routledge (2020)
+- **URL:** https://www.routledge.com/Architecture-and-Labor/Deamer/p/book/9780367343507
+- **Summary:** Examines the architecture profession through the lens of labor. Argues that tools are not neutral instruments but structures of labor determining who works, how they work, and whose contributions are valued. Analyzes the "schizophrenic" split between parametric tools (young, avant-garde) and BIM (old, managerial), demonstrating how tool categories create hierarchies among architectural workers. Addresses CAD/CAM's transformation of labor organization. Deamer is founding member of the Architecture Lobby.
+- **Relevance:** Screen-based CAD tools constitute a labor structure that renders certain kinds of design work (visual-spatial manipulation) legible and valued while making other kinds (semantic, text-based, tactile) invisible. The project's CLI tools are, in Deamer's terms, a reorganization of architectural labor that makes a blind designer's work visible and authoritative. Her framework shows that the project is not just making tools accessible but restructuring the conditions of architectural production.
+
 ---
 
 ## Summary Table
@@ -676,123 +875,156 @@ These papers address data exchange infrastructure, computational design teaching
 | 6 | Zumthor, *Atmospheres* | 2006 | Birkhäuser | A |
 | 7 | Pérez-Gómez, *Attunement* | 2016 | MIT Press | A |
 | 8 | Böhme, *Aesthetics of Atmospheres* | 2017 | Routledge | A |
-| 9 | Piaget & Inhelder, *Child's Conception of Space* | 1956 | Routledge | B |
-| 10 | Millar, *Understanding and Representing Space* / *Space and Sense* | 1994/2008 | OUP / Psychology Press | B |
-| 11 | Thinus-Blanc & Gaunet, "Representation of space in blind" | 1997 | Psychological Bulletin | B |
-| 12 | Loomis, Klatzky & Golledge, "Cognitive Mapping without Vision" | 2001 | Springer | B |
-| 13 | Hatwell, Streri & Gentaz, *Touching for Knowing* | 2003 | John Benjamins | B |
-| 14 | Saerberg, "Blind Pedestrians" | 2010 | Senses and Society | B |
-| 15 | Cattaneo & Vecchi, *Blind Vision* | 2011 | MIT Press | B |
-| 16 | Herssens & Heylighen, "Haptic Design Parameters" | 2011 | CAAD Futures | B |
-| 17 | Vermeersch & Heylighen, "Carlos Mourao Pereira" | 2012 | Research proceedings | B |
-| 18 | Celani et al., "'Seeing' with the Hands" | 2013 | CAAD Futures | B |
-| 19 | Heylighen & Herssens, "Designerly Ways of Not Knowing" | 2014 | J. Urban Design | B |
-| 20 | Reynolds, "World-Creating Blindness" | 2017 | Chiasmi International | B |
-| 21 | Giudice, "Navigating without Vision" | 2018 | Springer | B |
-| 22 | Vermeersch et al., "Designing from Disability Experience" | 2018 | PDC | B |
-| 23 | Chen et al., "Perception beyond sight" | 2024 | ScienceDirect | B |
-| 24 | Downey, Chris (blind architect) | 2008+ | TED / Practice | B |
-| 25 | Winner, "Do Artifacts Have Politics?" | 1980 | Daedalus | C |
-| 26 | Charlton, *Nothing About Us Without Us* | 1998 | UC Press | C |
-| 27 | Pullin, *Design Meets Disability* | 2009 | MIT Press | C |
-| 28 | Mankoff et al., "Disability Studies for AT" | 2010 | ASSETS | C |
-| 29 | Shinohara & Wobbrock, "Shadow of Misperception" | 2011 | CHI (Best Paper) | C |
-| 30 | Wobbrock et al., "Ability-Based Design" | 2011 | ACM TACCESS | C |
-| 31 | Imrie, "Universalism" | 2012 | Disability & Rehab | C |
-| 32 | Steinfeld & Maisel, *Universal Design* | 2012 | Wiley | C |
-| 33 | Boys, *Doing Disability Differently* | 2014 | Routledge | C |
-| 34 | Levent & Pascual-Leone, *Multisensory Museum* | 2014 | Rowman & Littlefield | C |
-| 35 | Ladner, "Design for User Empowerment" | 2015 | ACM Interactions | C |
-| 36 | Hamraie, *Building Access* | 2017 | U Minnesota Press | C |
-| 37 | Hamraie & Fritsch, "Crip Technoscience Manifesto" | 2019 | Catalyst | C |
-| 38 | Williamson, *Accessible America* | 2019 | NYU Press | C |
-| 39 | Costanza-Chock, *Design Justice* | 2020 | MIT Press | C |
-| 40 | Gissen, *Architecture of Disability* | 2022 | U Minnesota Press | C |
-| 41 | Noel et al., "Question of Access" | 2021 | IJAC | D |
-| 42 | Zallio & Clarkson, "Inclusion in Built Environment" | 2021 | Building & Env | D |
-| 43 | eCAADe 2022, "Co-creating the Future" | 2022 | eCAADe | D |
-| 44 | Heylighen et al., "How Do Disabled Architects Design?" | 2021+ | KU Leuven | D |
-| 45 | Cupkova et al., "AI, Architecture, Accessibility" | 2023 | IJAC / ACADIA | D |
-| 46 | Zallio & Clarkson, "Challenges" | 2023 | Arch Science Rev | D |
-| 47 | Karastathi et al., "Bridging Pixels and Fabrication" | 2024 | ACADIA | D |
-| 48 | del Campo, AI + Architecture | 2022+ | Books / ACADIA | D |
-| 49 | Schafer, *The Soundscape* | 1977 | Destiny Books | E |
-| 50 | Garcia, "Sound Structure" | 1996 | CAADRIA | E |
-| 51 | Grabowski & Barner, "Force Feedback + Sonification" | 1998 | SPIE / CumInCAD | E |
-| 52 | More et al., "Understanding Spatial Information" | 2002 | ACADIA | E |
-| 53 | More et al., "Designing Spatial Sounds" | 2004 | eCAADe | E |
-| 54 | Beilharz, "Architecture as Computer Interface" | 2005 | eCAADe | E |
-| 55 | Blesser & Salter, *Spaces Speak* | 2007 | MIT Press | E |
-| 56 | Navarro Villacampa et al., "Sensing the Invisible" | 2025 | eCAADe | E |
-| 57 | Garcia, "PUSH" | 1999 | ACADIA | F |
-| 58 | Sjostrom, "Non-Visual Haptic Interaction" | 2002 | PhD / CumInCAD | F |
-| 59 | Pohl & Hirschberg, "Sensitive Voxel" | 2011 | CAAD Futures | F |
-| 60 | Koch et al., "Haptic Paintings" | 2012 | eCAADe | F |
-| 61 | Holloway & Marriott, "Accessible Maps" | 2018 | CHI | F |
-| 62 | Tactile Architectural Drawings Typology | 2022 | Sustainability / MDPI | F |
-| 63 | Butler et al., "TactIcons" | 2023 | CHI | F |
-| 64 | FlexiBoard | 2024 | MDPI | F |
-| 65 | MIT, "Tactile Vega-Lite" | 2025 | MIT | F |
-| 66 | Nagakura, "Shape Recognition" | 1990 | CAAD Futures | G |
-| 67 | Nembrini et al., "Source Studio" | 2009 | CAAD Futures | G |
-| 68 | Celani & Vaz, "CAD Scripting vs Visual" | 2012 | IJAC | G |
-| 69 | Leitão et al., "Programming Languages" | 2012 | IJAC | G |
-| 70 | Maleki & Woodbury, "Programming in the Model" | 2013 | ACADIA | G |
-| 71 | CadQuery | 2018+ | Open source | G |
-| 72 | Rietschel et al., "LLMs for Design Scripting" | 2024 | ACADIA | G |
-| 73 | Rietschel & Steinfeld, "Intelligent Tools" | 2025 | IJAC | G |
-| 74 | CAADRIA 2022, "Rhetoric, Writing, Anexact Architecture" | 2022 | CAADRIA | H |
-| 75 | Fu et al., "ShapeCrafter" | 2022 | NeurIPS | H |
-| 76 | Yousif & Vermisso, "AI-Assisted Design Workflows" | 2022 | CAADRIA | H |
-| 77 | Ma et al., "3D-GPT" | 2023 | arXiv | H |
-| 78 | Khan et al., "Text2CAD" | 2024 | NeurIPS (Spotlight) | H |
-| 79 | Rietschel et al., "Raven" | 2024 | ACADIA / Berkeley | H |
-| 80 | Wu et al., "CAD-LLM" | 2024 | NeurIPS Workshop | H |
-| 81 | Atakan et al., "Kakadoo" | 2025 | eCAADe | H |
-| 82 | CADialogue | 2025 | Computer-Aided Design | H |
-| 83 | Grasshopper MCP Server | 2025 | Open source | H |
-| 84 | Ant, "AI Copilot for Grasshopper" | 2026 | Food4Rhino | H |
-| 85 | Potluri et al., "CodeTalk" | 2018 | CHI | I |
-| 86 | Siu et al., "shapeCAD" | 2019 | ASSETS | I |
-| 87 | Shi et al., "Molder" | 2020 | CHI | I |
-| 88 | Stangl et al., "Image Descriptions" | 2021 | ASSETS | I |
-| 89 | Lundgard & Satyanarayan, "4-Level Model" | 2022 | IEEE VIS | I |
-| 90 | Potluri et al., "CodeWalk" | 2022 | ASSETS | I |
-| 91 | Sharif et al., "Screen-Reader Users + Viz" | 2022 | EuroVIS | I |
-| 92 | Practical CAD for VI | 2023 | Springer LNCS | I |
-| 93 | Billah et al., "Designing While Blind" | 2023 | ASSETS | I |
-| 94 | Crawford et al., "Co-designing Tactile Map" | 2024 | ASSETS | I |
-| 95 | Das et al., "Blind + GenAI" | 2024 | ASSETS | I |
-| 96 | MAIDR + AI | 2024 | ASSETS | I |
-| 97 | CHI 2024, "AI Scene Description" | 2024 | CHI | I |
-| 98 | Siu et al., "A11yShape" | 2025 | ASSETS | I |
-| 99 | Miller, "[make]SHIFT" | 2010 | ACADIA | J |
-| 100 | Janssen & Chen, "Visual Dataflow Modelling" | 2011 | CAAD Futures | J |
-| 101 | Fricker et al., "Computational Design Pedagogy" | 2020 | eCAADe | J |
-| 102 | Akbar et al., "Democratizing the Toolbox" | 2023 | eCAADe | J |
-| 103 | Sass, ACADIA Teaching Award | 2024 | ACADIA | J |
+| 9 | Schön, *The Reflective Practitioner* | 1983 | Basic Books | A |
+| 10 | Varela, Thompson & Rosch, *The Embodied Mind* | 1991 | MIT Press | A |
+| 11 | Clark & Chalmers, "The Extended Mind" | 1998 | Analysis | A |
+| 12 | Sennett, *The Craftsman* | 2008 | Yale UP | A |
+| 13 | Ingold, *Making* | 2013 | Routledge | A |
+| 14 | Piaget & Inhelder, *Child's Conception of Space* | 1956 | Routledge | B |
+| 15 | Millar, *Understanding and Representing Space* / *Space and Sense* | 1994/2008 | OUP / Psychology Press | B |
+| 16 | Thinus-Blanc & Gaunet, "Representation of space in blind" | 1997 | Psychological Bulletin | B |
+| 17 | Loomis, Klatzky & Golledge, "Cognitive Mapping without Vision" | 2001 | Springer | B |
+| 18 | Hatwell, Streri & Gentaz, *Touching for Knowing* | 2003 | John Benjamins | B |
+| 19 | Saerberg, "Blind Pedestrians" | 2010 | Senses and Society | B |
+| 20 | Cattaneo & Vecchi, *Blind Vision* | 2011 | MIT Press | B |
+| 21 | Herssens & Heylighen, "Haptic Design Parameters" | 2011 | CAAD Futures | B |
+| 22 | Vermeersch & Heylighen, "Carlos Mourao Pereira" | 2012 | Research proceedings | B |
+| 23 | Celani et al., "'Seeing' with the Hands" | 2013 | CAAD Futures | B |
+| 24 | Heylighen & Herssens, "Designerly Ways of Not Knowing" | 2014 | J. Urban Design | B |
+| 25 | Reynolds, "World-Creating Blindness" | 2017 | Chiasmi International | B |
+| 26 | Giudice, "Navigating without Vision" | 2018 | Springer | B |
+| 27 | Vermeersch et al., "Designing from Disability Experience" | 2018 | PDC | B |
+| 28 | Chen et al., "Perception beyond sight" | 2024 | ScienceDirect | B |
+| 29 | Downey, Chris (blind architect) | 2008+ | TED / Practice | B |
+| 30 | Winner, "Do Artifacts Have Politics?" | 1980 | Daedalus | C |
+| 31 | Charlton, *Nothing About Us Without Us* | 1998 | UC Press | C |
+| 32 | Pullin, *Design Meets Disability* | 2009 | MIT Press | C |
+| 33 | Mankoff et al., "Disability Studies for AT" | 2010 | ASSETS | C |
+| 34 | Shinohara & Wobbrock, "Shadow of Misperception" | 2011 | CHI (Best Paper) | C |
+| 35 | Wobbrock et al., "Ability-Based Design" | 2011 | ACM TACCESS | C |
+| 36 | Imrie, "Universalism" | 2012 | Disability & Rehab | C |
+| 37 | Steinfeld & Maisel, *Universal Design* | 2012 | Wiley | C |
+| 38 | Boys, *Doing Disability Differently* | 2014 | Routledge | C |
+| 39 | Levent & Pascual-Leone, *Multisensory Museum* | 2014 | Rowman & Littlefield | C |
+| 40 | Ladner, "Design for User Empowerment" | 2015 | ACM Interactions | C |
+| 41 | Hamraie, *Building Access* | 2017 | U Minnesota Press | C |
+| 42 | Hamraie & Fritsch, "Crip Technoscience Manifesto" | 2019 | Catalyst | C |
+| 43 | Williamson, *Accessible America* | 2019 | NYU Press | C |
+| 44 | Costanza-Chock, *Design Justice* | 2020 | MIT Press | C |
+| 45 | Gissen, *Architecture of Disability* | 2022 | U Minnesota Press | C |
+| 46 | Lifchez, *Rethinking Architecture* | 1987 | UC Press | C |
+| 47 | Gissen, "Why so few disabled architects?" | 2018 | Architect's Newspaper | C |
+| 48 | Mulligan et al., "Inclusive Design Pedagogy" | 2018 | Disability & Health J | C |
+| 49 | Nicholson, "Where Are My People?" | 2025 | ACSA | C |
+| 50 | Noel et al., "Question of Access" | 2021 | IJAC | D |
+| 51 | Zallio & Clarkson, "Inclusion in Built Environment" | 2021 | Building & Env | D |
+| 52 | eCAADe 2022, "Co-creating the Future" | 2022 | eCAADe | D |
+| 53 | Heylighen et al., "How Do Disabled Architects Design?" | 2021+ | KU Leuven | D |
+| 54 | Cupkova et al., "AI, Architecture, Accessibility" | 2023 | IJAC / ACADIA | D |
+| 55 | Zallio & Clarkson, "Challenges" | 2023 | Arch Science Rev | D |
+| 56 | Karastathi et al., "Bridging Pixels and Fabrication" | 2024 | ACADIA | D |
+| 57 | del Campo, AI + Architecture | 2022+ | Books / ACADIA | D |
+| 58 | Schafer, *The Soundscape* | 1977 | Destiny Books | E |
+| 59 | Garcia, "Sound Structure" | 1996 | CAADRIA | E |
+| 60 | Grabowski & Barner, "Force Feedback + Sonification" | 1998 | SPIE / CumInCAD | E |
+| 61 | More et al., "Understanding Spatial Information" | 2002 | ACADIA | E |
+| 62 | More et al., "Designing Spatial Sounds" | 2004 | eCAADe | E |
+| 63 | Beilharz, "Architecture as Computer Interface" | 2005 | eCAADe | E |
+| 64 | Blesser & Salter, *Spaces Speak* | 2007 | MIT Press | E |
+| 65 | Navarro Villacampa et al., "Sensing the Invisible" | 2025 | eCAADe | E |
+| 66 | Garcia, "PUSH" | 1999 | ACADIA | F |
+| 67 | Sjostrom, "Non-Visual Haptic Interaction" | 2002 | PhD / CumInCAD | F |
+| 68 | Pohl & Hirschberg, "Sensitive Voxel" | 2011 | CAAD Futures | F |
+| 69 | Koch et al., "Haptic Paintings" | 2012 | eCAADe | F |
+| 70 | Holloway & Marriott, "Accessible Maps" | 2018 | CHI | F |
+| 71 | Tactile Architectural Drawings Typology | 2022 | Sustainability / MDPI | F |
+| 72 | Butler et al., "TactIcons" | 2023 | CHI | F |
+| 73 | FlexiBoard | 2024 | MDPI | F |
+| 74 | MIT, "Tactile Vega-Lite" | 2025 | MIT | F |
+| 75 | Miele et al., "Talking TMAP" | 2006 | British J. Visual Impairment | F |
+| 76 | Brulé & Bailly, "Beyond 3D Printers" | 2021 | CHI | F |
+| 77 | Nagakura, "Shape Recognition" | 1990 | CAAD Futures | G |
+| 78 | Nembrini et al., "Source Studio" | 2009 | CAAD Futures | G |
+| 79 | Celani & Vaz, "CAD Scripting vs Visual" | 2012 | IJAC | G |
+| 80 | Leitão et al., "Programming Languages" | 2012 | IJAC | G |
+| 81 | Maleki & Woodbury, "Programming in the Model" | 2013 | ACADIA | G |
+| 82 | CadQuery | 2018+ | Open source | G |
+| 83 | Rietschel et al., "LLMs for Design Scripting" | 2024 | ACADIA | G |
+| 84 | Rietschel & Steinfeld, "Intelligent Tools" | 2025 | IJAC | G |
+| 85 | Xue & Yen, "Voice-Enabled CAD" | 2009 | CAD Applications | G |
+| 86 | Desolda et al., "Voice-Based 3D Modeling" | 2023 | CHI | G |
+| 87 | CAADRIA 2022, "Rhetoric, Writing, Anexact Architecture" | 2022 | CAADRIA | H |
+| 88 | Fu et al., "ShapeCrafter" | 2022 | NeurIPS | H |
+| 89 | Yousif & Vermisso, "AI-Assisted Design Workflows" | 2022 | CAADRIA | H |
+| 90 | Ma et al., "3D-GPT" | 2023 | arXiv | H |
+| 91 | Khan et al., "Text2CAD" | 2024 | NeurIPS (Spotlight) | H |
+| 92 | Rietschel et al., "Raven" | 2024 | ACADIA / Berkeley | H |
+| 93 | Wu et al., "CAD-LLM" | 2024 | NeurIPS Workshop | H |
+| 94 | Atakan et al., "Kakadoo" | 2025 | eCAADe | H |
+| 95 | CADialogue | 2025 | Computer-Aided Design | H |
+| 96 | Grasshopper MCP Server | 2025 | Open source | H |
+| 97 | Ant, "AI Copilot for Grasshopper" | 2026 | Food4Rhino | H |
+| 98 | El Hizmi et al., "LLMto3D" | 2024 | ACADIA | H |
+| 99 | Jones et al., "AIDL" | 2025 | Computer Graphics Forum | H |
+| 100 | Di Marco, "ConvoAI" | 2025 | Arch Science Rev | H |
+| 101 | Potluri et al., "CodeTalk" | 2018 | CHI | I |
+| 102 | Siu et al., "shapeCAD" | 2019 | ASSETS | I |
+| 103 | Shi et al., "Molder" | 2020 | CHI | I |
+| 104 | Stangl et al., "Image Descriptions" | 2021 | ASSETS | I |
+| 105 | Lundgard & Satyanarayan, "4-Level Model" | 2022 | IEEE VIS | I |
+| 106 | Potluri et al., "CodeWalk" | 2022 | ASSETS | I |
+| 107 | Sharif et al., "Screen-Reader Users + Viz" | 2022 | EuroVIS | I |
+| 108 | Practical CAD for VI | 2023 | Springer LNCS | I |
+| 109 | Billah et al., "Designing While Blind" | 2023 | ASSETS | I |
+| 110 | Crawford et al., "Co-designing Tactile Map" | 2024 | ASSETS | I |
+| 111 | Das et al., "Blind + GenAI" | 2024 | ASSETS | I |
+| 112 | MAIDR + AI | 2024 | ASSETS | I |
+| 113 | CHI 2024, "AI Scene Description" | 2024 | CHI | I |
+| 114 | Siu et al., "A11yShape" | 2025 | ASSETS | I |
+| 115 | Madugalla et al., "Accessible Online Floor Plans" | 2020 | ACM TACCESS | I |
+| 116 | Clepper et al., "What Would I Want to Make?" | 2025 | CHI | I |
+| 117 | Flores-Saviaga et al., "GenAI Coding + BLV" | 2025 | CHI | I |
+| 118 | Seo et al., "Born-Accessible Courses" | 2024 | EuroVIS / IEEE | I |
+| 119 | Gurita & Vatavu, "LLM Code Perpetuates Barriers" | 2025 | W4A | I |
+| 120 | Miller, "[make]SHIFT" | 2010 | ACADIA | J |
+| 121 | Janssen & Chen, "Visual Dataflow Modelling" | 2011 | CAAD Futures | J |
+| 122 | Fricker et al., "Computational Design Pedagogy" | 2020 | eCAADe | J |
+| 123 | Akbar et al., "Democratizing the Toolbox" | 2023 | eCAADe | J |
+| 124 | Sass, ACADIA Teaching Award | 2024 | ACADIA | J |
+| 125 | UT Austin, "If buildings were invisible" | 2023 | UT Austin SOA | J |
+| 126 | NAAB, *Conditions for Accreditation* | 2020 | NAAB | J |
+| 127 | Evans, *Translations from Drawing to Building* | 1997 | MIT Press | K |
+| 128 | Lynn, *Animate Form* | 1999 | Princeton Arch Press | K |
+| 129 | Kolarevic, *Architecture in the Digital Age* | 2003 | Spon Press | K |
+| 130 | Allen, *Practice* | 2009 | Routledge | K |
+| 131 | Picon, *Digital Culture in Architecture* | 2010 | Birkhäuser | K |
+| 132 | Carpo, *The Alphabet and the Algorithm* | 2011 | MIT Press | K |
+| 133 | Carpo, *The Second Digital Turn* | 2017 | MIT Press | K |
+| 134 | Burry, *Scripting Cultures* | 2011 | Wiley | K |
+| 135 | Easterling, *Extrastatecraft* | 2014 | Verso | K |
+| 136 | Deamer, *Architect as Worker* / *Architecture and Labor* | 2015/2020 | Bloomsbury / Routledge | K |
 
 ---
 
 ## Assessment
 
-### What the 103 sources establish
+### What the 136 sources establish
 
 The Radical Accessibility Project sits at an intersection that no existing work occupies. Six literatures converge on the project but none connects them:
 
 **1. No work bridges architectural phenomenology and computational design tools for blind users.**
 
-Pallasmaa (A.5), Zumthor (A.6), Böhme (A.8), and Jay (A.3) critique architecture's visual bias philosophically. Heylighen (B.11) studies blind spatial experience empirically. The HCI community builds accessible modeling tools -- shapeCAD (I.2), A11yShape (I.14), Molder (I.3). The ACADIA community builds text-to-CAD pipelines -- Text2CAD (H.5), Raven (H.6), Kakadoo (H.8). No one connects all four. The project is the first to operationalize architectural phenomenology's multi-sensory critique through a functioning, screen-reader-native computational design tool used by a blind architecture student in a graduate studio.
+Pallasmaa (A.5), Zumthor (A.6), Böhme (A.8), and Jay (A.3) critique architecture's visual bias philosophically. Varela et al. (A.10) and Clark & Chalmers (A.11) extend this into enactivist cognitive science. Evans (K.1) proves that representational media are never neutral; Carpo (K.6, K.7) traces how notation systems structure design thinking across epochs. Heylighen (B.11) studies blind spatial experience empirically. The HCI community builds accessible modeling tools -- shapeCAD (I.2), A11yShape (I.14), Molder (I.3). The ACADIA community builds text-to-CAD pipelines -- Text2CAD (H.5), Raven (H.6), Kakadoo (H.8), LLMto3D (H.12), AIDL (H.13). No one connects all four. The project is the first to operationalize architectural phenomenology's multi-sensory critique through a functioning, screen-reader-native computational design tool used by a blind architecture student in a graduate studio.
 
 **2. Cognitive science validates the CLI paradigm, but no computational design researcher has made the connection.**
 
 Millar (B.2) demonstrates that spatial cognition is modality-independent when adequate reference frames are available. Thinus-Blanc & Gaunet (B.3) show that discrepancies in blind spatial cognition research stem from strategy differences, not fundamental limitations -- spatial performance depends on what strategies and reference frames are provided. Loomis, Klatzky & Golledge (B.4) find that spatial representations derived from spatial language can function equivalently to those derived from direct perception. Piaget & Inhelder (B.1) show spatial understanding develops topologically (qualitative relationships first) before becoming metric. Saerberg (B.6) and Giudice (B.13) confirm blind spatial cognition is sequential, landmark-based, and language-mediated.
 
-The CLI's sequential, semantically-labeled, language-mediated interaction model is exactly the strategy-enabling infrastructure this literature calls for -- but no computational design researcher has cited this cognitive science to justify an alternative tool paradigm. The project can make this connection explicit: the CLI is not a compromise, it is cognitively aligned with how blind users actually construct spatial knowledge.
+The CLI's sequential, semantically-labeled, language-mediated interaction model is exactly the strategy-enabling infrastructure this literature calls for -- but no computational design researcher has cited this cognitive science to justify an alternative tool paradigm. The project can make this connection explicit: the CLI is not a compromise, it is cognitively aligned with how blind users actually construct spatial knowledge. Schön's reflective practitioner framework (A.9) adds further support: the CLI's command-response loop is a "reflective conversation with the situation" where verbal feedback makes the design dialogue explicit.
 
 **3. Critical disability studies has not entered the ACADIA/CumInCAD discourse.**
 
-Hamraie (C.12, C.13), Gissen (C.16), Boys (C.9), Williamson (C.14), Mankoff et al. (C.4), and Costanza-Chock (C.15) are well-established in disability studies, HCI, and architectural theory -- but they are virtually absent from computational design literature. Winner's "Do Artifacts Have Politics?" (C.1) is among the most cited STS papers ever written, yet the ACADIA community has not applied it to its own tools. The project's ACADIA paper can introduce "crip technoscience," "design justice," and "do artifacts have politics?" to a community that has discussed accessibility only in terms of equity (Noel, D.1) and data justice (Cupkova, D.5), not structural critique.
+Hamraie (C.12, C.13), Gissen (C.16, C.18), Boys (C.9), Williamson (C.14), Mankoff et al. (C.4), and Costanza-Chock (C.15) are well-established in disability studies, HCI, and architectural theory -- but they are virtually absent from computational design literature. Winner's "Do Artifacts Have Politics?" (C.1) is among the most cited STS papers ever written, yet the ACADIA community has not applied it to its own tools. Lifchez's pioneering work at Berkeley (C.17, 1987) and ACSA's own "Where Are My People?" report (C.20, 2025) confirm that disabled architects remain systemically absent from the profession. The project's ACADIA paper can introduce "crip technoscience," "design justice," and "do artifacts have politics?" to a community that has discussed accessibility only in terms of equity (Noel, D.1) and data justice (Cupkova, D.5), not structural critique.
 
 Rhino's viewport, Grasshopper's visual canvas, and Revit's click-and-drag interface are not neutral instruments that happen to be visual. They are artifacts that have politics -- they enforce a social arrangement in which sighted people design and blind people are excluded. The project builds artifacts with different politics.
 
@@ -810,7 +1042,7 @@ Charlton's "nothing about us without us" (C.2) is the foundational principle. Co
 
 ### The LLM-to-CAD explosion strengthens positioning
 
-Between 2022 and 2026, text-to-geometry became a mainstream research direction: Text2CAD (H.5), CAD-LLM (H.7), Raven (H.6), Ant (H.11), CADialogue (H.9), 3D-GPT (H.4), ShapeCrafter (H.2), Kakadoo (H.8). The architecture community has independently converged on text-to-geometry as the future of design interaction. The project arrived at the same architecture by a different route -- necessity, not convenience. The ACADIA paper can argue: we built this because a blind user cannot interact with Grasshopper's visual canvas at all; the fact that the field is now building the same pipeline for everyone validates both the approach and the broader claim that designing for exclusion reveals better design patterns.
+Between 2022 and 2026, text-to-geometry became a mainstream research direction: Text2CAD (H.5), CAD-LLM (H.7), Raven (H.6), Ant (H.11), CADialogue (H.9), 3D-GPT (H.4), ShapeCrafter (H.2), Kakadoo (H.8), LLMto3D (H.12), AIDL (H.13), ConvoAI (H.14). The architecture community has independently converged on text-to-geometry as the future of design interaction. AIDL (H.13) is particularly striking: MIT CSAIL designed a CAD language explicitly for "blind" AI code generation -- eliminating the need for visual verification of spatial output. The project arrived at the same architecture by a different route -- necessity, not convenience. The ACADIA paper can argue: we built this because a blind user cannot interact with Grasshopper's visual canvas at all; the fact that the field is now building the same pipeline for everyone validates both the approach and the broader claim that designing for exclusion reveals better design patterns.
 
 ### "Designing While Blind" validates the authorship thesis
 
@@ -818,7 +1050,15 @@ Billah et al. (I.9) demonstrate that blind people are excluded from creating the
 
 ### What remains unexplored
 
-Even with 103 sources, several areas lack published work:
+**7. Architectural representation theory validates the CLI as an epistemological intervention, not an accommodation.**
+
+Evans (K.1) proved in 1997 that the architectural drawing is not transparent but an active agent that shapes what can be designed. Carpo (K.6, K.7) traced how notation systems structure design thinking across epochs. Allen (K.4) showed that concepts emerge from representational practices. Burry (K.8) demonstrated that scripting lets designers escape the constraints embedded in commercial software. Deamer (K.10) revealed that tools are structures of labor that determine whose work is visible and valued. Easterling (K.9) theorized infrastructure as a political medium. The project can now make the strongest possible theoretical claim: the CLI is not an accessibility workaround; it is, by Evans' logic, a different representational medium that will generate different architectural possibilities and different "translations." Changing the medium changes what architecture can be.
+
+**8. "Born-accessible" is emerging as a design paradigm distinct from retrofitted accessibility.**
+
+Seo's "born-accessible" courses (I.18) -- designed from the ground up for blind learners -- demonstrate that accessibility-first design produces fundamentally different and often superior outcomes compared to retrofitted accessibility. Clepper et al. (I.16) document how blind tactile graphics creators are trapped between accessible low-fidelity tools and inaccessible high-fidelity ones. Flores-Saviaga et al. (I.17) show that even AI coding assistants exacerbate accessibility barriers through suggestion overload. Gurita & Vatavu (I.19) found that LLM-generated interfaces do not spontaneously produce accessible code. Together, these findings validate the project's architecture: accessibility must be structural (baked into the CLI protocol), not emergent (hoped for from AI output).
+
+Even with 136 sources, several areas lack published work:
 
 - **File-watching as accessibility architecture.** No paper examines JSON file-watching as a strategy for decoupling accessible controllers from inaccessible viewers. The MCP server for Grasshopper (H.10) validates the transport-layer concept but uses a different pattern. The project's approach is simpler, more robust, and crash-safe.
 - **Accessibility in ACADIA/CumInCAD remains thin.** Despite 2,500+ CumInCAD papers from 2021–2025, accessibility/disability content barely registers. The project's paper would be among the first to directly address how a blind student uses computational design tools in a graduate architecture studio.
@@ -829,19 +1069,22 @@ Even with 103 sources, several areas lack published work:
 ## Recommended Reading Order for ACADIA 2026 Framing
 
 **Layer 1 -- Architecture's Visual Bias (the problem):**
-Jay (A.3), Pallasmaa (A.5), Zumthor (A.6), Winner (C.1), Heylighen & Herssens (B.11)
+Jay (A.3), Pallasmaa (A.5), Zumthor (A.6), Winner (C.1), Heylighen & Herssens (B.11), Evans (K.1)
 
 **Layer 2 -- Disability as Generative, Not Deficit (the reframe):**
-Hamraie (C.12), Hamraie & Fritsch (C.13), Gissen (C.16), Boys (C.9), Reynolds (B.12), Pullin (C.3)
+Hamraie (C.12), Hamraie & Fritsch (C.13), Gissen (C.16), Boys (C.9), Reynolds (B.12), Pullin (C.3), Lifchez (C.17)
 
-**Layer 3 -- Blind Spatial Cognition (the evidence):**
+**Layer 3 -- Embodied Cognition and Representation Theory (the theoretical foundation):**
+Merleau-Ponty (A.1), Varela et al. (A.10), Clark & Chalmers (A.11), Schön (A.9), Carpo (K.6, K.7), Burry (K.8), Allen (K.4), Deamer (K.10)
+
+**Layer 4 -- Blind Spatial Cognition (the evidence):**
 Millar (B.2), Thinus-Blanc & Gaunet (B.3), Loomis et al. (B.4), Piaget & Inhelder (B.1), Saerberg (B.6), Cattaneo & Vecchi (B.7), Chen et al. (B.15)
 
-**Layer 4 -- The Tool Landscape (what exists and what's missing):**
-shapeCAD (I.2), A11yShape (I.14), Rietschel/Raven (G.7, H.6), Text2CAD (H.5), Crawford (I.10), Billah (I.9), Mankoff et al. (C.4), Shinohara & Wobbrock (C.5)
+**Layer 5 -- The Tool Landscape (what exists and what's missing):**
+shapeCAD (I.2), A11yShape (I.14), Rietschel/Raven (G.7, H.6), Text2CAD (H.5), AIDL (H.13), LLMto3D (H.12), Crawford (I.10), Billah (I.9), Clepper et al. (I.16), Flores-Saviaga (I.17)
 
-**Layer 5 -- Ethics and Method (how we work):**
-Charlton (C.2), Costanza-Chock (C.15), Levent & Pascual-Leone (C.10)
+**Layer 6 -- Ethics and Method (how we work):**
+Charlton (C.2), Costanza-Chock (C.15), Seo (I.18), Nicholson/ACSA (C.20), NAAB (J.7)
 
-**Layer 6 -- The Project's Contribution (what this makes possible):**
-Blesser & Salter (E.7), Lundgard & Satyanarayan (I.5), Wobbrock/Ability-Based Design (C.6), Ladner (C.11)
+**Layer 7 -- The Project's Contribution (what this makes possible):**
+Blesser & Salter (E.7), Lundgard & Satyanarayan (I.5), Wobbrock/Ability-Based Design (C.6), Ladner (C.11), Sennett (A.12), Ingold (A.13)
