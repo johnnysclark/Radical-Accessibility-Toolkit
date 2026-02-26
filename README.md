@@ -27,7 +27,7 @@ Rhino 8 (rhino_watcher.py)
     2D plan drawing + optional 3D tactile model
 ```
 
-**Features:** Rectangular/radial grids, walls with doors/windows/portals, corridors, cell rooms with hatch patterns, braille legends, PIAF-optimized line weights, 3D printing pipeline (Bambu Lab), section cuts, text-to-speech, history/snapshots, MCP server for AI integration.
+**Features:** Rectangular/radial grids, walls with doors/windows/portals, corridors, cell rooms with hatch patterns, braille legends, PIAF-optimized line weights, 3D printing pipeline (Bambu Lab), section cuts, text-to-speech, history/snapshots, MCP server (v2.0) for AI integration.
 
 ```
 >> set bay A origin 20 10
@@ -189,7 +189,7 @@ Voice input (Windows SAPI / speech recognition)
 
 ---
 
-### AI Assistant Layer (In Development)
+### AI Assistant Layer — MCP Server v2.0
 
 Natural language interface for design operations using an MCP (Model Context Protocol) server. Enables conversational interaction with the model — ask questions, request changes, and get descriptions in plain English. The MCP server (`mcp_server.py`) is in the layout-jig folder.
 
@@ -200,9 +200,9 @@ User (natural language)
         v
     LLM (Claude) interprets intent
         |
-        | generates CLI command or Python code
+        | calls semantic MCP tool (e.g. set_corridor)
         v
-    CLI command dispatch / code execution
+    CLI command dispatch / state mutation
         |
         | update state.json
         v
@@ -210,12 +210,42 @@ User (natural language)
 ```
 
 **Features:**
-- MCP server for natural language to Rhino/Grasshopper commands
+- 21 semantic MCP tools with typed parameters (v2.0) — the AI calls `add_aperture(bay="A", id="d1", type="door", ...)` instead of guessing raw CLI syntax
+- 3 MCP resources for context loading: `state://current`, `snapshots://list`, `help://commands`
+- 2 prompt templates: `design_review` (full model critique), `aperture_audit` (check all openings)
 - LLM-powered code generation: plain English to Python to geometry
 - Conversational model queries ("describe the north elevation", "how wide is bay A?")
 - Error-aware retries from stack traces
 - Integration with Arch-Alt-Text for image description of exported views
-- **Status:** Actively prototyped. MCP server is in the repo (`layout-jig/mcp_server.py`). LLM workflow is proven; integration into Daniel's daily workflow is ongoing.
+- **Status:** MCP server v2.0 is in the repo (`layout-jig/mcp_server.py`). Works with Claude Code, Claude Desktop, and Cursor.
+
+**MCP Tool Categories (21 tools):**
+
+| Category | Tools |
+|----------|-------|
+| Read | `describe`, `list_bays`, `get_state`, `get_help`, `list_apertures`, `list_cells`, `list_rooms`, `list_snapshots` |
+| Bay config | `set_bay(bay, field, value)` |
+| Walls/corridors | `set_walls(bay, enabled, thickness)`, `set_corridor(bay, enabled, field, value)` |
+| Apertures | `add_aperture(bay, id, type, axis, gridline, corner, width, height)`, `remove_aperture(bay, id)`, `modify_aperture(bay, id, field, value)` |
+| Cells/rooms | `set_cell(bay, col, row, field, value)`, `auto_corridor_cells(bay)` |
+| Site/style | `set_site(field, value)`, `set_style(field, value)` |
+| Snapshots | `save_snapshot(name)`, `load_snapshot(name)` |
+| Escape hatch | `run_command(command)` |
+
+**Setup for Claude Code** — place `.mcp.json` at the project root:
+```json
+{
+  "mcpServers": {
+    "layout-jig": {
+      "command": "python",
+      "args": ["Layout Jig/layout-jig/mcp_server.py", "--state",
+               "Layout Jig/layout-jig/state.json"]
+    }
+  }
+}
+```
+
+For Claude Desktop, add the same entry to `claude_desktop_config.json`.
 
 ---
 
@@ -250,7 +280,7 @@ radical-accessibility/
     controller_cli.py .... Terminal CLI (Python 3, stdlib only)
     rhino_watcher.py ..... Rhino file watcher (IronPython 2.7)
     tactile_print.py ..... STL mesh generation + Bambu printing
-    mcp_server.py ........ MCP server for AI assistant integration
+    mcp_server.py ........ MCP server v2.0 (21 tools, 3 resources, 2 prompts)
     state.json ........... Canonical model artifact
     MANUAL.docx .......... Full user documentation
   tactile-output/ ........ Tactile graphics pipeline (planned)
