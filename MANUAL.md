@@ -1,14 +1,9 @@
+# Rhino Layout Jig — Manual
 
-PLAN
-LAYOUT
-JIG
-Version 2.3  —  Manual
-
-Non-Visual Architectural Design System
-for blind, low-vision, and sighted designers
-
-Radical Accessibility Project
+Version 2.3 · Scaffold Platform · Radical Accessibility Project
 University of Illinois Urbana-Champaign · School of Architecture
+
+Non-Visual Architectural Design System for blind, low-vision, and sighted designers.
 
 # Contents
 
@@ -21,23 +16,33 @@ The system can produce PIAF tactile prints (raised-line swell paper) and 3D-prin
 # 2  Getting Started
 Requirements: Python 3.8 or later and Rhino 7 or 8 (Windows or Mac). The controller and tactile print module run in any terminal. The watcher runs inside Rhino. No additional packages are needed for basic operation. Bambu 3D printing (Section 10.3) optionally requires OrcaSlicer and paho-mqtt.
 ## 2.1  File Placement
-Place all three Python files in the same folder: controller_cli_v2.py, rhino_watcher_v2.py, and tactile_print.py. The controller creates state_v2.json automatically on first run. Optionally create a hatches subfolder for image-based room fill patterns.
+The scaffold repo contains three key files for this skill:
+- `controller_cli.py` — at the repo root. Run this in your terminal.
+- `rhino-python-driver/rhino_watcher.py` — run this inside Rhino.
+- `rhino-python-driver/tactile_print.py` — Bambu 3D print pipeline.
+- `rhino-python-driver/state.json` — created automatically on first run.
+
+Optionally create a `hatches/` subfolder for image-based room fill patterns.
+
 ## 2.2  Start the Controller
-Terminal
-python controller_cli_v2.py
+```
+python controller_cli.py
 
 # Or specify a custom state file location:
-python controller_cli_v2.py --state "/projects/studio/state_v2.json"
+python controller_cli.py --state "/projects/studio/state.json"
+```
+
 ## 2.3  Start the Watcher
 Open Rhino’s Python editor (EditPythonScript) or a GhPython component. Paste and run:
-Rhino Python console
+```python
 import sys
-sys.path.insert(0, r"C:\path\to\your\folder")
-import rhino_watcher_v2 as w
+sys.path.insert(0, r"C:\path\to\scaffold\rhino-python-driver")
+import rhino_watcher as w
 w.start_watcher()
+```
 
 ## 2.4  Verify the Connection
-Type describe in the controller. You should see a structured text report of the model. In Rhino, gridlines, columns, and a site boundary should appear. If Rhino is empty, confirm all files share the same folder and that state_v2.json exists.
+Type `describe` in the controller. You should see a structured text report of the model. In Rhino, gridlines, columns, and a site boundary should appear. If Rhino is empty, confirm all files are in place and that `rhino-python-driver/state.json` exists.
 # 3  Reading the Model: Describe
 The describe command is the most important tool in the system. It prints a structured text report of every setting, piece of geometry, and spatial relationship in the model. For a designer working without visual feedback, this command replaces looking at the drawing.
 CLI (both forms are equivalent)
@@ -328,30 +333,55 @@ history/
 snapshot_before_walls.json        # named snapshots
 
 # 14  MCP Server
-The MCP (Model Context Protocol) server wraps the CLI so that AI assistants can drive the jig conversationally. Version 2.0 adds 16 semantic tools with typed parameters, MCP resources, and prompt templates. The AI calls add_aperture(bay="A", id="d1", type="door", ...) instead of guessing raw CLI syntax.
+The MCP (Model Context Protocol) server wraps the CLI so that AI assistants — Claude Code, Claude Desktop, Cursor — can drive the jig conversationally. Version 2.0 exposes 21 semantic tools with typed parameters, 3 resources, and 2 prompt templates. The AI calls `add_aperture(bay="A", id="d1", type="door", ...)` instead of guessing raw CLI syntax.
+
+For full documentation including example conversations, tool reference, and extension guide, see `docs/MCP_GUIDE.md`.
+
 ## 14.1  Setup
-Install the MCP package (v1.26.0 or later):
+Install the MCP package (the only external dependency in the project):
+```
 pip install mcp
-For Claude Code, place .mcp.json at the project root:
-{ "mcpServers": { "layout-jig": { "command": "python", "args": ["Layout Jig/layout-jig/mcp_server.py", "--state", "Layout Jig/layout-jig/state.json"] } } }
-For Claude Desktop, add the same entry to claude_desktop_config.json. Or set the environment variable LAYOUT_JIG_STATE and omit --state.
-## 14.2  Available Tools
-The server exposes 21 tools in five categories. All semantic tools are thin wrappers that construct CLI command strings internally, so validation and error messages are identical to the terminal.
-Read tools (no state mutation): describe(), list_bays(), get_state(), get_help(), list_apertures(bay), list_cells(bay), list_rooms(), list_snapshots().
-Bay configuration: set_bay(bay, field, value) sets any bay property. The field parameter accepts: origin, rotation, bays, spacing, spacing_x, spacing_y, grid_type, z_order, void_center, void_size, void_shape, label, braille, rings, ring_spacing, arms, arc_deg, arc_start_deg.
-Walls and corridors: set_walls(bay, enabled, thickness) toggles walls on/off with optional thickness. set_corridor(bay, enabled, field, value) toggles corridors and optionally sets axis, position, width, loading, hatch, or hatch_scale.
-Apertures: add_aperture(bay, id, type, axis, gridline, corner, width, height) adds a door, window, or portal. remove_aperture(bay, id) removes one. modify_aperture(bay, id, field, value) changes any property: type, axis, gridline, corner, width, height, hinge, swing.
-Cells and rooms: set_cell(bay, col, row, field, value) sets a cell's name, label, braille, hatch, hatch_scale, or hatch_rotation. auto_corridor_cells(bay) detects and labels corridor-zone cells.
-Site and style: set_site(field, value) sets width or height. set_style(field, value) sets any of: heavy, light, corridor, wall, text_height, braille_height, dash_len, gap_len, bg_pad, label_offset, arc_segments.
-Snapshots: save_snapshot(name) checkpoints the current state. load_snapshot(name) restores it. Use snapshots before significant changes since undo is not available in MCP mode.
-Escape hatch: run_command(command) executes any raw CLI command string. Use this for advanced operations not covered by the semantic tools.
+```
+
+For Claude Code, place `.mcp.json` at the project root (`CLI/`):
+```json
+{
+  "mcpServers": {
+    "layout-jig": {
+      "command": "python",
+      "args": ["scaffold/mcp_server.py", "--state", "scaffold/rhino-python-driver/state.json"]
+    }
+  }
+}
+```
+
+For Claude Desktop, add the same entry to `claude_desktop_config.json`. Or set `LAYOUT_JIG_STATE=path/to/state.json` and omit `--state`.
+
+## 14.2  Available Tools (21 total)
+**Read tools** (no state mutation): `describe()`, `list_bays()`, `get_state()`, `get_help()`, `list_apertures(bay)`, `list_cells(bay)`, `list_rooms()`, `list_snapshots()`.
+
+**Bay configuration**: `set_bay(bay, field, value)` — sets any bay property (origin, rotation, bays, spacing, spacing_x, spacing_y, grid_type, z_order, void_center, void_size, void_shape, label, braille, rings, ring_spacing, arms, arc_deg, arc_start_deg).
+
+**Walls and corridors**: `set_walls(bay, enabled, thickness)`, `set_corridor(bay, enabled, field, value)`.
+
+**Apertures**: `add_aperture()`, `remove_aperture()`, `modify_aperture()`.
+
+**Cells and rooms**: `set_cell(bay, col, row, field, value)`, `auto_corridor_cells(bay)`.
+
+**Site and style**: `set_site(field, value)`, `set_style(field, value)`.
+
+**Snapshots**: `save_snapshot(name)`, `load_snapshot(name)`. Use snapshots before major changes — undo is not available between MCP calls.
+
+**Escape hatch**: `run_command(command)` — passes any raw CLI string for commands not yet wrapped as typed tools.
+
 ## 14.3  MCP Resources
-Three read-only resources let the AI load context without calling a tool: state://current returns the full JSON state, snapshots://list shows available checkpoints, and help://commands provides the CLI reference.
+Three read-only resources: `state://current` (full JSON state), `snapshots://list` (available checkpoints), `help://commands` (full CLI reference).
+
 ## 14.4  MCP Prompts
-Two prompt templates are registered: design_review loads the full model description and asks for spatial, circulation, and tactile feedback. aperture_audit lists all apertures across all bays and checks for missing doors, window placement, and portal sizing.
+`design_review` — loads model description, asks for spatial, circulation, and tactile feedback. `aperture_audit` — checks all apertures for missing doors, window placement, and portal sizing.
+
 ## 14.5  Design Notes
-Each tool call loads state from disk, runs the command, and saves back. There is no persistent session, so undo is not available. Use named snapshots to checkpoint before major changes.
-Stdout is reserved for JSON-RPC transport. All print output from the controller is redirected to stderr.
+Each tool call loads state from disk, runs the command, and saves back atomically. No persistent session — use named snapshots to checkpoint. Stdout is reserved for JSON-RPC; all CLI print output goes to stderr.
 
 # 15  Style Variables
 Style variables control lineweights, text sizes, and spacing for both screen and tactile output. Set them individually:
@@ -448,11 +478,11 @@ These extensions fit naturally into the existing architecture:
 ## 19.6  Prompt Template
 When you sit down to extend the Jig, this structure works well:
 
-I'm working on the Plan Layout Jig, a CLI + Rhino watcher system.
+I'm working on the Rhino Layout Jig (part of the Scaffold platform), a CLI + Rhino watcher system.
 Here are the source files:
-[paste controller_cli_v2.py]
-[paste rhino_watcher_v2.py]
-[paste tactile_print.py if relevant]
+[paste controller_cli.py]
+[paste rhino-python-driver/rhino_watcher.py]
+[paste rhino-python-driver/tactile_print.py if relevant]
 
 I want to add [feature]. It should:
 - [what the user types]
