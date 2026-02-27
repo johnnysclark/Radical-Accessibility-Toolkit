@@ -33,7 +33,7 @@ STATE_PATH = os.path.join(REPO_ROOT, "rhino-python-driver", "state.json")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "test-output")
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded_{}.stl".format(TIMESTAMP))
-SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot_{}.png".format(TIMESTAMP))
+OBJ_PATH = os.path.join(OUTPUT_DIR, "single_bay_model_{}.obj".format(TIMESTAMP))
 FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan_{}.png".format(TIMESTAMP))
 AXON_PATH = os.path.join(OUTPUT_DIR, "single_bay_axon_pen_{}.png".format(TIMESTAMP))
 
@@ -251,7 +251,7 @@ def make_three_bay_state(full_state):
     state["tactile3d"]["enabled"] = True
     state["tactile3d"]["wall_height"] = 30.0
     state["tactile3d"]["cut_height"] = 30.0   # no clip
-    state["tactile3d"]["floor_enabled"] = True
+    state["tactile3d"]["floor_enabled"] = False
     state["tactile3d"]["floor_thickness"] = 0.5
 
     # Scale: 1/8" = 1'-0"  →  1 ft = 3.175 mm  →  print_scale = 96
@@ -317,65 +317,41 @@ def validate_watertight(triangles):
     return is_watertight, total_edges, len(boundary), "\n".join(lines)
 
 
-def render_screenshot(triangles_ft, output_path):
-    """Render a 3D screenshot of the mesh in feet using matplotlib."""
-    import matplotlib
-    matplotlib.use("Agg")  # headless backend
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+def export_obj(triangles_ft, output_path):
+    """Export mesh as Wavefront OBJ file (feet units).
 
-    fig = plt.figure(figsize=(16, 10))
-    ax = fig.add_subplot(111, projection="3d")
+    OBJ files can be opened on iPhone via Quick Look, Files app,
+    or free viewers like 'Reality Composer' / '3D Scanner App'.
+    """
+    # De-duplicate vertices
+    vert_map = {}
+    verts = []
+    faces = []
 
-    # Collect polygon vertices (already in feet)
-    polys = []
+    def get_idx(v):
+        key = (round(v[0], 6), round(v[1], 6), round(v[2], 6))
+        if key not in vert_map:
+            vert_map[key] = len(verts) + 1  # OBJ is 1-indexed
+            verts.append(key)
+        return vert_map[key]
+
     for _, v0, v1, v2 in triangles_ft:
-        polys.append([list(v0), list(v1), list(v2)])
+        i0 = get_idx(v0)
+        i1 = get_idx(v1)
+        i2 = get_idx(v2)
+        faces.append((i0, i1, i2))
 
-    # Determine bounds for coloring
-    all_z = [v[2] for tri in polys for v in tri]
-    z_min, z_max = min(all_z), max(all_z)
-    z_range = z_max - z_min if z_max > z_min else 1.0
+    with open(output_path, "w") as f:
+        f.write("# Plan Layout Jig — Two-Bay Model\n")
+        f.write(f"# {len(verts)} vertices, {len(faces)} faces\n")
+        f.write(f"# Units: feet\n\n")
+        for v in verts:
+            f.write(f"v {v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n")
+        f.write("\n")
+        for fa in faces:
+            f.write(f"f {fa[0]} {fa[1]} {fa[2]}\n")
 
-    # Color faces by average Z height
-    face_colors = []
-    for tri in polys:
-        avg_z = sum(v[2] for v in tri) / 3.0
-        t = (avg_z - z_min) / z_range
-        # Warm color ramp: floor=blue, walls=orange/red
-        r = min(1.0, 0.3 + 0.7 * t)
-        g = min(1.0, 0.3 + 0.4 * t)
-        b = max(0.0, 0.8 - 0.6 * t)
-        face_colors.append((r, g, b, 0.85))
-
-    mesh_collection = Poly3DCollection(polys, facecolors=face_colors,
-                                       edgecolors=(0.2, 0.2, 0.2, 0.3),
-                                       linewidths=0.15)
-    ax.add_collection3d(mesh_collection)
-
-    # Set axis limits from mesh bounds
-    all_x = [v[0] for tri in polys for v in tri]
-    all_y = [v[1] for tri in polys for v in tri]
-    pad = 5.0
-    ax.set_xlim(min(all_x) - pad, max(all_x) + pad)
-    ax.set_ylim(min(all_y) - pad, max(all_y) + pad)
-    ax.set_zlim(min(all_z) - pad, max(all_z) + pad)
-
-    ax.set_xlabel("X (ft)")
-    ax.set_ylabel("Y (ft)")
-    ax.set_zlabel("Z (ft)")
-
-    ax.set_title("Two-Bay Layout — Bay A 30' + Bay B 10' @ 45\u00b0, Watertight STL\n"
-                 f'{len(triangles_ft)} triangles | scale 1/8" = 1\'-0" (1:96)',
-                 fontsize=13, fontweight="bold")
-
-    # Isometric-ish view
-    ax.view_init(elev=25, azim=-50)
-
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Screenshot saved: {output_path}")
+    print(f"OBJ saved: {output_path} ({len(verts)} verts, {len(faces)} faces)")
 
 
 def render_axon_pen(triangles_ft, output_path):
@@ -393,9 +369,9 @@ def render_axon_pen(triangles_ft, output_path):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # ── Isometric camera — looking from above ──
+    # ── Isometric camera — looking DOWN from above ──
     az = math.radians(-50)
-    el = math.radians(55)  # steep downward view
+    el = math.radians(-55)  # negative = looking downward
 
     # Camera basis vectors (right-hand coordinate system)
     # Forward = into screen, Right = screen X, Up = screen Y
@@ -559,7 +535,7 @@ def render_axon_pen(triangles_ft, output_path):
             visible_edges.append((pa, pb))
 
     # ── Draw ──
-    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    fig, ax = plt.subplots(1, 1, figsize=(17, 11))
     ax.set_aspect("equal")
     ax.set_facecolor("white")
 
@@ -598,16 +574,17 @@ def render_floor_plan(state, output_path):
     from matplotlib.patches import Arc
     import matplotlib.path as mpath
 
-    fig, ax = plt.subplots(1, 1, figsize=(14, 14))
+    fig, ax = plt.subplots(1, 1, figsize=(17, 11))
     ax.set_aspect("equal")
     ax.set_facecolor("white")
 
-    bay_colors = [
-        ((0.15, 0.15, 0.15), (0.4, 0.4, 0.8), (0.2, 0.5, 0.8)),  # Bay A: dark walls, blue doors/windows
-        ((0.3, 0.2, 0.1), (0.7, 0.4, 0.2), (0.6, 0.5, 0.2)),     # Bay B: brown walls, orange doors/windows
-    ]
-
     all_world_pts = []  # for auto-fitting view limits
+
+    # Line weights matching axon pen mode for Piaf tactile embosser
+    WALL_LW = 1.4       # solid wall outlines (matches axon visible)
+    DOOR_LW = 0.8       # dashed door openings (matches axon hidden)
+    WINDOW_LW = 1.0     # window centerlines
+    GRID_LW = 0.4       # light gridlines
 
     # Sort bays by z_order (draw lower z_order first = behind)
     sorted_bays = sorted(state.get("bays", {}).items(),
@@ -622,36 +599,32 @@ def render_floor_plan(state, output_path):
 
         ox, oy = bay["origin"]
         rot = bay.get("rotation_deg", 0)
-        nx, ny = bay["bays"]
-        sx, sy = bay["spacing"]
         wall_t = w.get("thickness", 0.5)
         half_t = wall_t / 2.0
         aps = bay.get("apertures", [])
 
         cx, cy_arr = tp._get_spacing_arrays(bay)
-
-        colors = bay_colors[bi % len(bay_colors)]
-        wall_color, door_color, win_color = colors
         bay_wh = bay.get("wall_height", state.get("tactile3d", {}).get("wall_height", 30))
 
-        def to_world(lx, ly):
-            return tp._local_to_world(lx, ly, (ox, oy), rot)
+        def to_world(lx, ly, _ox=ox, _oy=oy, _rot=rot):
+            return tp._local_to_world(lx, ly, (_ox, _oy), _rot)
 
-        def draw_wall_rect(seg_start, seg_end, fixed, axis):
-            """Draw a rotated wall rectangle using a polygon."""
+        def draw_wall_rect(seg_start, seg_end, fixed, axis,
+                           _half_t=half_t, _to_world=to_world):
+            """Draw a rotated wall rectangle as black outline, white fill."""
             if axis == "x":
-                c0 = to_world(seg_start, fixed - half_t)
-                c1 = to_world(seg_end,   fixed - half_t)
-                c2 = to_world(seg_end,   fixed + half_t)
-                c3 = to_world(seg_start, fixed + half_t)
+                c0 = _to_world(seg_start, fixed - _half_t)
+                c1 = _to_world(seg_end,   fixed - _half_t)
+                c2 = _to_world(seg_end,   fixed + _half_t)
+                c3 = _to_world(seg_start, fixed + _half_t)
             else:
-                c0 = to_world(fixed - half_t, seg_start)
-                c1 = to_world(fixed + half_t, seg_start)
-                c2 = to_world(fixed + half_t, seg_end)
-                c3 = to_world(fixed - half_t, seg_end)
+                c0 = _to_world(fixed - _half_t, seg_start)
+                c1 = _to_world(fixed + _half_t, seg_start)
+                c2 = _to_world(fixed + _half_t, seg_end)
+                c3 = _to_world(fixed - _half_t, seg_end)
             poly = plt.Polygon([c0, c1, c2, c3],
-                               facecolor=wall_color, edgecolor="black",
-                               linewidth=0.5, zorder=2 + bi)
+                               facecolor="black", edgecolor="black",
+                               linewidth=WALL_LW, zorder=2 + bi)
             ax.add_patch(poly)
             all_world_pts.extend([c0, c1, c2, c3])
 
@@ -673,7 +646,7 @@ def render_floor_plan(state, output_path):
                 if seg_e - seg_s > 0.001:
                     draw_wall_rect(seg_s, seg_e, x_val, "y")
 
-        # ── Aperture symbols ──
+        # ── Aperture symbols (B&W pen mode) ──
         for ap in aps:
             ap_type = ap.get("type", "door")
             corner = ap.get("corner", 0)
@@ -683,75 +656,71 @@ def render_floor_plan(state, output_path):
 
             if axis == "x":
                 fixed = cy_arr[gridline]
-                # Aperture midpoint in local coords
-                mid_local = (corner + width / 2, fixed)
+                p0 = to_world(corner, fixed)
+                p1 = to_world(corner + width, fixed)
             else:
                 fixed = cx[gridline]
-                mid_local = (fixed, corner + width / 2)
-
-            mid_w = to_world(*mid_local)
+                p0 = to_world(fixed, corner)
+                p1 = to_world(fixed, corner + width)
 
             if ap_type == "door":
-                # Draw door: opening line + label
-                if axis == "x":
-                    p0 = to_world(corner, fixed)
-                    p1 = to_world(corner + width, fixed)
-                else:
-                    p0 = to_world(fixed, corner)
-                    p1 = to_world(fixed, corner + width)
+                # Dashed line across opening
                 ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
-                        color=door_color, linewidth=1.5,
-                        linestyle="--", zorder=4 + bi)
-                ax.text(mid_w[0], mid_w[1] + 1.2,
-                        ap["id"].upper(), ha="center", va="bottom",
-                        fontsize=6, color=door_color)
-
+                        color="black", linewidth=DOOR_LW,
+                        linestyle=(0, (4, 3)),
+                        solid_capstyle="round", zorder=4 + bi)
             elif ap_type == "window":
-                # Draw window: double glass lines
-                if axis == "x":
-                    p0 = to_world(corner, fixed)
-                    p1 = to_world(corner + width, fixed)
-                else:
-                    p0 = to_world(fixed, corner)
-                    p1 = to_world(fixed, corner + width)
+                # Thin solid line across opening (single centerline)
                 ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
-                        color=win_color, linewidth=2.0, zorder=4 + bi)
-                ax.text(mid_w[0], mid_w[1] - 1.5,
-                        ap["id"].upper(), ha="center", va="top",
-                        fontsize=6, color=win_color)
+                        color="black", linewidth=WINDOW_LW,
+                        solid_capstyle="round", zorder=4 + bi)
 
-        # Bay label at center
+        # Bay label at center (light gray so it doesn't dominate on Piaf)
         center_local = (cx[-1] / 2, cy_arr[-1] / 2)
         center_w = to_world(*center_local)
         all_world_pts.append(center_w)
         ax.text(center_w[0], center_w[1],
-                f"{bay_name}\n{int(bay_wh)}' tall",
-                ha="center", va="center", fontsize=11, fontweight="bold",
-                color=wall_color, alpha=0.5, zorder=1)
+                f"{bay_name}\n{int(bay_wh)}'",
+                ha="center", va="center", fontsize=10, fontweight="bold",
+                color=(0.6, 0.6, 0.6), zorder=1)
 
     # ── Auto-fit view limits ──
     if all_world_pts:
         xs = [p[0] for p in all_world_pts]
         ys = [p[1] for p in all_world_pts]
-        pad = 12
+        pad = 8
         ax.set_xlim(min(xs) - pad, max(xs) + pad)
         ax.set_ylim(min(ys) - pad, max(ys) + pad)
 
-    ax.set_title("Floor Plan — Multi-Bay Layout\n"
-                 'Bay A: 24\'x60\' @ 30\'  |  Bay B: 24\'x60\' @ 10\' rotated 45\u00b0',
+    ax.set_title("Floor Plan — Two-Bay Layout\n"
+                 'solid = walls  |  dashed = doors  |  thin = windows',
                  fontsize=12, fontweight="bold", pad=15)
-
-    ax.set_xlabel("X (ft)")
-    ax.set_ylabel("Y (ft)")
+    ax.axis("off")
 
     fig.tight_layout()
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    fig.savefig(output_path, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Floor plan saved: {output_path}")
 
 
+def _archive_old_outputs():
+    """Move any existing timestamped outputs into Tests/ subfolder."""
+    archive_dir = os.path.join(OUTPUT_DIR, "Tests")
+    os.makedirs(archive_dir, exist_ok=True)
+    for fname in os.listdir(OUTPUT_DIR):
+        if fname == "Tests" or fname == "single_bay_state.json":
+            continue
+        src = os.path.join(OUTPUT_DIR, fname)
+        if os.path.isfile(src):
+            dst = os.path.join(archive_dir, fname)
+            os.rename(src, dst)
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Archive previous outputs into Tests/
+    _archive_old_outputs()
 
     # 1. Load full state
     print(f"Loading state from {STATE_PATH}")
@@ -786,9 +755,9 @@ def main():
     is_wt, edge_ct, boundary_ct, report = validate_watertight(stl_tris)
     print(report)
 
-    # 5. Render 3D screenshot (in feet, not mm)
-    print(f"\nRendering 3D screenshot to {SCREENSHOT_PATH}")
-    render_screenshot(triangles_ft, SCREENSHOT_PATH)
+    # 5. Export OBJ for iPhone 3D inspection
+    print(f"\nExporting OBJ to {OBJ_PATH}")
+    export_obj(triangles_ft, OBJ_PATH)
 
     # 6. Render floor plan
     print(f"\nRendering floor plan to {FLOORPLAN_PATH}")
@@ -803,7 +772,7 @@ def main():
     print("TEST RESULTS")
     print("=" * 50)
     print(f"  STL file:       {STL_PATH}")
-    print(f"  Screenshot:     {SCREENSHOT_PATH}")
+    print(f"  OBJ file:       {OBJ_PATH}")
     print(f"  Floor plan:     {FLOORPLAN_PATH}")
     print(f"  Axon pen:       {AXON_PATH}")
     print(f"  Triangles:      {count}")

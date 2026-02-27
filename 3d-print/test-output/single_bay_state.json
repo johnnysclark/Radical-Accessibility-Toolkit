@@ -473,7 +473,7 @@
     "wall_height": 30.0,
     "cut_height": 30.0,
     "floor_thickness": 0.5,
-    "floor_enabled": true,
+    "floor_enabled": false,
     "auto_export": false,
     "export_path": "./tactile3d_export.stl",
     "scale_factor": 1.0
