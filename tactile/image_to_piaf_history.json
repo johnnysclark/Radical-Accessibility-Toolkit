@@ -1,0 +1,145 @@
+[
+  {
+    "timestamp": "2026-02-27 03:29:32",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_piaf.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:30:12",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_piaf2.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:30:44",
+    "source": "/tmp/test_dense.png",
+    "preset": "photograph",
+    "output": "/tmp/test_dense_piaf.png",
+    "density": 0.4847,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:30:59",
+    "source": "/tmp/test_large.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_tiled_R1C1.png",
+    "density": 0.0221,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:11",
+    "source": "/tmp/test_huge.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_tiles_R1C1.png",
+    "density": 0.044,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:26",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_piaf.pdf",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:27",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_piaf.tiff",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:38",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_none.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:38",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_auto_contrast.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:39",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_histogram_eq.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:39",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_s_curve.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:39",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_clahe.png",
+    "density": 0.0261,
+    "size": [
+      2550,
+      3300
+    ]
+  },
+  {
+    "timestamp": "2026-02-27 03:31:46",
+    "source": "/tmp/test_plan.png",
+    "preset": "floor_plan",
+    "output": "/tmp/test_inverted.png",
+    "density": 0.6766,
+    "size": [
+      2550,
+      3300
+    ]
+  }
+]
