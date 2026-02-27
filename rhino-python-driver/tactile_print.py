@@ -329,10 +329,16 @@ def build_mesh(state):
             for seg_s, seg_e in _calc_wall_segments(cx[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
-                # Check segment center against higher-z_order bays
-                mid_w = _local_to_world((seg_s + seg_e) / 2, y_val,
-                                        (ox, oy), rot)
-                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                # Test 3 points along segment for robust boundary clipping
+                clipped = False
+                for frac in (0.25, 0.5, 0.75):
+                    tw = _local_to_world(
+                        seg_s + frac * (seg_e - seg_s), y_val,
+                        (ox, oy), rot)
+                    if _is_clipped_by_higher(tw[0], tw[1], my_z_order):
+                        clipped = True
+                        break
+                if clipped:
                     continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, y_val, "x", half_t, ox, oy, rot)
@@ -356,9 +362,16 @@ def build_mesh(state):
             for seg_s, seg_e in _calc_wall_segments(cy[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
-                mid_w = _local_to_world(x_val, (seg_s + seg_e) / 2,
-                                        (ox, oy), rot)
-                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                # Test 3 points along segment for robust boundary clipping
+                clipped = False
+                for frac in (0.25, 0.5, 0.75):
+                    tw = _local_to_world(
+                        x_val, seg_s + frac * (seg_e - seg_s),
+                        (ox, oy), rot)
+                    if _is_clipped_by_higher(tw[0], tw[1], my_z_order):
+                        clipped = True
+                        break
+                if clipped:
                     continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, x_val, "y", half_t, ox, oy, rot)

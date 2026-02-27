@@ -230,7 +230,7 @@ def make_three_bay_state(full_state):
 
     # ── Bay B: same size, rotated 30°, 10' tall ──
     bay_b = copy.deepcopy(bay)
-    bay_b["origin"] = [6, 0]          # overlap ~half of bay A
+    bay_b["origin"] = [16, 25]         # overlap ~1/3 of bay A
     bay_b["rotation_deg"] = 30.0
     bay_b["z_order"] = 0              # lower z_order = drawn behind bay A
     bay_b["wall_height"] = 10.0       # 10' tall (vs bay A's 30')
@@ -522,8 +522,10 @@ def _clip_polygon_sh(subject, clip):
 def _compute_intersection_edges(state):
     """Compute 3D line segments at the intersection boundary of overlapping bays.
 
-    Returns list of ((x1,y1,z1), (x2,y2,z2)) tuples representing edges
-    of the intersection polygon extruded to the shorter bay height.
+    Returns only the top outline of the intersection polygon at the shorter
+    bay's height.  This is the cleanest architectural intersection line —
+    where the shorter volume's roof meets the taller volume's walls.
+    Bottom edges and verticals are omitted to avoid visual noise.
     """
     bays_data = []
     for name, bay in state.get("bays", {}).items():
@@ -561,15 +563,9 @@ def _compute_intersection_edges(state):
                 dy = p2[1] - p1[1]
                 if dx*dx + dy*dy < 1e-6:
                     continue
-                # Bottom edge
-                edges_3d.append(((p1[0], p1[1], 0),
-                                 (p2[0], p2[1], 0)))
-                # Top edge at shorter bay height
+                # Top outline only — shorter bay roof against taller walls
                 edges_3d.append(((p1[0], p1[1], min_h),
                                  (p2[0], p2[1], min_h)))
-                # Vertical at each corner
-                edges_3d.append(((p1[0], p1[1], 0),
-                                 (p1[0], p1[1], min_h)))
     return edges_3d
 
 

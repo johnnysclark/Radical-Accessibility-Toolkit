@@ -194,8 +194,8 @@
       "grid_type": "rectangular",
       "z_order": 0,
       "origin": [
-        6,
-        0
+        16,
+        25
       ],
       "rotation_deg": 30.0,
       "bays": [
