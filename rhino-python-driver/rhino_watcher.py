@@ -785,6 +785,51 @@ def _draw_legend(state):
 # DRAW: TACTILE 3D (extruded walls for 3D printing)
 # ══════════════════════════════════════════════════════════
 
+def _aperture_infill_boxes(ap, extrude_h, fixed_val, axis, half_t,
+                           ox, oy, rot):
+    """Create Rhino surface geometry for header and sill at an aperture.
+
+    Doors:   header box from door height to extrude_h.
+    Windows: sill box from 0 to sill height, header from sill+height to extrude_h.
+
+    Returns list of Rhino object IDs (may be empty if not in Rhino).
+    """
+    ids = []
+    ap_corner = ap.get("corner", 0)
+    ap_width = ap.get("width", 3)
+    ap_height = ap.get("height", 7)
+    ap_type = ap.get("type", "door")
+    sill_h = ap.get("sill", 0.0)
+
+    if ap_type == "door":
+        opening_top = ap_height
+        opening_bot = 0.0
+    else:
+        opening_bot = sill_h
+        opening_top = sill_h + ap_height
+
+    # Header: wall above the opening
+    if opening_top < extrude_h - 0.001:
+        obj = _extrude_wall_box(ap_corner, ap_corner + ap_width,
+                                fixed_val, axis, half_t, ox, oy, rot,
+                                extrude_h - opening_top)
+        if obj:
+            # Move the box up to the opening_top z level
+            if IN_RHINO:
+                rs.MoveObject(obj, (0, 0, opening_top))
+            ids.append(obj)
+
+    # Sill: wall below the opening (windows with sill > 0)
+    if opening_bot > 0.001:
+        obj = _extrude_wall_box(ap_corner, ap_corner + ap_width,
+                                fixed_val, axis, half_t, ox, oy, rot,
+                                opening_bot)
+        if obj:
+            ids.append(obj)
+
+    return ids
+
+
 def _draw_tactile3d(state):
     """Build 3D geometry for tactile plan models.
 
@@ -830,6 +875,11 @@ def _draw_tactile3d(state):
                 obj = _extrude_wall_box(seg_s, seg_e, y_val, "x",
                                         half_t, ox, oy, rot, extrude_h)
                 if obj: created_ids.append(obj)
+            # Aperture infill: headers above doors, sills + headers for windows
+            for ap in wall_aps:
+                for obj in _aperture_infill_boxes(ap, extrude_h, y_val, "x",
+                                                   half_t, ox, oy, rot):
+                    created_ids.append(obj)
 
         for i, x_val in enumerate(cx):
             wall_aps = sorted(
@@ -839,6 +889,11 @@ def _draw_tactile3d(state):
                 obj = _extrude_wall_box(seg_s, seg_e, x_val, "y",
                                         half_t, ox, oy, rot, extrude_h)
                 if obj: created_ids.append(obj)
+            # Aperture infill: headers above doors, sills + headers for windows
+            for ap in wall_aps:
+                for obj in _aperture_infill_boxes(ap, extrude_h, x_val, "y",
+                                                   half_t, ox, oy, rot):
+                    created_ids.append(obj)
 
     # ── Floor slab ──
     if floor_on:

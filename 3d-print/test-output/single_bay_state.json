@@ -73,6 +73,7 @@
           "corner": 8.0,
           "width": 8.0,
           "height": 8.0,
+          "sill": 4.0,
           "hinge": "start",
           "swing": "positive"
         },
@@ -84,6 +85,7 @@
           "corner": 8.0,
           "width": 8.0,
           "height": 8.0,
+          "sill": 4.0,
           "hinge": "start",
           "swing": "positive"
         },

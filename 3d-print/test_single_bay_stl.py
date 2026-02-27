@@ -32,6 +32,7 @@ STATE_PATH = os.path.join(REPO_ROOT, "rhino-python-driver", "state.json")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "test-output")
 STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded.stl")
 SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot.png")
+FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan.png")
 
 
 def make_three_bay_state(full_state):
@@ -91,7 +92,7 @@ def make_three_bay_state(full_state):
 
     bay["apertures"] = [
         # ── South short wall (x-axis, gridline 0, wall length = 24') ──
-        # 8' wide × 8' tall window, centered (corner at 8')
+        # 8' wide × 8' tall window, 4' AFF sill, centered (corner at 8')
         {
             "id": "w-south",
             "type": "window",
@@ -100,12 +101,13 @@ def make_three_bay_state(full_state):
             "corner": 8.0,
             "width": 8.0,
             "height": 8.0,
+            "sill": 4.0,
             "hinge": "start",
             "swing": "positive"
         },
 
         # ── North short wall (x-axis, gridline 3, wall length = 24') ──
-        # 8' wide × 8' tall window, centered (corner at 8')
+        # 8' wide × 8' tall window, 4' AFF sill, centered (corner at 8')
         {
             "id": "w-north",
             "type": "window",
@@ -114,6 +116,7 @@ def make_three_bay_state(full_state):
             "corner": 8.0,
             "width": 8.0,
             "height": 8.0,
+            "sill": 4.0,
             "hinge": "start",
             "swing": "positive"
         },
@@ -358,6 +361,198 @@ def render_screenshot(triangles_ft, output_path):
     print(f"Screenshot saved: {output_path}")
 
 
+def render_floor_plan(state, output_path):
+    """Render a 2D floor plan PNG showing walls, doors, and windows.
+
+    Scale: 1/8" = 1'-0". Drawn in feet, labeled in feet-inches.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from matplotlib.patches import FancyArrowPatch, Arc
+
+    bay = state["bays"]["A"]
+    ox, oy = bay["origin"]
+    nx, ny = bay["bays"]
+    sx, sy = bay["spacing"]
+    wall_t = bay["walls"]["thickness"]
+    half_t = wall_t / 2.0
+    total_x = nx * sx  # 24'
+    total_y = ny * sy  # 60'
+    aps = bay.get("apertures", [])
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 16))
+    ax.set_aspect("equal")
+    ax.set_facecolor("white")
+
+    # ── Draw wall segments ──
+    # Cumulative gridline positions
+    cx = [i * sx for i in range(nx + 1)]  # [0, 24]
+    cy = [j * sy for j in range(ny + 1)]  # [0, 20, 40, 60]
+
+    wall_color = (0.15, 0.15, 0.15)
+
+    def draw_wall_segments(seg_start, seg_end, fixed, axis):
+        """Draw a filled wall rectangle."""
+        if axis == "x":
+            rect = mpatches.Rectangle(
+                (ox + seg_start, oy + fixed - half_t),
+                seg_end - seg_start, wall_t,
+                facecolor=wall_color, edgecolor="black", linewidth=0.5)
+        else:
+            rect = mpatches.Rectangle(
+                (ox + fixed - half_t, oy + seg_start),
+                wall_t, seg_end - seg_start,
+                facecolor=wall_color, edgecolor="black", linewidth=0.5)
+        ax.add_patch(rect)
+
+    # Horizontal walls (x-axis gridlines)
+    for j, y_val in enumerate(cy):
+        wall_aps = sorted(
+            [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
+            key=lambda a: a.get("corner", 0))
+        for seg_s, seg_e in tp._calc_wall_segments(cx[-1], wall_aps):
+            if seg_e - seg_s > 0.001:
+                draw_wall_segments(seg_s, seg_e, y_val, "x")
+
+    # Vertical walls (y-axis gridlines)
+    for i, x_val in enumerate(cx):
+        wall_aps = sorted(
+            [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
+            key=lambda a: a.get("corner", 0))
+        for seg_s, seg_e in tp._calc_wall_segments(cy[-1], wall_aps):
+            if seg_e - seg_s > 0.001:
+                draw_wall_segments(seg_s, seg_e, x_val, "y")
+
+    # ── Draw aperture symbols ──
+    for ap in aps:
+        ap_type = ap.get("type", "door")
+        corner = ap.get("corner", 0)
+        width = ap.get("width", 3)
+        gridline = ap.get("gridline", 0)
+        axis = ap.get("axis", "x")
+
+        if axis == "x":
+            fixed = cy[gridline]
+            x_start = ox + corner
+            y_center = oy + fixed
+        else:
+            fixed = cx[gridline]
+            x_center = ox + fixed
+            y_start = oy + corner
+
+        if ap_type == "door":
+            # Draw door swing arc
+            if axis == "x":
+                # Horizontal wall — door swings vertically
+                mid = x_start + width / 2
+                ax.plot([x_start, x_start + width],
+                        [y_center, y_center],
+                        color="white", linewidth=3, zorder=3)
+                # Swing arc
+                arc = Arc((x_start, y_center), width * 2, width * 2,
+                          angle=0, theta1=0, theta2=90,
+                          color=(0.4, 0.4, 0.8), linewidth=1.0, linestyle="--")
+                ax.add_patch(arc)
+                # Leaf line
+                ax.plot([x_start, x_start],
+                        [y_center, y_center + width],
+                        color=(0.4, 0.4, 0.8), linewidth=0.8)
+            else:
+                # Vertical wall — door swings horizontally
+                mid = y_start + width / 2
+                ax.plot([x_center, x_center],
+                        [y_start, y_start + width],
+                        color="white", linewidth=3, zorder=3)
+                arc = Arc((x_center, y_start), width * 2, width * 2,
+                          angle=0, theta1=0, theta2=90,
+                          color=(0.4, 0.4, 0.8), linewidth=1.0, linestyle="--")
+                ax.add_patch(arc)
+                ax.plot([x_center, x_center + width],
+                        [y_start, y_start],
+                        color=(0.4, 0.4, 0.8), linewidth=0.8)
+
+            # Label
+            if axis == "x":
+                ax.text(x_start + width / 2, y_center + 1.5,
+                        ap["id"].upper(), ha="center", va="bottom",
+                        fontsize=7, color=(0.3, 0.3, 0.7))
+            else:
+                ax.text(x_center + 1.5, y_start + width / 2,
+                        ap["id"].upper(), ha="left", va="center",
+                        fontsize=7, color=(0.3, 0.3, 0.7))
+
+        elif ap_type == "window":
+            # Draw window as parallel lines across the opening
+            if axis == "x":
+                ax.plot([x_start, x_start + width],
+                        [y_center, y_center],
+                        color="white", linewidth=3, zorder=3)
+                # Glass lines
+                for offset in [-half_t * 0.5, half_t * 0.5]:
+                    ax.plot([x_start, x_start + width],
+                            [y_center + offset, y_center + offset],
+                            color=(0.2, 0.5, 0.8), linewidth=1.2, zorder=4)
+                ax.text(x_start + width / 2, y_center - 1.5,
+                        ap["id"].upper(), ha="center", va="top",
+                        fontsize=7, color=(0.2, 0.5, 0.8))
+            else:
+                ax.plot([x_center, x_center],
+                        [y_start, y_start + width],
+                        color="white", linewidth=3, zorder=3)
+                for offset in [-half_t * 0.5, half_t * 0.5]:
+                    ax.plot([x_center + offset, x_center + offset],
+                            [y_start, y_start + width],
+                            color=(0.2, 0.5, 0.8), linewidth=1.2, zorder=4)
+                ax.text(x_center - 1.5, y_start + width / 2,
+                        ap["id"].upper(), ha="right", va="center",
+                        fontsize=7, color=(0.2, 0.5, 0.8))
+
+    # ── Gridline dashes ──
+    for y_val in cy:
+        ax.axhline(oy + y_val, color=(0.7, 0.7, 0.7), linewidth=0.3,
+                    linestyle=":", zorder=0)
+    for x_val in cx:
+        ax.axvline(ox + x_val, color=(0.7, 0.7, 0.7), linewidth=0.3,
+                    linestyle=":", zorder=0)
+
+    # ── Dimension labels ──
+    # Overall X dimension
+    ax.annotate("", xy=(ox + total_x, oy - 4), xytext=(ox, oy - 4),
+                arrowprops=dict(arrowstyle="<->", color="black", lw=0.8))
+    ax.text(ox + total_x / 2, oy - 5, f"{int(total_x)}'-0\"",
+            ha="center", va="top", fontsize=9, fontweight="bold")
+
+    # Overall Y dimension
+    ax.annotate("", xy=(ox - 4, oy + total_y), xytext=(ox - 4, oy),
+                arrowprops=dict(arrowstyle="<->", color="black", lw=0.8))
+    ax.text(ox - 5, oy + total_y / 2, f"{int(total_y)}'-0\"",
+            ha="right", va="center", fontsize=9, fontweight="bold", rotation=90)
+
+    # Bay spacing labels along Y
+    for j in range(ny):
+        mid_y = oy + cy[j] + sy / 2
+        ax.text(ox + total_x + 2, mid_y,
+                f"Bay {j+1}\n{int(sy)}'-0\"",
+                ha="left", va="center", fontsize=8, color=(0.3, 0.3, 0.3))
+
+    # ── Title ──
+    ax.set_title("Floor Plan — 24' x 60' Three-Bay Layout\n"
+                 'scale 1/8" = 1\'-0"  |  8" walls  |  30\' wall height',
+                 fontsize=12, fontweight="bold", pad=15)
+
+    ax.set_xlabel("X (ft)")
+    ax.set_ylabel("Y (ft)")
+    ax.set_xlim(ox - 8, ox + total_x + 10)
+    ax.set_ylim(oy - 8, oy + total_y + 4)
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Floor plan saved: {output_path}")
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -398,12 +593,17 @@ def main():
     print(f"\nRendering 3D screenshot to {SCREENSHOT_PATH}")
     render_screenshot(triangles_ft, SCREENSHOT_PATH)
 
+    # 6. Render floor plan
+    print(f"\nRendering floor plan to {FLOORPLAN_PATH}")
+    render_floor_plan(state, FLOORPLAN_PATH)
+
     # Summary
     print("\n" + "=" * 50)
     print("TEST RESULTS")
     print("=" * 50)
     print(f"  STL file:       {STL_PATH}")
     print(f"  Screenshot:     {SCREENSHOT_PATH}")
+    print(f"  Floor plan:     {FLOORPLAN_PATH}")
     print(f"  Triangles:      {count}")
     print(f"  Watertight:     {'YES' if is_wt else 'NO'}")
     print(f"  Boundary edges: {boundary_ct}")

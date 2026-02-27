@@ -193,6 +193,55 @@ def _wall_box_corners(seg_start, seg_end, fixed_val, axis, half_t,
     return p0, p1, p2, p3
 
 
+def _aperture_infill(ap, extrude_h, fixed_val, axis, half_t,
+                     ox, oy, rot):
+    """Generate header and sill boxes for a partial-height aperture.
+
+    Doors:   opening from z=0 to z=height → header from height to extrude_h.
+    Windows: opening from z=sill to z=sill+height →
+             sill box from 0 to sill, header from sill+height to extrude_h.
+
+    The infill boxes are inset by EPS along the wall length so they
+    don't share exact edges with adjacent full-height wall segments.
+    This keeps the combined mesh manifold and watertight.
+
+    Returns a list of (normal, v0, v1, v2) triangles.
+    """
+    EPS = 0.001  # tiny inset to avoid shared edges (< 0.3 mm)
+    triangles = []
+    ap_corner = ap.get("corner", 0)
+    ap_width = ap.get("width", 3)
+    ap_height = ap.get("height", 7)
+    ap_type = ap.get("type", "door")
+    sill_h = ap.get("sill", 0.0)
+
+    # For doors, opening runs from z=0 to z=ap_height
+    # For windows, opening runs from z=sill_h to z=sill_h+ap_height
+    if ap_type == "door":
+        opening_top = ap_height
+        opening_bot = 0.0
+    else:
+        opening_bot = sill_h
+        opening_top = sill_h + ap_height
+
+    # Inset the box slightly so it doesn't share edges with adjacent walls
+    corners = _wall_box_corners(
+        ap_corner + EPS, ap_corner + ap_width - EPS,
+        fixed_val, axis, half_t, ox, oy, rot)
+
+    # Header: wall above the opening
+    if opening_top < extrude_h - 0.001:
+        triangles.extend(_box_triangles(
+            *corners, z_bot=opening_top, z_top=extrude_h))
+
+    # Sill: wall below the opening (windows with sill > 0)
+    if opening_bot > 0.001:
+        triangles.extend(_box_triangles(
+            *corners, z_bot=0.0, z_top=opening_bot))
+
+    return triangles
+
+
 def build_mesh(state):
     """Build the full triangle mesh from state.
 
@@ -201,6 +250,10 @@ def build_mesh(state):
 
     Generates the same geometry as the watcher's _draw_tactile3d:
     extruded wall segments clipped at cut_height, plus floor slab.
+
+    Apertures produce partial-height openings:
+      - Doors: full-height gap from 0 to door height, header above.
+      - Windows: sill below, opening, header above.
     """
     t3 = state.get("tactile3d", {})
     wall_height = t3.get("wall_height", 9.0)
@@ -230,6 +283,7 @@ def build_mesh(state):
             wall_aps = sorted(
                 [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
                 key=lambda a: a.get("corner", 0))
+            # Solid wall segments (full height)
             for seg_s, seg_e in _calc_wall_segments(cx[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
@@ -237,12 +291,17 @@ def build_mesh(state):
                     seg_s, seg_e, y_val, "x", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
                     *corners, z_bot=0.0, z_top=extrude_h))
+            # Aperture infill (headers + sills)
+            for ap in wall_aps:
+                triangles.extend(_aperture_infill(
+                    ap, extrude_h, y_val, "x", half_t, ox, oy, rot))
 
         # Vertical gridlines (y-axis walls)
         for i, x_val in enumerate(cx):
             wall_aps = sorted(
                 [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
                 key=lambda a: a.get("corner", 0))
+            # Solid wall segments (full height)
             for seg_s, seg_e in _calc_wall_segments(cy[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
@@ -250,6 +309,10 @@ def build_mesh(state):
                     seg_s, seg_e, x_val, "y", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
                     *corners, z_bot=0.0, z_top=extrude_h))
+            # Aperture infill (headers + sills)
+            for ap in wall_aps:
+                triangles.extend(_aperture_infill(
+                    ap, extrude_h, x_val, "y", half_t, ox, oy, rot))
 
     # ── Floor slab ──
     if floor_on:
