@@ -271,6 +271,9 @@ def build_mesh(state):
         w = bay.get("walls", {})
         if not w.get("enabled"):
             continue
+        # Per-bay wall_height override (falls back to global)
+        bay_wh = bay.get("wall_height", wall_height)
+        bay_extrude_h = min(bay_wh, cut_height)
         t = w.get("thickness", 0.5)
         half_t = t / 2.0
         ox, oy = bay["origin"]
@@ -290,11 +293,11 @@ def build_mesh(state):
                 corners = _wall_box_corners(
                     seg_s, seg_e, y_val, "x", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
-                    *corners, z_bot=0.0, z_top=extrude_h))
+                    *corners, z_bot=0.0, z_top=bay_extrude_h))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
                 triangles.extend(_aperture_infill(
-                    ap, extrude_h, y_val, "x", half_t, ox, oy, rot))
+                    ap, bay_extrude_h, y_val, "x", half_t, ox, oy, rot))
 
         # Vertical gridlines (y-axis walls)
         for i, x_val in enumerate(cx):
@@ -308,11 +311,11 @@ def build_mesh(state):
                 corners = _wall_box_corners(
                     seg_s, seg_e, x_val, "y", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
-                    *corners, z_bot=0.0, z_top=extrude_h))
+                    *corners, z_bot=0.0, z_top=bay_extrude_h))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
                 triangles.extend(_aperture_infill(
-                    ap, extrude_h, x_val, "y", half_t, ox, oy, rot))
+                    ap, bay_extrude_h, x_val, "y", half_t, ox, oy, rot))
 
     # ── Floor slab ──
     if floor_on:

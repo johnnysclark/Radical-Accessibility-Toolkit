@@ -225,15 +225,29 @@ def make_three_bay_state(full_state):
         },
     ]
 
-    # Only this bay
-    state["bays"] = {"A": bay}
+    bay["z_order"] = 1  # Bay A takes precedence where they overlap
 
-    # Site matches the footprint
-    state["site"]["origin"] = [-2, -2]
-    state["site"]["width"] = 28     # 24' + 4' pad
-    state["site"]["height"] = 64    # 60' + 4' pad
+    # ── Bay B: same size, rotated 45°, 10' tall ──
+    bay_b = copy.deepcopy(bay)
+    bay_b["origin"] = [16, 40]        # offset so ~1/3 of bay A is covered
+    bay_b["rotation_deg"] = 45.0
+    bay_b["z_order"] = 0              # lower z_order = drawn behind bay A
+    bay_b["wall_height"] = 10.0       # 10' tall (vs bay A's 30')
+    bay_b["label"] = "Bay B"
+    bay_b["braille"] = ""
+    # Same apertures, relabeled
+    for ap in bay_b["apertures"]:
+        ap["id"] = "B-" + ap["id"]
 
-    # 30' walls, NO clipping plane (cut_height >= wall_height), no roof
+    state["bays"] = {"A": bay, "B": bay_b}
+
+    # Site big enough for both bays (rotated bay extends ~60' diagonally)
+    state["site"]["origin"] = [-50, -10]
+    state["site"]["width"] = 110
+    state["site"]["height"] = 120
+
+    # Bay A: 30' walls. Bay B: 10' walls (handled per-bay via wall_height).
+    # tactile3d wall_height is the global max; per-bay height set below.
     state["tactile3d"]["enabled"] = True
     state["tactile3d"]["wall_height"] = 30.0
     state["tactile3d"]["cut_height"] = 30.0   # no clip
@@ -351,7 +365,7 @@ def render_screenshot(triangles_ft, output_path):
     ax.set_ylabel("Y (ft)")
     ax.set_zlabel("Z (ft)")
 
-    ax.set_title("24' x 60' Three-Bay Plan — 30' Walls, Watertight STL\n"
+    ax.set_title("Two-Bay Layout — Bay A 30' + Bay B 10' @ 45\u00b0, Watertight STL\n"
                  f'{len(triangles_ft)} triangles | scale 1/8" = 1\'-0" (1:96)',
                  fontsize=13, fontweight="bold")
 
@@ -379,10 +393,9 @@ def render_axon_pen(triangles_ft, output_path):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # ── Isometric camera ──
-    # Rotation: azimuth -50°, elevation 25° (same as the 3D screenshot)
+    # ── Isometric camera — looking from above ──
     az = math.radians(-50)
-    el = math.radians(25)
+    el = math.radians(55)  # steep downward view
 
     # Camera basis vectors (right-hand coordinate system)
     # Forward = into screen, Right = screen X, Up = screen Y
@@ -553,15 +566,15 @@ def render_axon_pen(triangles_ft, output_path):
     # Hidden lines first (behind)
     for (pa, pb) in hidden_edges:
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
-                color=(0.7, 0.7, 0.7), linewidth=0.4,
+                color=(0.7, 0.7, 0.7), linewidth=0.8,
                 linestyle=(0, (4, 3)), zorder=1)
 
     # Visible lines on top
     for (pa, pb) in visible_edges:
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
-                color="black", linewidth=0.8, solid_capstyle="round", zorder=2)
+                color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
 
-    ax.set_title("Axonometric — 24' x 60' Three-Bay Plan\n"
+    ax.set_title("Axonometric — Two-Bay Layout (30' + 10' @ 45\u00b0)\n"
                  'pen mode  |  solid = visible  |  dashed = hidden',
                  fontsize=12, fontweight="bold")
     ax.axis("off")
@@ -575,188 +588,161 @@ def render_axon_pen(triangles_ft, output_path):
 def render_floor_plan(state, output_path):
     """Render a 2D floor plan PNG showing walls, doors, and windows.
 
+    Iterates over all rectangular bays, handling rotation and origin.
     Scale: 1/8" = 1'-0". Drawn in feet, labeled in feet-inches.
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
-    from matplotlib.patches import FancyArrowPatch, Arc
+    from matplotlib.patches import Arc
+    import matplotlib.path as mpath
 
-    bay = state["bays"]["A"]
-    ox, oy = bay["origin"]
-    nx, ny = bay["bays"]
-    sx, sy = bay["spacing"]
-    wall_t = bay["walls"]["thickness"]
-    half_t = wall_t / 2.0
-    total_x = nx * sx  # 24'
-    total_y = ny * sy  # 60'
-    aps = bay.get("apertures", [])
-
-    fig, ax = plt.subplots(1, 1, figsize=(8, 16))
+    fig, ax = plt.subplots(1, 1, figsize=(14, 14))
     ax.set_aspect("equal")
     ax.set_facecolor("white")
 
-    # ── Draw wall segments ──
-    # Cumulative gridline positions
-    cx = [i * sx for i in range(nx + 1)]  # [0, 24]
-    cy = [j * sy for j in range(ny + 1)]  # [0, 20, 40, 60]
+    bay_colors = [
+        ((0.15, 0.15, 0.15), (0.4, 0.4, 0.8), (0.2, 0.5, 0.8)),  # Bay A: dark walls, blue doors/windows
+        ((0.3, 0.2, 0.1), (0.7, 0.4, 0.2), (0.6, 0.5, 0.2)),     # Bay B: brown walls, orange doors/windows
+    ]
 
-    wall_color = (0.15, 0.15, 0.15)
+    all_world_pts = []  # for auto-fitting view limits
 
-    def draw_wall_segments(seg_start, seg_end, fixed, axis):
-        """Draw a filled wall rectangle."""
-        if axis == "x":
-            rect = mpatches.Rectangle(
-                (ox + seg_start, oy + fixed - half_t),
-                seg_end - seg_start, wall_t,
-                facecolor=wall_color, edgecolor="black", linewidth=0.5)
-        else:
-            rect = mpatches.Rectangle(
-                (ox + fixed - half_t, oy + seg_start),
-                wall_t, seg_end - seg_start,
-                facecolor=wall_color, edgecolor="black", linewidth=0.5)
-        ax.add_patch(rect)
+    # Sort bays by z_order (draw lower z_order first = behind)
+    sorted_bays = sorted(state.get("bays", {}).items(),
+                         key=lambda kv: kv[1].get("z_order", 0))
 
-    # Horizontal walls (x-axis gridlines)
-    for j, y_val in enumerate(cy):
-        wall_aps = sorted(
-            [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
-            key=lambda a: a.get("corner", 0))
-        for seg_s, seg_e in tp._calc_wall_segments(cx[-1], wall_aps):
-            if seg_e - seg_s > 0.001:
-                draw_wall_segments(seg_s, seg_e, y_val, "x")
+    for bi, (bay_name, bay) in enumerate(sorted_bays):
+        if bay.get("grid_type", "rectangular") != "rectangular":
+            continue
+        w = bay.get("walls", {})
+        if not w.get("enabled"):
+            continue
 
-    # Vertical walls (y-axis gridlines)
-    for i, x_val in enumerate(cx):
-        wall_aps = sorted(
-            [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
-            key=lambda a: a.get("corner", 0))
-        for seg_s, seg_e in tp._calc_wall_segments(cy[-1], wall_aps):
-            if seg_e - seg_s > 0.001:
-                draw_wall_segments(seg_s, seg_e, x_val, "y")
+        ox, oy = bay["origin"]
+        rot = bay.get("rotation_deg", 0)
+        nx, ny = bay["bays"]
+        sx, sy = bay["spacing"]
+        wall_t = w.get("thickness", 0.5)
+        half_t = wall_t / 2.0
+        aps = bay.get("apertures", [])
 
-    # ── Draw aperture symbols ──
-    for ap in aps:
-        ap_type = ap.get("type", "door")
-        corner = ap.get("corner", 0)
-        width = ap.get("width", 3)
-        gridline = ap.get("gridline", 0)
-        axis = ap.get("axis", "x")
+        cx, cy_arr = tp._get_spacing_arrays(bay)
 
-        if axis == "x":
-            fixed = cy[gridline]
-            x_start = ox + corner
-            y_center = oy + fixed
-        else:
-            fixed = cx[gridline]
-            x_center = ox + fixed
-            y_start = oy + corner
+        colors = bay_colors[bi % len(bay_colors)]
+        wall_color, door_color, win_color = colors
+        bay_wh = bay.get("wall_height", state.get("tactile3d", {}).get("wall_height", 30))
 
-        if ap_type == "door":
-            # Draw door swing arc
+        def to_world(lx, ly):
+            return tp._local_to_world(lx, ly, (ox, oy), rot)
+
+        def draw_wall_rect(seg_start, seg_end, fixed, axis):
+            """Draw a rotated wall rectangle using a polygon."""
             if axis == "x":
-                # Horizontal wall — door swings vertically
-                mid = x_start + width / 2
-                ax.plot([x_start, x_start + width],
-                        [y_center, y_center],
-                        color="white", linewidth=3, zorder=3)
-                # Swing arc
-                arc = Arc((x_start, y_center), width * 2, width * 2,
-                          angle=0, theta1=0, theta2=90,
-                          color=(0.4, 0.4, 0.8), linewidth=1.0, linestyle="--")
-                ax.add_patch(arc)
-                # Leaf line
-                ax.plot([x_start, x_start],
-                        [y_center, y_center + width],
-                        color=(0.4, 0.4, 0.8), linewidth=0.8)
+                c0 = to_world(seg_start, fixed - half_t)
+                c1 = to_world(seg_end,   fixed - half_t)
+                c2 = to_world(seg_end,   fixed + half_t)
+                c3 = to_world(seg_start, fixed + half_t)
             else:
-                # Vertical wall — door swings horizontally
-                mid = y_start + width / 2
-                ax.plot([x_center, x_center],
-                        [y_start, y_start + width],
-                        color="white", linewidth=3, zorder=3)
-                arc = Arc((x_center, y_start), width * 2, width * 2,
-                          angle=0, theta1=0, theta2=90,
-                          color=(0.4, 0.4, 0.8), linewidth=1.0, linestyle="--")
-                ax.add_patch(arc)
-                ax.plot([x_center, x_center + width],
-                        [y_start, y_start],
-                        color=(0.4, 0.4, 0.8), linewidth=0.8)
+                c0 = to_world(fixed - half_t, seg_start)
+                c1 = to_world(fixed + half_t, seg_start)
+                c2 = to_world(fixed + half_t, seg_end)
+                c3 = to_world(fixed - half_t, seg_end)
+            poly = plt.Polygon([c0, c1, c2, c3],
+                               facecolor=wall_color, edgecolor="black",
+                               linewidth=0.5, zorder=2 + bi)
+            ax.add_patch(poly)
+            all_world_pts.extend([c0, c1, c2, c3])
 
-            # Label
+        # Horizontal walls (x-axis gridlines)
+        for j, y_val in enumerate(cy_arr):
+            wall_aps = sorted(
+                [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
+                key=lambda a: a.get("corner", 0))
+            for seg_s, seg_e in tp._calc_wall_segments(cx[-1], wall_aps):
+                if seg_e - seg_s > 0.001:
+                    draw_wall_rect(seg_s, seg_e, y_val, "x")
+
+        # Vertical walls (y-axis gridlines)
+        for i, x_val in enumerate(cx):
+            wall_aps = sorted(
+                [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
+                key=lambda a: a.get("corner", 0))
+            for seg_s, seg_e in tp._calc_wall_segments(cy_arr[-1], wall_aps):
+                if seg_e - seg_s > 0.001:
+                    draw_wall_rect(seg_s, seg_e, x_val, "y")
+
+        # ── Aperture symbols ──
+        for ap in aps:
+            ap_type = ap.get("type", "door")
+            corner = ap.get("corner", 0)
+            width = ap.get("width", 3)
+            gridline = ap.get("gridline", 0)
+            axis = ap.get("axis", "x")
+
             if axis == "x":
-                ax.text(x_start + width / 2, y_center + 1.5,
+                fixed = cy_arr[gridline]
+                # Aperture midpoint in local coords
+                mid_local = (corner + width / 2, fixed)
+            else:
+                fixed = cx[gridline]
+                mid_local = (fixed, corner + width / 2)
+
+            mid_w = to_world(*mid_local)
+
+            if ap_type == "door":
+                # Draw door: opening line + label
+                if axis == "x":
+                    p0 = to_world(corner, fixed)
+                    p1 = to_world(corner + width, fixed)
+                else:
+                    p0 = to_world(fixed, corner)
+                    p1 = to_world(fixed, corner + width)
+                ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
+                        color=door_color, linewidth=1.5,
+                        linestyle="--", zorder=4 + bi)
+                ax.text(mid_w[0], mid_w[1] + 1.2,
                         ap["id"].upper(), ha="center", va="bottom",
-                        fontsize=7, color=(0.3, 0.3, 0.7))
-            else:
-                ax.text(x_center + 1.5, y_start + width / 2,
-                        ap["id"].upper(), ha="left", va="center",
-                        fontsize=7, color=(0.3, 0.3, 0.7))
+                        fontsize=6, color=door_color)
 
-        elif ap_type == "window":
-            # Draw window as parallel lines across the opening
-            if axis == "x":
-                ax.plot([x_start, x_start + width],
-                        [y_center, y_center],
-                        color="white", linewidth=3, zorder=3)
-                # Glass lines
-                for offset in [-half_t * 0.5, half_t * 0.5]:
-                    ax.plot([x_start, x_start + width],
-                            [y_center + offset, y_center + offset],
-                            color=(0.2, 0.5, 0.8), linewidth=1.2, zorder=4)
-                ax.text(x_start + width / 2, y_center - 1.5,
+            elif ap_type == "window":
+                # Draw window: double glass lines
+                if axis == "x":
+                    p0 = to_world(corner, fixed)
+                    p1 = to_world(corner + width, fixed)
+                else:
+                    p0 = to_world(fixed, corner)
+                    p1 = to_world(fixed, corner + width)
+                ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
+                        color=win_color, linewidth=2.0, zorder=4 + bi)
+                ax.text(mid_w[0], mid_w[1] - 1.5,
                         ap["id"].upper(), ha="center", va="top",
-                        fontsize=7, color=(0.2, 0.5, 0.8))
-            else:
-                ax.plot([x_center, x_center],
-                        [y_start, y_start + width],
-                        color="white", linewidth=3, zorder=3)
-                for offset in [-half_t * 0.5, half_t * 0.5]:
-                    ax.plot([x_center + offset, x_center + offset],
-                            [y_start, y_start + width],
-                            color=(0.2, 0.5, 0.8), linewidth=1.2, zorder=4)
-                ax.text(x_center - 1.5, y_start + width / 2,
-                        ap["id"].upper(), ha="right", va="center",
-                        fontsize=7, color=(0.2, 0.5, 0.8))
+                        fontsize=6, color=win_color)
 
-    # ── Gridline dashes ──
-    for y_val in cy:
-        ax.axhline(oy + y_val, color=(0.7, 0.7, 0.7), linewidth=0.3,
-                    linestyle=":", zorder=0)
-    for x_val in cx:
-        ax.axvline(ox + x_val, color=(0.7, 0.7, 0.7), linewidth=0.3,
-                    linestyle=":", zorder=0)
+        # Bay label at center
+        center_local = (cx[-1] / 2, cy_arr[-1] / 2)
+        center_w = to_world(*center_local)
+        all_world_pts.append(center_w)
+        ax.text(center_w[0], center_w[1],
+                f"{bay_name}\n{int(bay_wh)}' tall",
+                ha="center", va="center", fontsize=11, fontweight="bold",
+                color=wall_color, alpha=0.5, zorder=1)
 
-    # ── Dimension labels ──
-    # Overall X dimension
-    ax.annotate("", xy=(ox + total_x, oy - 4), xytext=(ox, oy - 4),
-                arrowprops=dict(arrowstyle="<->", color="black", lw=0.8))
-    ax.text(ox + total_x / 2, oy - 5, f"{int(total_x)}'-0\"",
-            ha="center", va="top", fontsize=9, fontweight="bold")
+    # ── Auto-fit view limits ──
+    if all_world_pts:
+        xs = [p[0] for p in all_world_pts]
+        ys = [p[1] for p in all_world_pts]
+        pad = 12
+        ax.set_xlim(min(xs) - pad, max(xs) + pad)
+        ax.set_ylim(min(ys) - pad, max(ys) + pad)
 
-    # Overall Y dimension
-    ax.annotate("", xy=(ox - 4, oy + total_y), xytext=(ox - 4, oy),
-                arrowprops=dict(arrowstyle="<->", color="black", lw=0.8))
-    ax.text(ox - 5, oy + total_y / 2, f"{int(total_y)}'-0\"",
-            ha="right", va="center", fontsize=9, fontweight="bold", rotation=90)
-
-    # Bay spacing labels along Y
-    for j in range(ny):
-        mid_y = oy + cy[j] + sy / 2
-        ax.text(ox + total_x + 2, mid_y,
-                f"Bay {j+1}\n{int(sy)}'-0\"",
-                ha="left", va="center", fontsize=8, color=(0.3, 0.3, 0.3))
-
-    # ── Title ──
-    ax.set_title("Floor Plan — 24' x 60' Three-Bay Layout\n"
-                 'scale 1/8" = 1\'-0"  |  8" walls  |  30\' wall height',
+    ax.set_title("Floor Plan — Multi-Bay Layout\n"
+                 'Bay A: 24\'x60\' @ 30\'  |  Bay B: 24\'x60\' @ 10\' rotated 45\u00b0',
                  fontsize=12, fontweight="bold", pad=15)
 
     ax.set_xlabel("X (ft)")
     ax.set_ylabel("Y (ft)")
-    ax.set_xlim(ox - 8, ox + total_x + 10)
-    ax.set_ylim(oy - 8, oy + total_y + 4)
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
