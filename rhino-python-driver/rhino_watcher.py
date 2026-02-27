@@ -785,16 +785,16 @@ def _draw_legend(state):
 # DRAW: TACTILE 3D (extruded walls for 3D printing)
 # ══════════════════════════════════════════════════════════
 
-def _aperture_infill_boxes(ap, extrude_h, fixed_val, axis, half_t,
-                           ox, oy, rot):
-    """Create Rhino surface geometry for header and sill at an aperture.
+def _aperture_void_box(ap, fixed_val, axis, half_t, ox, oy, rot):
+    """Create a Rhino closed polysurface representing an aperture void.
 
-    Doors:   header box from door height to extrude_h.
-    Windows: sill box from 0 to sill height, header from sill+height to extrude_h.
+    The void box spans the aperture opening in XY and from z_bot to z_top
+    in Z, slightly oversized through the wall thickness so
+    BooleanDifference cuts cleanly.
 
-    Returns list of Rhino object IDs (may be empty if not in Rhino).
+    Returns a Rhino object ID, or None.
     """
-    ids = []
+    if not IN_RHINO: return None
     ap_corner = ap.get("corner", 0)
     ap_width = ap.get("width", 3)
     ap_height = ap.get("height", 7)
@@ -802,40 +802,58 @@ def _aperture_infill_boxes(ap, extrude_h, fixed_val, axis, half_t,
     sill_h = ap.get("sill", 0.0)
 
     if ap_type == "door":
-        opening_top = ap_height
-        opening_bot = 0.0
+        z_bot = -0.01
+        z_top = ap_height
     else:
-        opening_bot = sill_h
-        opening_top = sill_h + ap_height
+        z_bot = sill_h
+        z_top = sill_h + ap_height
 
-    # Header: wall above the opening
-    if opening_top < extrude_h - 0.001:
-        obj = _extrude_wall_box(ap_corner, ap_corner + ap_width,
-                                fixed_val, axis, half_t, ox, oy, rot,
-                                extrude_h - opening_top)
-        if obj:
-            # Move the box up to the opening_top z level
-            if IN_RHINO:
-                rs.MoveObject(obj, (0, 0, opening_top))
-            ids.append(obj)
+    # Slightly oversize the void through the wall for a clean boolean cut
+    overshoot = half_t * 1.5
+    if axis == "x":
+        corners = [
+            _local_to_world(ap_corner, fixed_val - overshoot, (ox, oy), rot),
+            _local_to_world(ap_corner + ap_width, fixed_val - overshoot, (ox, oy), rot),
+            _local_to_world(ap_corner + ap_width, fixed_val + overshoot, (ox, oy), rot),
+            _local_to_world(ap_corner, fixed_val + overshoot, (ox, oy), rot),
+        ]
+    else:
+        corners = [
+            _local_to_world(fixed_val - overshoot, ap_corner, (ox, oy), rot),
+            _local_to_world(fixed_val + overshoot, ap_corner, (ox, oy), rot),
+            _local_to_world(fixed_val + overshoot, ap_corner + ap_width, (ox, oy), rot),
+            _local_to_world(fixed_val - overshoot, ap_corner + ap_width, (ox, oy), rot),
+        ]
+    corners.append(corners[0])
 
-    # Sill: wall below the opening (windows with sill > 0)
-    if opening_bot > 0.001:
-        obj = _extrude_wall_box(ap_corner, ap_corner + ap_width,
-                                fixed_val, axis, half_t, ox, oy, rot,
-                                opening_bot)
-        if obj:
-            ids.append(obj)
-
-    return ids
+    pts = [(c[0], c[1], z_bot) for c in corners]
+    profile = rs.AddPolyline(pts)
+    if not profile: return None
+    srf = rs.AddPlanarSrf(profile)
+    if not srf:
+        rs.DeleteObject(profile)
+        return None
+    srf_id = srf[0]
+    path = rs.AddLine((0, 0, 0), (0, 0, z_top - z_bot))
+    brep = rs.ExtrudeSurface(srf_id, path, True)
+    rs.DeleteObject(profile)
+    rs.DeleteObject(srf_id)
+    rs.DeleteObject(path)
+    if brep:
+        rs.CapPlanarHoles(brep)
+        return brep
+    return None
 
 
 def _draw_tactile3d(state):
     """Build 3D geometry for tactile plan models.
 
-    Extrudes each solid wall segment as a capped box. Aperture
-    locations are left open — no extrusion where a door, window,
-    or portal sits. A clipping plane at cut_height trims the tops.
+    Each wall gridline is extruded as a single full-length closed
+    polysurface. Aperture openings (doors, windows, portals) are
+    then Boolean-subtracted as void boxes, producing clean
+    punched openings with proper headers and sills.
+
+    A clipping plane at cut_height trims the tops visually.
     STL export only runs when auto_export is on or when the
     controller sets the _export_once flag via 'tactile3d export'.
     """
@@ -857,7 +875,7 @@ def _draw_tactile3d(state):
     extrude_h = min(wall_height, cut_height)
     created_ids = []
 
-    # ── Extrude wall segments ──
+    # ── Wall slabs with boolean-subtracted apertures ──
     for name, bay in state["bays"].items():
         if bay.get("grid_type", "rectangular") != "rectangular": continue
         w = bay.get("walls", {})
@@ -867,33 +885,46 @@ def _draw_tactile3d(state):
         cx, cy = _get_spacing_arrays(bay)
         aps = bay.get("apertures", [])
 
+        # Horizontal gridlines (x-axis walls)
         for j, y_val in enumerate(cy):
-            wall_aps = sorted(
-                [a for a in aps if a.get("axis")=="x" and a.get("gridline")==j],
-                key=lambda a: a.get("corner", 0))
-            for seg_s, seg_e in _calc_wall_segments(cx[-1], wall_aps):
-                obj = _extrude_wall_box(seg_s, seg_e, y_val, "x",
-                                        half_t, ox, oy, rot, extrude_h)
-                if obj: created_ids.append(obj)
-            # Aperture infill: headers above doors, sills + headers for windows
-            for ap in wall_aps:
-                for obj in _aperture_infill_boxes(ap, extrude_h, y_val, "x",
-                                                   half_t, ox, oy, rot):
-                    created_ids.append(obj)
+            # Extrude the full-length wall slab (no aperture gaps)
+            wall_slab = _extrude_wall_box(0, cx[-1], y_val, "x",
+                                          half_t, ox, oy, rot, extrude_h)
+            if not wall_slab: continue
 
-        for i, x_val in enumerate(cx):
-            wall_aps = sorted(
-                [a for a in aps if a.get("axis")=="y" and a.get("gridline")==i],
-                key=lambda a: a.get("corner", 0))
-            for seg_s, seg_e in _calc_wall_segments(cy[-1], wall_aps):
-                obj = _extrude_wall_box(seg_s, seg_e, x_val, "y",
-                                        half_t, ox, oy, rot, extrude_h)
-                if obj: created_ids.append(obj)
-            # Aperture infill: headers above doors, sills + headers for windows
+            # Boolean-subtract each aperture void
+            wall_aps = [a for a in aps
+                        if a.get("axis") == "x" and a.get("gridline") == j]
             for ap in wall_aps:
-                for obj in _aperture_infill_boxes(ap, extrude_h, x_val, "y",
-                                                   half_t, ox, oy, rot):
-                    created_ids.append(obj)
+                void = _aperture_void_box(ap, y_val, "x", half_t, ox, oy, rot)
+                if void:
+                    result = rs.BooleanDifference(wall_slab, void, delete_input=True)
+                    if result:
+                        wall_slab = result[0]
+                    else:
+                        # Boolean failed — clean up the void, keep the wall
+                        rs.DeleteObject(void)
+
+            created_ids.append(wall_slab)
+
+        # Vertical gridlines (y-axis walls)
+        for i, x_val in enumerate(cx):
+            wall_slab = _extrude_wall_box(0, cy[-1], x_val, "y",
+                                          half_t, ox, oy, rot, extrude_h)
+            if not wall_slab: continue
+
+            wall_aps = [a for a in aps
+                        if a.get("axis") == "y" and a.get("gridline") == i]
+            for ap in wall_aps:
+                void = _aperture_void_box(ap, x_val, "y", half_t, ox, oy, rot)
+                if void:
+                    result = rs.BooleanDifference(wall_slab, void, delete_input=True)
+                    if result:
+                        wall_slab = result[0]
+                    else:
+                        rs.DeleteObject(void)
+
+            created_ids.append(wall_slab)
 
     # ── Floor slab ──
     if floor_on:

@@ -15,6 +15,7 @@ Usage:
 """
 
 import copy
+import datetime
 import json
 import math
 import os
@@ -30,9 +31,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 STATE_PATH = os.path.join(REPO_ROOT, "rhino-python-driver", "state.json")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "test-output")
-STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded.stl")
-SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot.png")
-FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan.png")
+TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded_{}.stl".format(TIMESTAMP))
+SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot_{}.png".format(TIMESTAMP))
+FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan_{}.png".format(TIMESTAMP))
 
 
 def make_three_bay_state(full_state):
