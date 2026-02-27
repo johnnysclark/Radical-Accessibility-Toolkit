@@ -7,11 +7,11 @@
   },
   "site": {
     "origin": [
-      16,
-      6
+      -2,
+      -2
     ],
     "width": 28,
-    "height": 28
+    "height": 64
   },
   "style": {
     "column_size": 1.5,
@@ -32,17 +32,17 @@
       "grid_type": "rectangular",
       "z_order": 0,
       "origin": [
-        18,
-        8
+        0,
+        0
       ],
       "rotation_deg": 0.0,
       "bays": [
         1,
-        1
+        3
       ],
       "spacing": [
         24,
-        24
+        20
       ],
       "spacing_x": null,
       "spacing_y": null,
@@ -62,52 +62,118 @@
       },
       "walls": {
         "enabled": true,
-        "thickness": 0.5
+        "thickness": 0.667
       },
       "apertures": [
         {
-          "id": "d1",
-          "type": "door",
+          "id": "w-south",
+          "type": "window",
           "axis": "x",
           "gridline": 0,
           "corner": 8.0,
-          "width": 3.0,
+          "width": 8.0,
+          "height": 8.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w-north",
+          "type": "window",
+          "axis": "x",
+          "gridline": 3,
+          "corner": 8.0,
+          "width": 8.0,
+          "height": 8.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "dd-int1",
+          "type": "door",
+          "axis": "x",
+          "gridline": 1,
+          "corner": 9.0,
+          "width": 6.0,
           "height": 7.0,
           "hinge": "start",
           "swing": "positive"
         },
         {
-          "id": "w1",
-          "type": "window",
-          "axis": "y",
-          "gridline": 0,
-          "corner": 6.0,
+          "id": "dd-int2",
+          "type": "door",
+          "axis": "x",
+          "gridline": 2,
+          "corner": 9.0,
           "width": 6.0,
-          "height": 4.0,
+          "height": 7.0,
           "hinge": "start",
           "swing": "positive"
         },
         {
-          "id": "d2",
+          "id": "dd-west-1",
           "type": "door",
-          "axis": "x",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 7.0,
+          "width": 6.0,
+          "height": 7.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "dd-west-2",
+          "type": "door",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 27.0,
+          "width": 6.0,
+          "height": 7.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "dd-west-3",
+          "type": "door",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 47.0,
+          "width": 6.0,
+          "height": 7.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "dd-east-1",
+          "type": "door",
+          "axis": "y",
           "gridline": 1,
-          "corner": 10.0,
-          "width": 4.0,
+          "corner": 7.0,
+          "width": 6.0,
           "height": 7.0,
           "hinge": "end",
           "swing": "negative"
         },
         {
-          "id": "w2",
-          "type": "window",
+          "id": "dd-east-2",
+          "type": "door",
           "axis": "y",
           "gridline": 1,
-          "corner": 8.0,
-          "width": 5.0,
-          "height": 4.0,
-          "hinge": "start",
-          "swing": "positive"
+          "corner": 27.0,
+          "width": 6.0,
+          "height": 7.0,
+          "hinge": "end",
+          "swing": "negative"
+        },
+        {
+          "id": "dd-east-3",
+          "type": "door",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 47.0,
+          "width": 6.0,
+          "height": 7.0,
+          "hinge": "end",
+          "swing": "negative"
         }
       ],
       "void_center": [
@@ -239,8 +305,8 @@
   },
   "tactile3d": {
     "enabled": true,
-    "wall_height": 9.0,
-    "cut_height": 4.0,
+    "wall_height": 30.0,
+    "cut_height": 30.0,
     "floor_thickness": 0.5,
     "floor_enabled": true,
     "auto_export": false,
@@ -262,7 +328,7 @@
     "access_code": "",
     "serial_number": "",
     "printer_model": "p1s",
-    "print_scale": 200,
+    "print_scale": 96,
     "stl_path": "./tactile_model.stl",
     "slicer_path": ""
   },

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Test: Single-bay extruded plan layout → watertight STL + 3D screenshot.
+Test: 24'x60' three-bay extruded plan → watertight STL + 3D screenshot.
 
-Isolates Bay A (single 1×1 bay subset) from state.json, builds the
-watertight mesh via tactile_print.build_mesh(), exports binary STL,
-validates watertightness, and saves a matplotlib 3D screenshot.
+Builds a 24' x 60' rectangular plan with walls every 20' along the
+60' length (3 structural bays), 30' tall walls, 8'x8' windows on
+the short sides (4' above ground), and double doors on both long
+sides. No clipping plane, no roof — full-height open-top walls.
+
+Output scale: 1/8" = 1'-0"  (1:96)
+Units: feet → mm at print scale
 
 Usage:
     python 3d-print/test_single_bay_stl.py
@@ -30,82 +34,210 @@ STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded.stl")
 SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot.png")
 
 
-def make_single_bay_state(full_state):
-    """Extract Bay A as a single 1×1 bay with walls and one door aperture."""
+def make_three_bay_state(full_state):
+    """Build a 24'x60' plan, 3 bays @ 20', 30' walls, windows + doors.
+
+    Layout (plan view, Y is the 60' long axis, X is 24' short axis):
+
+        Y=0  ── south short wall (8'x8' window, 4' AFF) ──
+             |                                              |
+             |  Bay 1  (24' x 20')                          |
+             |                                              |
+        Y=20 ── interior wall (double doors on both sides) ─
+             |                                              |
+             |  Bay 2  (24' x 20')                          |
+             |                                              |
+        Y=40 ── interior wall (double doors on both sides) ─
+             |                                              |
+             |  Bay 3  (24' x 20')                          |
+             |                                              |
+        Y=60 ── north short wall (8'x8' window, 4' AFF) ──
+
+    X-axis walls = horizontal (gridlines along Y at x=0, x=24)
+    Y-axis walls = vertical   (gridlines along X at y=0, y=20, y=40, y=60)
+
+    In the state format:
+      bays=[1, 3]  → 1 bay in X (24'), 3 bays in Y (3×20'=60')
+      spacing=[24, 20]
+      x-axis gridlines: j=0..3 → y=0, 20, 40, 60  (4 horizontal walls)
+      y-axis gridlines: i=0..1 → x=0, 24           (2 vertical walls)
+    """
     state = copy.deepcopy(full_state)
 
-    # Keep only Bay A, set it to a single 1×1 bay
-    bay_a = state["bays"]["A"]
-    bay_a["bays"] = [1, 1]
-    bay_a["spacing"] = [24, 24]
-    bay_a["spacing_x"] = None
-    bay_a["spacing_y"] = None
-    bay_a["walls"]["enabled"] = True
-    bay_a["walls"]["thickness"] = 0.5
+    bay = state["bays"]["A"]
+    bay["origin"] = [0, 0]
+    bay["rotation_deg"] = 0.0
+    bay["grid_type"] = "rectangular"
 
-    # Explicit apertures: door on south wall, window on east wall,
-    # door on north wall, window on west wall — all cut into the walls.
-    bay_a["apertures"] = [
+    # 1 bay across (24'), 3 bays deep (3 × 20' = 60')
+    bay["bays"] = [1, 3]
+    bay["spacing"] = [24, 20]
+    bay["spacing_x"] = None
+    bay["spacing_y"] = None
+
+    bay["walls"]["enabled"] = True
+    bay["walls"]["thickness"] = 0.667  # 8" walls in feet
+
+    # ── Apertures ──
+    # x-axis gridlines (horizontal walls running along X, at y = 0,20,40,60)
+    #   gridline 0 → y=0  (south short wall)    → 8' window centered
+    #   gridline 1 → y=20 (first interior wall)  → double doors on each long side
+    #   gridline 2 → y=40 (second interior wall) → double doors on each long side
+    #   gridline 3 → y=60 (north short wall)     → 8' window centered
+    #
+    # y-axis gridlines (vertical walls running along Y, at x = 0, 24)
+    #   gridline 0 → x=0  (west long wall)  → double doors in each bay
+    #   gridline 1 → x=24 (east long wall)  → double doors in each bay
+
+    bay["apertures"] = [
+        # ── South short wall (x-axis, gridline 0, wall length = 24') ──
+        # 8' wide × 8' tall window, centered (corner at 8')
         {
-            "id": "d1",
-            "type": "door",
-            "axis": "x",        # horizontal wall (south, gridline 0)
+            "id": "w-south",
+            "type": "window",
+            "axis": "x",
             "gridline": 0,
-            "corner": 8.0,      # 8 ft from left corner
-            "width": 3.0,       # 3 ft wide door opening
+            "corner": 8.0,
+            "width": 8.0,
+            "height": 8.0,
+            "hinge": "start",
+            "swing": "positive"
+        },
+
+        # ── North short wall (x-axis, gridline 3, wall length = 24') ──
+        # 8' wide × 8' tall window, centered (corner at 8')
+        {
+            "id": "w-north",
+            "type": "window",
+            "axis": "x",
+            "gridline": 3,
+            "corner": 8.0,
+            "width": 8.0,
+            "height": 8.0,
+            "hinge": "start",
+            "swing": "positive"
+        },
+
+        # ── First interior wall (x-axis, gridline 1, wall length = 24') ──
+        # Double door pair, centered (two 3' leaves = 6' opening)
+        {
+            "id": "dd-int1",
+            "type": "door",
+            "axis": "x",
+            "gridline": 1,
+            "corner": 9.0,
+            "width": 6.0,
+            "height": 7.0,
+            "hinge": "start",
+            "swing": "positive"
+        },
+
+        # ── Second interior wall (x-axis, gridline 2, wall length = 24') ──
+        # Double door pair, centered
+        {
+            "id": "dd-int2",
+            "type": "door",
+            "axis": "x",
+            "gridline": 2,
+            "corner": 9.0,
+            "width": 6.0,
+            "height": 7.0,
+            "hinge": "start",
+            "swing": "positive"
+        },
+
+        # ── West long wall (y-axis, gridline 0, wall length = 60') ──
+        # Double doors in each of the 3 bays (centered in each 20' bay)
+        {
+            "id": "dd-west-1",
+            "type": "door",
+            "axis": "y",
+            "gridline": 0,
+            "corner": 7.0,       # centered in bay 1 (0-20')
+            "width": 6.0,
             "height": 7.0,
             "hinge": "start",
             "swing": "positive"
         },
         {
-            "id": "w1",
-            "type": "window",
-            "axis": "y",        # vertical wall (west, gridline 0)
+            "id": "dd-west-2",
+            "type": "door",
+            "axis": "y",
             "gridline": 0,
-            "corner": 6.0,      # 6 ft from bottom corner
-            "width": 6.0,       # 6 ft wide window opening
-            "height": 4.0,
+            "corner": 27.0,      # centered in bay 2 (20-40')
+            "width": 6.0,
+            "height": 7.0,
             "hinge": "start",
             "swing": "positive"
         },
         {
-            "id": "d2",
+            "id": "dd-west-3",
             "type": "door",
-            "axis": "x",        # horizontal wall (north, gridline 1)
+            "axis": "y",
+            "gridline": 0,
+            "corner": 47.0,      # centered in bay 3 (40-60')
+            "width": 6.0,
+            "height": 7.0,
+            "hinge": "start",
+            "swing": "positive"
+        },
+
+        # ── East long wall (y-axis, gridline 1, wall length = 60') ──
+        # Double doors in each of the 3 bays
+        {
+            "id": "dd-east-1",
+            "type": "door",
+            "axis": "y",
             "gridline": 1,
-            "corner": 10.0,     # 10 ft from left corner
-            "width": 4.0,       # 4 ft wide door opening
+            "corner": 7.0,
+            "width": 6.0,
             "height": 7.0,
             "hinge": "end",
             "swing": "negative"
         },
         {
-            "id": "w2",
-            "type": "window",
-            "axis": "y",        # vertical wall (east, gridline 1)
+            "id": "dd-east-2",
+            "type": "door",
+            "axis": "y",
             "gridline": 1,
-            "corner": 8.0,      # 8 ft from bottom corner
-            "width": 5.0,       # 5 ft wide window opening
-            "height": 4.0,
-            "hinge": "start",
-            "swing": "positive"
+            "corner": 27.0,
+            "width": 6.0,
+            "height": 7.0,
+            "hinge": "end",
+            "swing": "negative"
+        },
+        {
+            "id": "dd-east-3",
+            "type": "door",
+            "axis": "y",
+            "gridline": 1,
+            "corner": 47.0,
+            "width": 6.0,
+            "height": 7.0,
+            "hinge": "end",
+            "swing": "negative"
         },
     ]
 
-    # Remove other bays
-    state["bays"] = {"A": bay_a}
+    # Only this bay
+    state["bays"] = {"A": bay}
 
-    # Shrink site to match single bay
-    state["site"]["origin"] = [bay_a["origin"][0] - 2, bay_a["origin"][1] - 2]
-    state["site"]["width"] = 28
-    state["site"]["height"] = 28
+    # Site matches the footprint
+    state["site"]["origin"] = [-2, -2]
+    state["site"]["width"] = 28     # 24' + 4' pad
+    state["site"]["height"] = 64    # 60' + 4' pad
 
-    # Enable tactile3d
+    # 30' walls, NO clipping plane (cut_height >= wall_height), no roof
     state["tactile3d"]["enabled"] = True
-    state["tactile3d"]["wall_height"] = 9.0
-    state["tactile3d"]["cut_height"] = 4.0
+    state["tactile3d"]["wall_height"] = 30.0
+    state["tactile3d"]["cut_height"] = 30.0   # no clip
     state["tactile3d"]["floor_enabled"] = True
     state["tactile3d"]["floor_thickness"] = 0.5
+
+    # Scale: 1/8" = 1'-0"  →  1 ft = 3.175 mm  →  print_scale = 96
+    if "bambu" not in state:
+        state["bambu"] = {}
+    state["bambu"]["print_scale"] = 96
 
     return state
 
@@ -165,21 +297,19 @@ def validate_watertight(triangles):
     return is_watertight, total_edges, len(boundary), "\n".join(lines)
 
 
-def render_screenshot(stl_path, output_path):
-    """Render a 3D screenshot of the STL using matplotlib."""
+def render_screenshot(triangles_ft, output_path):
+    """Render a 3D screenshot of the mesh in feet using matplotlib."""
     import matplotlib
     matplotlib.use("Agg")  # headless backend
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-    triangles = read_binary_stl(stl_path)
-
-    fig = plt.figure(figsize=(14, 10))
+    fig = plt.figure(figsize=(16, 10))
     ax = fig.add_subplot(111, projection="3d")
 
-    # Collect polygon vertices for Poly3DCollection
+    # Collect polygon vertices (already in feet)
     polys = []
-    for _, v0, v1, v2 in triangles:
+    for _, v0, v1, v2 in triangles_ft:
         polys.append([list(v0), list(v1), list(v2)])
 
     # Determine bounds for coloring
@@ -206,21 +336,21 @@ def render_screenshot(stl_path, output_path):
     # Set axis limits from mesh bounds
     all_x = [v[0] for tri in polys for v in tri]
     all_y = [v[1] for tri in polys for v in tri]
-    pad = 2.0
+    pad = 5.0
     ax.set_xlim(min(all_x) - pad, max(all_x) + pad)
     ax.set_ylim(min(all_y) - pad, max(all_y) + pad)
     ax.set_zlim(min(all_z) - pad, max(all_z) + pad)
 
-    ax.set_xlabel("X (mm)")
-    ax.set_ylabel("Y (mm)")
-    ax.set_zlabel("Z (mm)")
+    ax.set_xlabel("X (ft)")
+    ax.set_ylabel("Y (ft)")
+    ax.set_zlabel("Z (ft)")
 
-    ax.set_title("Single Bay — Extruded Plan Layout (Watertight STL)\n"
-                 f"{len(triangles)} triangles, scale 1:200",
+    ax.set_title("24' x 60' Three-Bay Plan — 30' Walls, Watertight STL\n"
+                 f'{len(triangles_ft)} triangles | scale 1/8" = 1\'-0" (1:96)',
                  fontsize=13, fontweight="bold")
 
     # Isometric-ish view
-    ax.view_init(elev=30, azim=-55)
+    ax.view_init(elev=25, azim=-50)
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
@@ -236,8 +366,8 @@ def main():
     with open(STATE_PATH, "r", encoding="utf-8") as f:
         full_state = json.load(f)
 
-    # 2. Build single-bay state
-    state = make_single_bay_state(full_state)
+    # 2. Build three-bay state (24'x60', 30' walls, windows + doors)
+    state = make_three_bay_state(full_state)
     single_bay_state_path = os.path.join(OUTPUT_DIR, "single_bay_state.json")
     with open(single_bay_state_path, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
@@ -264,9 +394,9 @@ def main():
     is_wt, edge_ct, boundary_ct, report = validate_watertight(stl_tris)
     print(report)
 
-    # 5. Render 3D screenshot
+    # 5. Render 3D screenshot (in feet, not mm)
     print(f"\nRendering 3D screenshot to {SCREENSHOT_PATH}")
-    render_screenshot(STL_PATH, SCREENSHOT_PATH)
+    render_screenshot(triangles_ft, SCREENSHOT_PATH)
 
     # Summary
     print("\n" + "=" * 50)
