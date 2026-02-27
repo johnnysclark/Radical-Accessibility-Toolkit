@@ -37,6 +37,7 @@ USDZ_PATH = os.path.join(OUTPUT_DIR, "USDZ_two_bay_walls_{}.usdz".format(TIMESTA
 FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "PNG_floor_plan_{}.png".format(TIMESTAMP))
 AXON_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_overhead_{}.png".format(TIMESTAMP))
 AXON2_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_eye_level_{}.png".format(TIMESTAMP))
+VIEWER_PATH = os.path.join(OUTPUT_DIR, "HTML_viewer_{}.html".format(TIMESTAMP))
 
 
 def make_three_bay_state(full_state):
@@ -966,6 +967,171 @@ def render_floor_plan(state, output_path):
     print(f"Floor plan saved: {output_path}")
 
 
+def export_turntable_viewer(triangles_ft, output_path, state=None, n_frames=24,
+                            el_deg=30):
+    """Export a self-contained HTML turntable viewer with pre-baked frames.
+
+    Renders N axonometric views around the model using matplotlib's
+    Poly3DCollection, encodes each as base64 PNG, and embeds them in
+    a single HTML file with a slider, touch-drag orbit, and auto-play.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    import numpy as np
+    from io import BytesIO
+    import base64
+
+    # ── Collect triangle vertices in (N,3,3) array ──
+    poly_verts = []
+    for _, v0, v1, v2 in triangles_ft:
+        poly_verts.append([v0, v1, v2])
+    poly_verts = np.array(poly_verts, dtype=float)
+
+    # Compute bounding box for consistent axis limits
+    all_pts = poly_verts.reshape(-1, 3)
+    mins = all_pts.min(axis=0)
+    maxs = all_pts.max(axis=0)
+    center = (mins + maxs) / 2
+    span = (maxs - mins).max() / 2 * 1.1  # 10% padding
+
+    # ── Intersection edges (for overlay) ──
+    isect_edges = []
+    if state:
+        isect_edges = _compute_intersection_edges(state)
+
+    # ── Render frames ──
+    frames_b64 = []
+    for i in range(n_frames):
+        az = i * (360.0 / n_frames)
+
+        fig = plt.figure(figsize=(8, 6), facecolor='white')
+        ax = fig.add_subplot(111, projection='3d', computed_zorder=False)
+        ax.set_facecolor('white')
+
+        # Pale pink faces, thin dark edges
+        coll = Poly3DCollection(poly_verts,
+                                facecolors='#FFD9E0',
+                                edgecolors='#333333',
+                                linewidths=0.3)
+        ax.add_collection3d(coll)
+
+        # Draw intersection edges
+        for (p0, p1) in isect_edges:
+            ax.plot3D([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]],
+                      color='#333333', linewidth=0.8)
+
+        ax.set_xlim(center[0] - span, center[0] + span)
+        ax.set_ylim(center[1] - span, center[1] + span)
+        ax.set_zlim(center[2] - span, center[2] + span)
+        ax.view_init(elev=el_deg, azim=az)
+        ax.axis('off')
+        ax.set_box_aspect([1, 1, 1])
+
+        buf = BytesIO()
+        fig.savefig(buf, format='png', dpi=120, bbox_inches='tight',
+                    facecolor='white', pad_inches=0.1)
+        plt.close(fig)
+        buf.seek(0)
+        frames_b64.append(base64.b64encode(buf.read()).decode('ascii'))
+
+    # ── Build HTML ──
+    html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turntable Viewer</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#fff; font-family:system-ui,sans-serif;
+         display:flex; flex-direction:column; align-items:center;
+         min-height:100vh; padding:20px; }
+  h1 { font-size:1.1em; color:#333; margin-bottom:12px; }
+  #viewer { max-width:100%%; cursor:grab; user-select:none;
+            -webkit-user-select:none; touch-action:none; }
+  #viewer:active { cursor:grabbing; }
+  .controls { margin-top:12px; display:flex; gap:12px;
+              align-items:center; flex-wrap:wrap; justify-content:center; }
+  input[type=range] { width:300px; max-width:80vw; }
+  button { padding:6px 16px; border:1px solid #999; background:#fff;
+           border-radius:4px; cursor:pointer; font-size:0.9em; }
+  button:hover { background:#f0f0f0; }
+  .info { margin-top:8px; color:#888; font-size:0.8em; }
+</style>
+</head>
+<body>
+<h1>Two-Bay Layout &mdash; Turntable Viewer</h1>
+<img id="viewer" alt="turntable frame">
+<div class="controls">
+  <button id="playBtn">Play</button>
+  <input type="range" id="slider" min="0" max="MAXFRAME" value="0">
+  <span id="label">0&deg;</span>
+</div>
+<div class="info">Drag image or use slider to orbit &bull; NFRAMES frames @ STEPDEG&deg;</div>
+<script>
+var frames = FRAMES_JSON;
+var n = frames.length;
+var idx = 0;
+var playing = false;
+var timer = null;
+var img = document.getElementById('viewer');
+var slider = document.getElementById('slider');
+var label = document.getElementById('label');
+var playBtn = document.getElementById('playBtn');
+
+function show(i) {
+  idx = ((i % n) + n) % n;
+  img.src = 'data:image/png;base64,' + frames[idx];
+  slider.value = idx;
+  label.textContent = Math.round(idx * (360 / n)) + String.fromCharCode(176);
+}
+show(0);
+
+slider.addEventListener('input', function() { show(parseInt(this.value)); });
+
+playBtn.addEventListener('click', function() {
+  playing = !playing;
+  playBtn.textContent = playing ? 'Pause' : 'Play';
+  if (playing) {
+    timer = setInterval(function() { show(idx + 1); }, 100);
+  } else {
+    clearInterval(timer);
+  }
+});
+
+// Drag to orbit
+var dragging = false, startX = 0, startIdx = 0;
+img.addEventListener('pointerdown', function(e) {
+  dragging = true; startX = e.clientX; startIdx = idx;
+  img.setPointerCapture(e.pointerId);
+});
+img.addEventListener('pointermove', function(e) {
+  if (!dragging) return;
+  var dx = e.clientX - startX;
+  var step = Math.round(dx / 15);
+  show(startIdx + step);
+});
+img.addEventListener('pointerup', function() { dragging = false; });
+img.addEventListener('pointercancel', function() { dragging = false; });
+</script>
+</body>
+</html>'''
+
+    html = html.replace('MAXFRAME', str(n_frames - 1))
+    html = html.replace('NFRAMES', str(n_frames))
+    html = html.replace('STEPDEG', str(int(360 / n_frames)))
+    html = html.replace('FRAMES_JSON', json.dumps(frames_b64))
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(html)
+
+    total_kb = os.path.getsize(output_path) / 1024
+    print("Turntable viewer saved: {} ({} frames, {:.0f} KB)".format(
+        output_path, n_frames, total_kb))
+
+
 def _archive_old_outputs():
     """Move any existing timestamped outputs into Tests/ subfolder."""
     archive_dir = os.path.join(OUTPUT_DIR, "Tests")
@@ -1035,6 +1201,11 @@ def main():
     render_axon_pen(triangles_ft, AXON2_PATH, state=state,
                     az_deg=135, el_deg=-25, title_suffix="eye-level SE")
 
+    # 8. Export turntable viewer
+    print(f"\nExporting turntable viewer to {VIEWER_PATH}")
+    export_turntable_viewer(triangles_ft, VIEWER_PATH, state=state,
+                            n_frames=24, el_deg=30)
+
     # Summary
     print("\n" + "=" * 50)
     print("TEST RESULTS")
@@ -1044,6 +1215,7 @@ def main():
     print(f"  Floor plan:     {FLOORPLAN_PATH}")
     print(f"  Axon pen 1:     {AXON_PATH}")
     print(f"  Axon pen 2:     {AXON2_PATH}")
+    print(f"  Viewer:         {VIEWER_PATH}")
     print(f"  Triangles:      {count}")
     print(f"  Watertight:     {'YES' if is_wt else 'NO'}")
     print(f"  Boundary edges: {boundary_ct}")
