@@ -251,11 +251,14 @@ def _aperture_infill(ap, extrude_h, fixed_val, axis, half_t,
     return triangles
 
 
-def build_mesh(state):
+def build_mesh(state, label_tris=False):
     """Build the full triangle mesh from state.
 
     Returns a list of (normal, v0, v1, v2) tuples, where each
     vertex is (x, y, z) in FEET. Caller handles unit conversion.
+
+    When label_tris=True, returns (triangles, labels) where labels
+    is a parallel list of bay name strings (e.g. "A", "B", "_floor").
 
     Generates the same geometry as the watcher's _draw_tactile3d:
     extruded wall segments clipped at cut_height, plus floor slab.
@@ -272,6 +275,7 @@ def build_mesh(state):
 
     extrude_h = min(wall_height, cut_height)
     triangles = []
+    labels = []  # bay name per triangle (only filled when label_tris=True)
 
     # ── Collect bay footprints for z_order clipping ──
     # Higher z_order bays take precedence: lower-z_order bay walls
@@ -342,16 +346,22 @@ def build_mesh(state):
                     continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, y_val, "x", half_t, ox, oy, rot)
-                triangles.extend(_box_triangles(
-                    *corners, z_bot=0.0, z_top=bay_extrude_h))
+                new_tris = _box_triangles(
+                    *corners, z_bot=0.0, z_top=bay_extrude_h)
+                triangles.extend(new_tris)
+                if label_tris:
+                    labels.extend([name] * len(new_tris))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
                 ap_mid = ap.get("corner", 0) + ap.get("width", 3) / 2
                 mid_w = _local_to_world(ap_mid, y_val, (ox, oy), rot)
                 if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
                     continue
-                triangles.extend(_aperture_infill(
-                    ap, bay_extrude_h, y_val, "x", half_t, ox, oy, rot))
+                new_tris = _aperture_infill(
+                    ap, bay_extrude_h, y_val, "x", half_t, ox, oy, rot)
+                triangles.extend(new_tris)
+                if label_tris:
+                    labels.extend([name] * len(new_tris))
 
         # Vertical gridlines (y-axis walls)
         for i, x_val in enumerate(cx):
@@ -375,16 +385,22 @@ def build_mesh(state):
                     continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, x_val, "y", half_t, ox, oy, rot)
-                triangles.extend(_box_triangles(
-                    *corners, z_bot=0.0, z_top=bay_extrude_h))
+                new_tris = _box_triangles(
+                    *corners, z_bot=0.0, z_top=bay_extrude_h)
+                triangles.extend(new_tris)
+                if label_tris:
+                    labels.extend([name] * len(new_tris))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
                 ap_mid = ap.get("corner", 0) + ap.get("width", 3) / 2
                 mid_w = _local_to_world(x_val, ap_mid, (ox, oy), rot)
                 if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
                     continue
-                triangles.extend(_aperture_infill(
-                    ap, bay_extrude_h, x_val, "y", half_t, ox, oy, rot))
+                new_tris = _aperture_infill(
+                    ap, bay_extrude_h, x_val, "y", half_t, ox, oy, rot)
+                triangles.extend(new_tris)
+                if label_tris:
+                    labels.extend([name] * len(new_tris))
 
     # ── Floor slab ──
     if floor_on:
@@ -397,9 +413,14 @@ def build_mesh(state):
         p1 = (sox + sw,  soy)
         p2 = (sox + sw,  soy + sh)
         p3 = (sox,       soy + sh)
-        triangles.extend(_box_triangles(
-            p0, p1, p2, p3, z_bot=-floor_thick, z_top=0.0))
+        floor_tris = _box_triangles(
+            p0, p1, p2, p3, z_bot=-floor_thick, z_top=0.0)
+        triangles.extend(floor_tris)
+        if label_tris:
+            labels.extend(["_floor"] * len(floor_tris))
 
+    if label_tris:
+        return triangles, labels
     return triangles
 
 

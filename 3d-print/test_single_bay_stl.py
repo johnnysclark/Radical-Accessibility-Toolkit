@@ -968,77 +968,280 @@ def render_floor_plan(state, output_path):
     print(f"Floor plan saved: {output_path}")
 
 
-def export_turntable_viewer(triangles_ft, output_path, state=None, n_frames=24,
-                            el_deg=30):
-    """Export a self-contained HTML turntable viewer with pre-baked frames.
+def _compute_feature_edges(poly_verts, normals):
+    """Find feature (crease/boundary) edges — edges between non-coplanar faces.
 
-    Renders N axonometric views around the model using matplotlib's
-    Poly3DCollection, encodes each as base64 PNG, and embeds them in
-    a single HTML file with a slider, touch-drag orbit, and auto-play.
+    Returns list of (v0, v1, [tri_idx, ...], is_boundary) tuples.
+    Internal mesh edges (between coplanar triangles) are excluded.
+    """
+    import numpy as np
+
+    edge_tris = {}  # (v0_key, v1_key) -> [tri_idx, ...]
+    for ti in range(len(poly_verts)):
+        tri = poly_verts[ti]
+        for ei in range(3):
+            v0 = tuple(np.round(tri[ei], 4))
+            v1 = tuple(np.round(tri[(ei + 1) % 3], 4))
+            edge_key = tuple(sorted([v0, v1]))
+            edge_tris.setdefault(edge_key, []).append(ti)
+
+    feature_edges = []
+    for (v0, v1), tri_idxs in edge_tris.items():
+        if len(tri_idxs) == 1:
+            # Boundary edge — always a feature
+            feature_edges.append((np.array(v0), np.array(v1), tri_idxs, True))
+        elif len(tri_idxs) == 2:
+            n0 = normals[tri_idxs[0]]
+            n1 = normals[tri_idxs[1]]
+            dot = np.clip(np.dot(n0, n1), -1, 1)
+            if np.arccos(dot) > np.radians(5):  # non-coplanar
+                feature_edges.append(
+                    (np.array(v0), np.array(v1), tri_idxs, False))
+    return feature_edges
+
+
+def _ortho_basis(az_deg, el_deg):
+    """Compute orthographic projection basis vectors.
+
+    Returns (right, up, eye) where eye points from scene toward camera.
+    """
+    import numpy as np
+    az = np.radians(az_deg)
+    el = np.radians(el_deg)
+    eye = np.array([
+        np.cos(el) * np.cos(az),
+        np.cos(el) * np.sin(az),
+        np.sin(el)])
+    world_up = np.array([0.0, 0.0, 1.0])
+    right = np.cross(-eye, world_up)
+    right /= np.linalg.norm(right)
+    up = np.cross(right, -eye)
+    up /= np.linalg.norm(up)
+    return right, up, eye
+
+
+def _check_edge_occlusion(sample_xy, sample_depth, tri_xy, tri_depth):
+    """Vectorized occlusion test: are sample points hidden behind triangles?
+
+    sample_xy:    (M, 2) screen coordinates
+    sample_depth: (M,)   depth values (higher = closer to camera)
+    tri_xy:       (N, 3, 2) projected triangle vertices
+    tri_depth:    (N, 3) triangle vertex depths
+
+    Returns (M,) boolean — True if occluded.
+    """
+    import numpy as np
+
+    # Barycentric coordinates of each sample in each triangle
+    # v0 = t1 - t0, v1 = t2 - t0, v2 = sample - t0
+    t0 = tri_xy[:, 0, :]                              # (N, 2)
+    v0 = tri_xy[:, 1, :] - t0                         # (N, 2)
+    v1 = tri_xy[:, 2, :] - t0                         # (N, 2)
+
+    d00 = (v0 * v0).sum(axis=1)                        # (N,)
+    d01 = (v0 * v1).sum(axis=1)
+    d11 = (v1 * v1).sum(axis=1)
+    denom = d00 * d11 - d01 * d01
+    safe_denom = np.where(np.abs(denom) < 1e-12, 1.0, denom)
+
+    # (M, N) — broadcast sample points against all triangles
+    v2x = sample_xy[:, 0:1] - t0[:, 0][np.newaxis, :]  # (M, N)
+    v2y = sample_xy[:, 1:2] - t0[:, 1][np.newaxis, :]
+
+    d20 = v2x * v0[:, 0] + v2y * v0[:, 1]              # (M, N)
+    d21 = v2x * v1[:, 0] + v2y * v1[:, 1]
+
+    bv = (d11 * d20 - d01 * d21) / safe_denom           # (M, N)
+    bw = (d00 * d21 - d01 * d20) / safe_denom
+    bu = 1.0 - bv - bw
+
+    EPS = -1e-6
+    inside = ((bu >= EPS) & (bv >= EPS) & (bw >= EPS)
+              & (np.abs(denom) > 1e-12))                 # (M, N)
+
+    # Interpolated depth at each sample point within each triangle
+    interp_d = (bu * tri_depth[:, 0]
+                + bv * tri_depth[:, 1]
+                + bw * tri_depth[:, 2])                  # (M, N)
+
+    occluded_by = inside & (interp_d > sample_depth[:, np.newaxis] + 0.05)
+    return occluded_by.any(axis=1)                       # (M,)
+
+
+def _render_arch_frame(poly_verts, normals, bay_labels, feature_edges,
+                       az_deg, el_deg, center, bay_colors,
+                       fig_size=(8, 6), dpi=120):
+    """Render one architectural axonometric frame.
+
+    - Filled faces coloured by bay, no mesh edges
+    - Thick silhouette lines
+    - Dashed hidden lines
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from matplotlib.patches import Polygon as MplPoly
+    import numpy as np
+    from io import BytesIO
+
+    right, up, eye = _ortho_basis(az_deg, el_deg)
+
+    # ── Project all triangle vertices to 2D ──
+    centered = poly_verts - center                       # (N, 3, 3)
+    proj_x = np.einsum('ijk,k->ij', centered, right)    # (N, 3)
+    proj_y = np.einsum('ijk,k->ij', centered, up)       # (N, 3)
+    depth  = np.einsum('ijk,k->ij', centered, eye)      # (N, 3)
+
+    # ── Face visibility ──
+    face_dots = np.einsum('ij,j->i', normals, eye)
+    front_mask = face_dots > 0
+    front_idxs = np.where(front_mask)[0]
+
+    # Sort visible faces far-to-near (painter's algorithm)
+    mean_d = depth[front_idxs].mean(axis=1)
+    order = np.argsort(mean_d)
+    sorted_front = front_idxs[order]
+
+    # ── Create figure (2D axes) ──
+    fig, ax = plt.subplots(1, 1, figsize=fig_size, facecolor='white')
+    ax.set_facecolor('white')
+    ax.set_aspect('equal')
+    ax.axis('off')
+
+    # ── Draw filled faces (zorder=2 so they cover hidden lines) ──
+    for idx in sorted_front:
+        xy = np.column_stack([proj_x[idx], proj_y[idx]])
+        color = bay_colors.get(bay_labels[idx], '#EEEEEE')
+        ax.add_patch(MplPoly(xy, closed=True, facecolor=color,
+                             edgecolor='none', zorder=2))
+
+    # ── Classify feature edges ──
+    edge_data = []  # (sx0, sy0, sx1, sy1, kind)
+    for v0, v1, tri_idxs, is_boundary in feature_edges:
+        v0c = v0 - center
+        v1c = v1 - center
+        sx0, sy0, sd0 = v0c @ right, v0c @ up, v0c @ eye
+        sx1, sy1, sd1 = v1c @ right, v1c @ up, v1c @ eye
+
+        if is_boundary:
+            ff = face_dots[tri_idxs[0]] > 0
+            kind = "silhouette" if ff else "back"
+        else:
+            f0 = face_dots[tri_idxs[0]] > 0
+            f1 = face_dots[tri_idxs[1]] > 0
+            if f0 != f1:
+                kind = "silhouette"
+            elif f0 and f1:
+                kind = "crease"
+            else:
+                kind = "back"
+
+        edge_data.append((sx0, sy0, sd0, sx1, sy1, sd1, kind))
+
+    # ── Occlusion test (batch all edge samples) ──
+    n_samples = 5
+    sample_pts = []
+    sample_depths = []
+    edge_sample_map = []  # (edge_idx, count)
+    for ei, (sx0, sy0, sd0, sx1, sy1, sd1, kind) in enumerate(edge_data):
+        for t in np.linspace(0.1, 0.9, n_samples):
+            sample_pts.append([sx0 + t * (sx1 - sx0),
+                               sy0 + t * (sy1 - sy0)])
+            sample_depths.append(sd0 + t * (sd1 - sd0))
+        edge_sample_map.append((ei, n_samples))
+
+    if sample_pts and len(front_idxs) > 0:
+        sample_xy = np.array(sample_pts)
+        sample_d = np.array(sample_depths)
+        # Front-facing triangles for occlusion
+        ft_xy = np.stack([proj_x[front_idxs], proj_y[front_idxs]], axis=-1)
+        ft_d = depth[front_idxs]
+        occ = _check_edge_occlusion(sample_xy, sample_d, ft_xy, ft_d)
+    else:
+        occ = np.zeros(len(sample_pts), dtype=bool)
+
+    # Map per-sample occlusion back to edges (majority vote)
+    si = 0
+    for ei, (sx0, sy0, sd0, sx1, sy1, sd1, kind) in enumerate(edge_data):
+        n_occ = occ[si:si + n_samples].sum()
+        si += n_samples
+        is_hidden = (n_occ > n_samples // 2) or (kind == "back")
+
+        if is_hidden:
+            ax.plot([sx0, sx1], [sy0, sy1],
+                    color='#999999', linewidth=0.4, linestyle=(0, (4, 3)),
+                    solid_capstyle='round', zorder=1)
+        elif kind == "silhouette":
+            ax.plot([sx0, sx1], [sy0, sy1],
+                    color='#111111', linewidth=1.8,
+                    solid_capstyle='round', zorder=4)
+        else:  # visible crease
+            ax.plot([sx0, sx1], [sy0, sy1],
+                    color='#333333', linewidth=0.7,
+                    solid_capstyle='round', zorder=3)
+
+    # ── Fit view (use ALL vertices, not just front-facing) ──
+    all_sx = np.einsum('ijk,k->ij', centered, right).ravel()
+    all_sy = np.einsum('ijk,k->ij', centered, up).ravel()
+    if len(all_sx) > 0:
+        pad = max(all_sx.max() - all_sx.min(),
+                  all_sy.max() - all_sy.min()) * 0.08
+        ax.set_xlim(all_sx.min() - pad, all_sx.max() + pad)
+        ax.set_ylim(all_sy.min() - pad, all_sy.max() + pad)
+
+    buf = BytesIO()
+    fig.savefig(buf, format='png', dpi=dpi, bbox_inches='tight',
+                facecolor='white', pad_inches=0.1)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+def export_turntable_viewer(triangles_ft, output_path, state=None, n_frames=24,
+                            el_deg=30, bay_labels=None):
+    """Export a self-contained HTML turntable viewer with pre-baked frames.
+
+    Renders N architectural axonometric views: filled faces coloured by bay,
+    thick silhouette lines, dashed hidden lines, no mesh edges.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
     import numpy as np
     from io import BytesIO
     import base64
 
-    # ── Collect triangle vertices in (N,3,3) array ──
-    poly_verts = []
-    for _, v0, v1, v2 in triangles_ft:
-        poly_verts.append([v0, v1, v2])
-    poly_verts = np.array(poly_verts, dtype=float)
+    # ── Collect geometry ──
+    poly_verts = np.array([[v0, v1, v2] for _, v0, v1, v2 in triangles_ft],
+                          dtype=float)
+    normals = np.array([n for n, _, _, _ in triangles_ft], dtype=float)
 
-    # Compute bounding box for consistent axis limits
-    all_pts = poly_verts.reshape(-1, 3)
-    mins = all_pts.min(axis=0)
-    maxs = all_pts.max(axis=0)
-    center = (mins + maxs) / 2
-    span = (maxs - mins).max() / 2 * 1.1  # 10% padding
+    if bay_labels is None:
+        bay_labels = ['A'] * len(poly_verts)
 
-    # ── Intersection edges (for overlay) ──
-    isect_edges = []
-    if state:
-        isect_edges = _compute_intersection_edges(state)
+    center = (poly_verts.reshape(-1, 3).min(0)
+              + poly_verts.reshape(-1, 3).max(0)) / 2
+
+    # Feature edges (view-independent, compute once)
+    feature_edges = _compute_feature_edges(poly_verts, normals)
+    print(f"  Feature edges: {len(feature_edges)}  "
+          f"(from {len(poly_verts)} triangles)")
+
+    bay_colors = {
+        'A': '#FFCDD2',   # warm rose
+        'B': '#BBDEFB',   # cool sky
+        '_floor': '#E0E0E0',
+    }
 
     # ── Render frames ──
     frames_b64 = []
-    frames_png = []  # raw PNG bytes for GIF export
+    frames_png = []
     for i in range(n_frames):
         az = i * (360.0 / n_frames)
-
-        fig = plt.figure(figsize=(8, 6), facecolor='white')
-        ax = fig.add_subplot(111, projection='3d', computed_zorder=False)
-        ax.set_facecolor('white')
-
-        # Pale pink faces, thin dark edges
-        coll = Poly3DCollection(poly_verts,
-                                facecolors='#FFD9E0',
-                                edgecolors='#333333',
-                                linewidths=0.3)
-        ax.add_collection3d(coll)
-
-        # Draw intersection edges
-        for (p0, p1) in isect_edges:
-            ax.plot3D([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]],
-                      color='#333333', linewidth=0.8)
-
-        ax.set_xlim(center[0] - span, center[0] + span)
-        ax.set_ylim(center[1] - span, center[1] + span)
-        ax.set_zlim(center[2] - span, center[2] + span)
-        ax.view_init(elev=el_deg, azim=az)
-        ax.axis('off')
-        ax.set_box_aspect([1, 1, 1])
-
-        buf = BytesIO()
-        fig.savefig(buf, format='png', dpi=120, bbox_inches='tight',
-                    facecolor='white', pad_inches=0.1)
-        plt.close(fig)
-        buf.seek(0)
-        png_bytes = buf.read()
-        frames_png.append(png_bytes)
-        frames_b64.append(base64.b64encode(png_bytes).decode('ascii'))
+        png = _render_arch_frame(
+            poly_verts, normals, bay_labels, feature_edges,
+            az, el_deg, center, bay_colors)
+        frames_png.append(png)
+        frames_b64.append(base64.b64encode(png).decode('ascii'))
 
     # ── Build HTML ──
     html = '''<!DOCTYPE html>
@@ -1201,7 +1404,7 @@ def main():
 
     # 3. Build mesh and export STL
     print("\nBuilding mesh...")
-    triangles_ft = tp.build_mesh(state)
+    triangles_ft, bay_labels = tp.build_mesh(state, label_tris=True)
     print(f"  Triangles (feet): {len(triangles_ft)}")
 
     # Preview
@@ -1240,7 +1443,8 @@ def main():
     # 8. Export turntable viewer + GIF
     print(f"\nExporting turntable viewer to {VIEWER_PATH}")
     frames_png = export_turntable_viewer(triangles_ft, VIEWER_PATH, state=state,
-                                         n_frames=24, el_deg=30)
+                                         n_frames=24, el_deg=30,
+                                         bay_labels=bay_labels)
 
     print(f"\nExporting turntable GIF to {GIF_PATH}")
     export_turntable_gif(frames_png, GIF_PATH, duration_ms=100)
