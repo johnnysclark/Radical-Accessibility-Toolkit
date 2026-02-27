@@ -32,10 +32,11 @@ REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 STATE_PATH = os.path.join(REPO_ROOT, "rhino-python-driver", "state.json")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "test-output")
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded_{}.stl".format(TIMESTAMP))
-OBJ_PATH = os.path.join(OUTPUT_DIR, "single_bay_model_{}.obj".format(TIMESTAMP))
-FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan_{}.png".format(TIMESTAMP))
-AXON_PATH = os.path.join(OUTPUT_DIR, "single_bay_axon_pen_{}.png".format(TIMESTAMP))
+STL_PATH = os.path.join(OUTPUT_DIR, "STL_two_bay_walls_{}.stl".format(TIMESTAMP))
+OBJ_PATH = os.path.join(OUTPUT_DIR, "OBJ_two_bay_walls_{}.obj".format(TIMESTAMP))
+FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "PNG_floor_plan_{}.png".format(TIMESTAMP))
+AXON_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_overhead_{}.png".format(TIMESTAMP))
+AXON2_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_eye_level_{}.png".format(TIMESTAMP))
 
 
 def make_three_bay_state(full_state):
@@ -354,7 +355,8 @@ def export_obj(triangles_ft, output_path):
     print(f"OBJ saved: {output_path} ({len(verts)} verts, {len(faces)} faces)")
 
 
-def render_axon_pen(triangles_ft, output_path):
+def render_axon_pen(triangles_ft, output_path, az_deg=-50, el_deg=-55,
+                    title_suffix=""):
     """Render a black-and-white axonometric pen drawing with hidden lines dashed.
 
     Uses an isometric projection, extracts silhouette and crease edges,
@@ -363,15 +365,18 @@ def render_axon_pen(triangles_ft, output_path):
 
     Visible edges: solid black.
     Hidden edges: dashed light gray.
+
+    az_deg: azimuth in degrees (rotation around Z axis)
+    el_deg: elevation in degrees (negative = looking down)
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # ── Isometric camera — looking DOWN from above ──
-    az = math.radians(-50)
-    el = math.radians(-55)  # negative = looking downward
+    # ── Isometric camera ──
+    az = math.radians(az_deg)
+    el = math.radians(el_deg)
 
     # Camera basis vectors (right-hand coordinate system)
     # Forward = into screen, Right = screen X, Up = screen Y
@@ -557,8 +562,10 @@ def render_axon_pen(triangles_ft, output_path):
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
                 color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
 
+    view_label = title_suffix if title_suffix else "overhead"
     ax.set_title("Axonometric — Two-Bay Layout (30' + 10' @ 45\u00b0)\n"
-                 'pen mode  |  solid = visible  |  dashed = hidden',
+                 'pen mode  |  {}  |  solid = visible  |  dashed = hidden'.format(
+                     view_label),
                  fontsize=12, fontweight="bold")
     ax.axis("off")
 
@@ -783,9 +790,14 @@ def main():
     print(f"\nRendering floor plan to {FLOORPLAN_PATH}")
     render_floor_plan(state, FLOORPLAN_PATH)
 
-    # 7. Render axonometric pen drawing
-    print(f"\nRendering axon pen drawing to {AXON_PATH}")
-    render_axon_pen(triangles_ft, AXON_PATH)
+    # 7. Render axonometric pen drawings (two angles)
+    print(f"\nRendering axon pen (overhead) to {AXON_PATH}")
+    render_axon_pen(triangles_ft, AXON_PATH,
+                    az_deg=-50, el_deg=-55, title_suffix="overhead")
+
+    print(f"\nRendering axon pen (eye-level) to {AXON2_PATH}")
+    render_axon_pen(triangles_ft, AXON2_PATH,
+                    az_deg=135, el_deg=-25, title_suffix="eye-level SE")
 
     # Summary
     print("\n" + "=" * 50)
@@ -794,7 +806,8 @@ def main():
     print(f"  STL file:       {STL_PATH}")
     print(f"  OBJ file:       {OBJ_PATH}")
     print(f"  Floor plan:     {FLOORPLAN_PATH}")
-    print(f"  Axon pen:       {AXON_PATH}")
+    print(f"  Axon pen 1:     {AXON_PATH}")
+    print(f"  Axon pen 2:     {AXON2_PATH}")
     print(f"  Triangles:      {count}")
     print(f"  Watertight:     {'YES' if is_wt else 'NO'}")
     print(f"  Boundary edges: {boundary_ct}")

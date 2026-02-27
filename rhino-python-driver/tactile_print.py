@@ -97,6 +97,15 @@ def _local_to_world(lx, ly, origin, rot_deg):
     wy = origin[1] + lx * math.sin(r) + ly * math.cos(r)
     return (wx, wy)
 
+def _world_to_local(wx, wy, origin, rot_deg):
+    """Inverse of _local_to_world: world coords → local bay coords."""
+    r = math.radians(rot_deg)
+    dx = wx - origin[0]
+    dy = wy - origin[1]
+    lx = dx * math.cos(r) + dy * math.sin(r)
+    ly = -dx * math.sin(r) + dy * math.cos(r)
+    return (lx, ly)
+
 def _get_spacing_arrays(bay):
     """Cumulative gridline positions along x and y."""
     nx, ny = bay["bays"]
@@ -264,6 +273,35 @@ def build_mesh(state):
     extrude_h = min(wall_height, cut_height)
     triangles = []
 
+    # ── Collect bay footprints for z_order clipping ──
+    # Higher z_order bays take precedence: lower-z_order bay walls
+    # that fall inside a higher-z_order bay's footprint are skipped.
+    bay_footprints = []  # (z_order, origin, rot, total_x, total_y)
+    for name, bay in state.get("bays", {}).items():
+        if bay.get("grid_type", "rectangular") != "rectangular":
+            continue
+        w = bay.get("walls", {})
+        if not w.get("enabled"):
+            continue
+        cx_fp, cy_fp = _get_spacing_arrays(bay)
+        bay_footprints.append((
+            bay.get("z_order", 0),
+            bay["origin"],
+            bay.get("rotation_deg", 0),
+            cx_fp[-1],
+            cy_fp[-1],
+        ))
+
+    def _is_clipped_by_higher(wx, wy, my_z_order):
+        """Check if a world point is inside any higher-z_order bay."""
+        for z_ord, fp_origin, fp_rot, fp_total_x, fp_total_y in bay_footprints:
+            if z_ord <= my_z_order:
+                continue  # same or lower priority — no clipping
+            lx, ly = _world_to_local(wx, wy, fp_origin, fp_rot)
+            if 0 < lx < fp_total_x and 0 < ly < fp_total_y:
+                return True
+        return False
+
     # ── Wall segment boxes ──
     for name, bay in state.get("bays", {}).items():
         if bay.get("grid_type", "rectangular") != "rectangular":
@@ -278,6 +316,7 @@ def build_mesh(state):
         half_t = t / 2.0
         ox, oy = bay["origin"]
         rot = bay.get("rotation_deg", 0)
+        my_z_order = bay.get("z_order", 0)
         cx, cy = _get_spacing_arrays(bay)
         aps = bay.get("apertures", [])
 
@@ -290,12 +329,21 @@ def build_mesh(state):
             for seg_s, seg_e in _calc_wall_segments(cx[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
+                # Check segment center against higher-z_order bays
+                mid_w = _local_to_world((seg_s + seg_e) / 2, y_val,
+                                        (ox, oy), rot)
+                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                    continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, y_val, "x", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
                     *corners, z_bot=0.0, z_top=bay_extrude_h))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
+                ap_mid = ap.get("corner", 0) + ap.get("width", 3) / 2
+                mid_w = _local_to_world(ap_mid, y_val, (ox, oy), rot)
+                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                    continue
                 triangles.extend(_aperture_infill(
                     ap, bay_extrude_h, y_val, "x", half_t, ox, oy, rot))
 
@@ -308,12 +356,20 @@ def build_mesh(state):
             for seg_s, seg_e in _calc_wall_segments(cy[-1], wall_aps):
                 if seg_e - seg_s < 0.001:
                     continue
+                mid_w = _local_to_world(x_val, (seg_s + seg_e) / 2,
+                                        (ox, oy), rot)
+                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                    continue
                 corners = _wall_box_corners(
                     seg_s, seg_e, x_val, "y", half_t, ox, oy, rot)
                 triangles.extend(_box_triangles(
                     *corners, z_bot=0.0, z_top=bay_extrude_h))
             # Aperture infill (headers + sills)
             for ap in wall_aps:
+                ap_mid = ap.get("corner", 0) + ap.get("width", 3) / 2
+                mid_w = _local_to_world(x_val, ap_mid, (ox, oy), rot)
+                if _is_clipped_by_higher(mid_w[0], mid_w[1], my_z_order):
+                    continue
                 triangles.extend(_aperture_infill(
                     ap, bay_extrude_h, x_val, "y", half_t, ox, oy, rot))
 
