@@ -33,7 +33,7 @@ STATE_PATH = os.path.join(REPO_ROOT, "rhino-python-driver", "state.json")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "test-output")
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 STL_PATH = os.path.join(OUTPUT_DIR, "STL_two_bay_walls_{}.stl".format(TIMESTAMP))
-OBJ_PATH = os.path.join(OUTPUT_DIR, "OBJ_two_bay_walls_{}.obj".format(TIMESTAMP))
+USDZ_PATH = os.path.join(OUTPUT_DIR, "USDZ_two_bay_walls_{}.usdz".format(TIMESTAMP))
 FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "PNG_floor_plan_{}.png".format(TIMESTAMP))
 AXON_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_overhead_{}.png".format(TIMESTAMP))
 AXON2_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_eye_level_{}.png".format(TIMESTAMP))
@@ -318,13 +318,19 @@ def validate_watertight(triangles):
     return is_watertight, total_edges, len(boundary), "\n".join(lines)
 
 
-def export_obj(triangles_ft, output_path):
-    """Export mesh as Wavefront OBJ file (feet units).
+def export_usdz(triangles_ft, output_path):
+    """Export mesh as USDZ for native iOS Quick Look.
 
-    OBJ files can be opened on iPhone via Quick Look, Files app,
-    or free viewers like 'Reality Composer' / '3D Scanner App'.
+    USDZ = uncompressed zip containing a USDA (text USD) scene.
+    On iPhone, tap the file and it opens directly in Quick Look
+    with full 3D orbit, zoom, and AR placement — no extra app needed.
+
+    Units: feet (metersPerUnit = 0.3048).
     """
-    # De-duplicate vertices
+    import zipfile
+    import io
+
+    # ── De-duplicate vertices ──
     vert_map = {}
     verts = []
     faces = []
@@ -332,7 +338,7 @@ def export_obj(triangles_ft, output_path):
     def get_idx(v):
         key = (round(v[0], 6), round(v[1], 6), round(v[2], 6))
         if key not in vert_map:
-            vert_map[key] = len(verts) + 1  # OBJ is 1-indexed
+            vert_map[key] = len(verts)  # 0-indexed for USD
             verts.append(key)
         return vert_map[key]
 
@@ -342,17 +348,74 @@ def export_obj(triangles_ft, output_path):
         i2 = get_idx(v2)
         faces.append((i0, i1, i2))
 
-    with open(output_path, "w") as f:
-        f.write("# Plan Layout Jig — Two-Bay Model\n")
-        f.write(f"# {len(verts)} vertices, {len(faces)} faces\n")
-        f.write(f"# Units: feet\n\n")
-        for v in verts:
-            f.write(f"v {v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n")
-        f.write("\n")
-        for fa in faces:
-            f.write(f"f {fa[0]} {fa[1]} {fa[2]}\n")
+    # ── Build USDA text ──
+    points_str = ", ".join(
+        "({:.4f}, {:.4f}, {:.4f})".format(v[0], v[1], v[2])
+        for v in verts)
 
-    print(f"OBJ saved: {output_path} ({len(verts)} verts, {len(faces)} faces)")
+    face_counts_str = ", ".join("3" for _ in faces)
+
+    face_indices_str = ", ".join(
+        "{}, {}, {}".format(f[0], f[1], f[2]) for f in faces)
+
+    # Compute per-face normals for display hints
+    normals = []
+    normal_indices = []
+    for i, (_, v0, v1, v2) in enumerate(triangles_ft):
+        n = tp._tri_normal(v0, v1, v2)
+        ni = len(normals)
+        normals.append(n)
+        # All 3 verts of this face share the face normal
+        normal_indices.extend([ni, ni, ni])
+
+    normals_str = ", ".join(
+        "({:.4f}, {:.4f}, {:.4f})".format(n[0], n[1], n[2])
+        for n in normals)
+    normal_indices_str = ", ".join(str(i) for i in normal_indices)
+
+    usda = '''#usda 1.0
+(
+    defaultPrim = "Model"
+    upAxis = "Z"
+    metersPerUnit = 0.3048
+)
+
+def Xform "Model"
+{{
+    def Mesh "Walls"
+    {{
+        int[] faceVertexCounts = [{counts}]
+        int[] faceVertexIndices = [{indices}]
+        point3f[] points = [{points}]
+        normal3f[] normals = [{normals}] (
+            interpolation = "faceVarying"
+        )
+        int[] primvars:normals:indices = [{normal_indices}]
+        uniform token subdivisionScheme = "none"
+
+        color3f[] primvars:displayColor = [(0.7, 0.7, 0.7)] (
+            interpolation = "constant"
+        )
+    }}
+}}
+'''.format(
+        counts=face_counts_str,
+        indices=face_indices_str,
+        points=points_str,
+        normals=normals_str,
+        normal_indices=normal_indices_str,
+    )
+
+    usda_bytes = usda.encode("utf-8")
+
+    # ── Package as USDZ (uncompressed zip, 64-byte aligned) ──
+    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as zf:
+        # The first file in the zip must be the USDA scene
+        zf.writestr("model.usda", usda_bytes)
+
+    print("USDZ saved: {} ({} verts, {} faces, {:.0f} KB)".format(
+        output_path, len(verts), len(faces),
+        os.path.getsize(output_path) / 1024))
 
 
 def render_axon_pen(triangles_ft, output_path, az_deg=-50, el_deg=-55,
@@ -782,9 +845,9 @@ def main():
     is_wt, edge_ct, boundary_ct, report = validate_watertight(stl_tris)
     print(report)
 
-    # 5. Export OBJ for iPhone 3D inspection
-    print(f"\nExporting OBJ to {OBJ_PATH}")
-    export_obj(triangles_ft, OBJ_PATH)
+    # 5. Export USDZ for native iPhone Quick Look
+    print(f"\nExporting USDZ to {USDZ_PATH}")
+    export_usdz(triangles_ft, USDZ_PATH)
 
     # 6. Render floor plan
     print(f"\nRendering floor plan to {FLOORPLAN_PATH}")
@@ -804,7 +867,7 @@ def main():
     print("TEST RESULTS")
     print("=" * 50)
     print(f"  STL file:       {STL_PATH}")
-    print(f"  OBJ file:       {OBJ_PATH}")
+    print(f"  USDZ file:      {USDZ_PATH}")
     print(f"  Floor plan:     {FLOORPLAN_PATH}")
     print(f"  Axon pen 1:     {AXON_PATH}")
     print(f"  Axon pen 2:     {AXON2_PATH}")
