@@ -35,6 +35,7 @@ TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 STL_PATH = os.path.join(OUTPUT_DIR, "single_bay_extruded_{}.stl".format(TIMESTAMP))
 SCREENSHOT_PATH = os.path.join(OUTPUT_DIR, "single_bay_3d_screenshot_{}.png".format(TIMESTAMP))
 FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "single_bay_floor_plan_{}.png".format(TIMESTAMP))
+AXON_PATH = os.path.join(OUTPUT_DIR, "single_bay_axon_pen_{}.png".format(TIMESTAMP))
 
 
 def make_three_bay_state(full_state):
@@ -363,6 +364,214 @@ def render_screenshot(triangles_ft, output_path):
     print(f"Screenshot saved: {output_path}")
 
 
+def render_axon_pen(triangles_ft, output_path):
+    """Render a black-and-white axonometric pen drawing with hidden lines dashed.
+
+    Uses an isometric projection, extracts silhouette and crease edges,
+    then classifies each edge as visible or hidden by testing against
+    the projected triangles (z-buffer style depth test at edge midpoints).
+
+    Visible edges: solid black.
+    Hidden edges: dashed light gray.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # ── Isometric camera ──
+    # Rotation: azimuth -50°, elevation 25° (same as the 3D screenshot)
+    az = math.radians(-50)
+    el = math.radians(25)
+
+    # Camera basis vectors (right-hand coordinate system)
+    # Forward = into screen, Right = screen X, Up = screen Y
+    fwd = np.array([math.cos(el)*math.sin(az),
+                     math.cos(el)*math.cos(az),
+                     math.sin(el)])
+    world_up = np.array([0, 0, 1.0])
+    right = np.cross(fwd, world_up)
+    right = right / np.linalg.norm(right)
+    up = np.cross(right, fwd)
+    up = up / np.linalg.norm(up)
+
+    def project(pt):
+        """Project a 3D point to 2D screen coords + depth."""
+        p = np.array(pt)
+        sx = float(np.dot(p, right))
+        sy = float(np.dot(p, up))
+        depth = float(np.dot(p, fwd))
+        return sx, sy, depth
+
+    # ── Project all triangles ──
+    proj_tris = []  # list of ((sx0,sy0,d0), (sx1,sy1,d1), (sx2,sy2,d2))
+    for _, v0, v1, v2 in triangles_ft:
+        p0 = project(v0)
+        p1 = project(v1)
+        p2 = project(v2)
+        proj_tris.append((p0, p1, p2))
+
+    # ── Extract unique edges with face normals for silhouette detection ──
+    # Each edge maps to list of face indices
+    edge_faces = {}
+
+    def edge_key(i, j):
+        return (min(i, j), max(i, j))
+
+    # Build vertex list and triangle index list
+    vert_map = {}
+    verts_3d = []
+    tri_indices = []
+
+    def get_vert_idx(v):
+        key = (round(v[0], 5), round(v[1], 5), round(v[2], 5))
+        if key not in vert_map:
+            vert_map[key] = len(verts_3d)
+            verts_3d.append(v)
+        return vert_map[key]
+
+    for fi, (_, v0, v1, v2) in enumerate(triangles_ft):
+        i0 = get_vert_idx(v0)
+        i1 = get_vert_idx(v1)
+        i2 = get_vert_idx(v2)
+        tri_indices.append((i0, i1, i2))
+        for ea, eb in [(i0, i1), (i1, i2), (i2, i0)]:
+            ek = edge_key(ea, eb)
+            if ek not in edge_faces:
+                edge_faces[ek] = []
+            edge_faces[ek].append(fi)
+
+    # ── Compute face normals in projected view ──
+    face_dots = []  # dot(face_normal, view_dir) for back-face test
+    for _, v0, v1, v2 in triangles_ft:
+        n = tp._tri_normal(v0, v1, v2)
+        dot = n[0]*fwd[0] + n[1]*fwd[1] + n[2]*fwd[2]
+        face_dots.append(dot)
+
+    # ── Select edges to draw ──
+    # Silhouette: edge shared by one front-facing and one back-facing tri
+    # Crease/boundary: edge shared by only one face, or angle > threshold
+    draw_edges = []  # (vert_idx_a, vert_idx_b)
+
+    for (ia, ib), faces in edge_faces.items():
+        if len(faces) == 1:
+            # Boundary edge — always draw
+            draw_edges.append((ia, ib))
+        elif len(faces) == 2:
+            d0 = face_dots[faces[0]]
+            d1 = face_dots[faces[1]]
+            # Silhouette: one face front, one face back
+            if d0 * d1 < 0:
+                draw_edges.append((ia, ib))
+            # Crease: both front-facing but normals differ significantly
+            elif d0 < 0 and d1 < 0:
+                n0 = tp._tri_normal(*[verts_3d[k] for k in tri_indices[faces[0]]])
+                n1 = tp._tri_normal(*[verts_3d[k] for k in tri_indices[faces[1]]])
+                cos_angle = n0[0]*n1[0] + n0[1]*n1[1] + n0[2]*n1[2]
+                if cos_angle < 0.95:  # > ~18° crease
+                    draw_edges.append((ia, ib))
+
+    # ── Project edges and classify visibility ──
+    # Build 2D projected triangle list for occlusion testing
+    proj_2d_tris = []  # (2D verts, min_depth) for front-facing tris only
+    for fi, (p0, p1, p2) in enumerate(proj_tris):
+        if face_dots[fi] < 0:  # front-facing
+            proj_2d_tris.append(((p0, p1, p2), min(p0[2], p1[2], p2[2])))
+
+    def point_in_triangle_2d(px, py, t0, t1, t2):
+        """Barycentric test: is (px,py) inside triangle (t0,t1,t2)?"""
+        dx0 = t1[0] - t0[0]; dy0 = t1[1] - t0[1]
+        dx1 = t2[0] - t0[0]; dy1 = t2[1] - t0[1]
+        dx2 = px - t0[0]; dy2 = py - t0[1]
+        d00 = dx0*dx0 + dy0*dy0
+        d01 = dx0*dx1 + dy0*dy1
+        d11 = dx1*dx1 + dy1*dy1
+        d20 = dx2*dx0 + dy2*dy0
+        d21 = dx2*dx1 + dy2*dy1
+        denom = d00*d11 - d01*d01
+        if abs(denom) < 1e-12:
+            return False
+        v = (d11*d20 - d01*d21) / denom
+        w = (d00*d21 - d01*d20) / denom
+        return v >= 0 and w >= 0 and (v + w) <= 1
+
+    def tri_depth_at(px, py, p0, p1, p2):
+        """Interpolate depth at (px,py) inside projected triangle."""
+        dx0 = p1[0]-p0[0]; dy0 = p1[1]-p0[1]
+        dx1 = p2[0]-p0[0]; dy1 = p2[1]-p0[1]
+        dx2 = px-p0[0]; dy2 = py-p0[1]
+        d00 = dx0*dx0+dy0*dy0
+        d01 = dx0*dx1+dy0*dy1
+        d11 = dx1*dx1+dy1*dy1
+        d20 = dx2*dx0+dy2*dy0
+        d21 = dx2*dx1+dy2*dy1
+        denom = d00*d11-d01*d01
+        if abs(denom) < 1e-12:
+            return 1e9
+        v = (d11*d20-d01*d21)/denom
+        w = (d00*d21-d01*d20)/denom
+        u = 1.0-v-w
+        return u*p0[2] + v*p1[2] + w*p2[2]
+
+    def is_occluded(px, py, edge_depth):
+        """Check if a 2D point at given depth is hidden behind a triangle."""
+        for (p0, p1, p2), min_d in proj_2d_tris:
+            if min_d > edge_depth + 0.01:
+                continue  # this tri is behind the edge
+            if point_in_triangle_2d(px, py, p0, p1, p2):
+                d = tri_depth_at(px, py, p0, p1, p2)
+                if d < edge_depth - 0.05:  # tri is in front
+                    return True
+        return False
+
+    # Classify each edge
+    visible_edges = []
+    hidden_edges = []
+    for ia, ib in draw_edges:
+        pa = project(verts_3d[ia])
+        pb = project(verts_3d[ib])
+        # Test 3 sample points along the edge
+        samples = 3
+        occluded_count = 0
+        for s in range(samples):
+            t = (s + 1) / (samples + 1)
+            mx = pa[0] + t*(pb[0]-pa[0])
+            my = pa[1] + t*(pb[1]-pa[1])
+            md = pa[2] + t*(pb[2]-pa[2])
+            if is_occluded(mx, my, md):
+                occluded_count += 1
+        if occluded_count > samples // 2:
+            hidden_edges.append((pa, pb))
+        else:
+            visible_edges.append((pa, pb))
+
+    # ── Draw ──
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    ax.set_aspect("equal")
+    ax.set_facecolor("white")
+
+    # Hidden lines first (behind)
+    for (pa, pb) in hidden_edges:
+        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
+                color=(0.7, 0.7, 0.7), linewidth=0.4,
+                linestyle=(0, (4, 3)), zorder=1)
+
+    # Visible lines on top
+    for (pa, pb) in visible_edges:
+        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
+                color="black", linewidth=0.8, solid_capstyle="round", zorder=2)
+
+    ax.set_title("Axonometric — 24' x 60' Three-Bay Plan\n"
+                 'pen mode  |  solid = visible  |  dashed = hidden',
+                 fontsize=12, fontweight="bold")
+    ax.axis("off")
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print("Axon pen drawing saved: {}".format(output_path))
+
+
 def render_floor_plan(state, output_path):
     """Render a 2D floor plan PNG showing walls, doors, and windows.
 
@@ -599,6 +808,10 @@ def main():
     print(f"\nRendering floor plan to {FLOORPLAN_PATH}")
     render_floor_plan(state, FLOORPLAN_PATH)
 
+    # 7. Render axonometric pen drawing
+    print(f"\nRendering axon pen drawing to {AXON_PATH}")
+    render_axon_pen(triangles_ft, AXON_PATH)
+
     # Summary
     print("\n" + "=" * 50)
     print("TEST RESULTS")
@@ -606,6 +819,7 @@ def main():
     print(f"  STL file:       {STL_PATH}")
     print(f"  Screenshot:     {SCREENSHOT_PATH}")
     print(f"  Floor plan:     {FLOORPLAN_PATH}")
+    print(f"  Axon pen:       {AXON_PATH}")
     print(f"  Triangles:      {count}")
     print(f"  Watertight:     {'YES' if is_wt else 'NO'}")
     print(f"  Boundary edges: {boundary_ct}")
