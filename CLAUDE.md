@@ -98,7 +98,13 @@ Every tool built on this pattern consists of three files living in the same fold
 
 ### Current Tools Using This Pattern
 
-**School Jig (2D Plan Generator)** — The most developed tool. Generates 2D architectural floor plans with structural bays, columns, corridors, voids, braille labels, and hatch patterns. Supports both rectangular and radial grids with irregular spacing. Commands like `set bay A rotation 30`, `corridor A width 8`, `swap A` (toggle grid type), `hatch A room crosshatch`. Four lineweight layers: heavy (columns), medium (corridors), light (grid), fine (hatches).
+**Layout Jig (2D Plan Generator)** — The most developed tool. Generates 2D architectural floor plans with structural bays, columns, corridors, voids, braille labels, and hatch patterns. Supports both rectangular and radial grids with irregular spacing. Commands like `set bay A rotation 30`, `corridor A width 8`, `swap A` (toggle grid type), `hatch A room crosshatch`. Four lineweight layers: heavy (columns), medium (corridors), light (grid), fine (hatches). MCP server (21 tools) enables AI-driven design.
+
+### Tools Outside the Three-File Pattern
+
+**Image-to-PIAF (Tactile Image Conversion)** — Converts existing images (photos, CAD screenshots, scanned plans, textbook figures, precedent studies) into PIAF-ready output for swell paper printing. Does not use the CMA/watcher pattern because it's a stateless image processing pipeline, not a parametric design tool. Single-file CLI (`tactile/image_to_piaf.py`) with Pillow dependency. Ten presets tuned for different architectural image types. Density management ensures swell paper readability. Grade 1 braille labels rendered as dot patterns. MCP server (6 tools) for AI-driven conversion.
+
+**Arch-Alt-Text (Image Description)** — Describes architectural images using Claude's vision API. Macro/Meso/Micro structured descriptions optimized for screen readers. Also stateless — takes an image, returns text.
 
 ---
 
@@ -246,11 +252,8 @@ An all-in-one workstation designed for blind and low-vision architecture student
 
 ### Tactile Graphics Production Pipeline
 - **PIAF swell paper workflow**: Image/drawing → grayscale/vector conversion → laser print on microcapsule paper using carbon-based black toner → feed through PIAF heater → carbon toner swells to create raised tactile surface. Only carbon-based black toner works; other toners and inks do not swell.
-- **Image-to-PIAF converter**: Converts architectural drawings to PIAF-optimized format with high-contrast black-and-white output
-- **Halftone tactile converter**: Translates images to tactile-legible halftone and dithering patterns for tonal areas
+- **Image-to-PIAF converter** (`tactile/image_to_piaf.py`): Working tool. Converts architectural images to PIAF-ready output at 300 DPI. Pipeline: image → contrast enhancement (5 methods: auto_contrast, histogram_eq, s_curve, clahe, none) → grayscale → threshold → density management (auto-reduce via morphological erosion, target <30%, max 45%) → optional braille labels (Grade 1 with liblouis Grade 2 fallback) → PNG/TIFF/PDF output. Ten presets tuned for specific image types (floor_plan, elevation, photograph, sketch, section, site_plan, rendering, diagram, historic_photo, handdrawn). Label overlap detection with abbreviation key generation. Page tiling with registration marks for large images. MCP server (6 tools, 3 resources, 2 prompts) for AI-driven workflows. Requires Pillow.
 - **Line weight conventions**: Heavy (columns/structure), medium (corridors/walls), light (grid lines), fine (hatches/textures)
-- **Automatic braille translator**: Integrates Grade 2 contracted braille labels into graphics workflows
-- **Page tiling**: Registration marks aligned to Layout Jig grid for multi-sheet drawings
 - **Tactile precedent library**: Canonical buildings (Mies, Kahn, Zumthor, etc.) as standardized PIAF tactile cards
 - **3D print pipeline**: Vector geometry → Rhino/Grasshopper multipipe → watertight mesh validation (naked edges, self-intersections, hole-fill) → STL export → Bambu Lab P1S printing → tactile scale model for design review
 
@@ -281,6 +284,7 @@ An all-in-one workstation designed for blind and low-vision architecture student
 ### Key Libraries
 - **rhinoscriptsyntax** (`rs`) — Rhino geometry creation (watcher side)
 - **RhinoCommon** — Events, low-level Rhino operations (watcher side)
+- **Pillow** (`PIL`) — Image processing for PIAF tactile conversion pipeline
 - **OpenCV** (`cv2`) — Computer vision for pegboard tracking
 - **Windows SAPI** (`win32com.client`) — Text-to-speech for audio feedback
 - **json** / **os** / **copy** — Core stdlib modules powering the CLI pipeline
@@ -311,7 +315,7 @@ An all-in-one workstation designed for blind and low-vision architecture student
 - `--verbose` / `-v` flags where appropriate.
 - `--json` flag for machine-readable output (supplements, never replaces, human output).
 - Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
-- **Zero external dependencies.** Python stdlib only. No pip installs, no conda environments.
+- **Zero external dependencies for controller CLIs.** Python stdlib only. No pip installs, no conda environments. Standalone pipeline tools (like `image_to_piaf.py`) may use Pillow or other image libraries since they're not part of the controller/watcher pattern.
 
 ### Watcher Side (IronPython 2.7)
 - Use `rhinoscriptsyntax as rs` for all geometry.
@@ -335,32 +339,23 @@ An all-in-one workstation designed for blind and low-vision architecture student
 radical-accessibility/
 ├── CLAUDE.md                    # This file
 ├── README.md                    # Public-facing project description
-├── tools/
-│   ├── school-jig/              # 2D plan generator (working)
-│   │   ├── controller_cli_v2.py
-│   │   ├── rhino_watcher_v2.py
-│   │   ├── state_v2.json
-│   │   └── manual.docx
-│   ├── [future-tool]/           # Same three-file pattern
-│   │   ├── controller.py
-│   │   ├── watcher.py
-│   │   └── state.json
-│   └── shared/                  # Shared utilities
-│       ├── atomic_write.py
-│       ├── audio_feedback.py
-│       └── schema_migrate.py
-├── cv/                          # Computer vision (pegboard)
-├── tactile/                     # Tactile graphics pipeline
-├── vision/                      # AI vision/description
-├── docs/
-│   ├── CHANGELOG.md
-│   ├── setup.md
-│   ├── workflows.md
-│   └── tactile-standards.md
-└── tests/
-    ├── test_cli_commands.py
-    ├── test_state_migration.py
-    └── test_round_trip.py
+├── arch-alt-text/               # AI image description
+│   └── arch_alt_text.py         # Claude vision API — Macro/Meso/Micro descriptions
+├── layout-jig/                  # 2D plan generator (primary design tool)
+│   ├── controller_cli.py        # Terminal CLI (Python 3, stdlib only)
+│   ├── rhino_watcher.py         # Rhino file watcher (IronPython 2.7)
+│   ├── tactile_print.py         # STL mesh generation + Bambu printer pipeline
+│   ├── mcp_server.py            # MCP server v2.0 (21 tools)
+│   ├── MCP_GUIDE.md             # MCP server documentation
+│   ├── state.json               # Canonical Model Artifact
+│   └── MANUAL.docx              # Full user manual
+├── tactile/                     # Tactile image conversion pipeline
+│   ├── image_to_piaf.py         # Image-to-PIAF CLI (Python 3, Pillow)
+│   └── mcp_server.py            # MCP server v1.0 (6 tools)
+├── cv/                          # Computer vision (pegboard) — planned
+├── vision/                      # AI vision/description — planned
+├── docs/                        # Project documentation — planned
+└── tests/                       # Test suites — planned
 ```
 
 ### Naming Conventions
