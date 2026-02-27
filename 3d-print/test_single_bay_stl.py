@@ -228,9 +228,9 @@ def make_three_bay_state(full_state):
 
     bay["z_order"] = 1  # Bay A takes precedence where they overlap
 
-    # ── Bay B: same size, rotated 45°, 10' tall ──
+    # ── Bay B: same size, rotated 30°, 10' tall ──
     bay_b = copy.deepcopy(bay)
-    bay_b["origin"] = [16, 40]        # offset so ~1/3 of bay A is covered
+    bay_b["origin"] = [6, 0]          # overlap ~half of bay A
     bay_b["rotation_deg"] = 30.0
     bay_b["z_order"] = 0              # lower z_order = drawn behind bay A
     bay_b["wall_height"] = 10.0       # 10' tall (vs bay A's 30')
@@ -389,10 +389,21 @@ def Xform "Model"
         )
         int[] primvars:normals:indices = [{normal_indices}]
         uniform token subdivisionScheme = "none"
+        rel material:binding = </Model/PalePink>
+    }}
 
-        color3f[] primvars:displayColor = [(0.7, 0.7, 0.7)] (
-            interpolation = "constant"
-        )
+    def Material "PalePink"
+    {{
+        token outputs:surface.connect = </Model/PalePink/Shader.outputs:surface>
+
+        def Shader "Shader"
+        {{
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (1.0, 0.85, 0.88)
+            float inputs:roughness = 0.4
+            float inputs:metallic = 0.0
+            token outputs:surface
+        }}
     }}
 }}
 '''.format(
@@ -728,8 +739,9 @@ def render_axon_pen(triangles_ft, output_path, state=None, az_deg=-50,
                     return True
         return False
 
-    # Classify each edge — visible only (skip hidden entirely)
+    # Classify each edge — visible (solid) or hidden (dashed)
     visible_edges = []
+    hidden_edges = []
     for ia, ib in draw_edges:
         pa = project(verts_3d[ia])
         pb = project(verts_3d[ib])
@@ -743,11 +755,14 @@ def render_axon_pen(triangles_ft, output_path, state=None, az_deg=-50,
             md = pa[2] + t*(pb[2]-pa[2])
             if is_occluded(mx, my, md):
                 occluded_count += 1
-        if occluded_count <= samples // 2:
+        if occluded_count > samples // 2:
+            hidden_edges.append((pa, pb))
+        else:
             visible_edges.append((pa, pb))
 
     # ── Intersection boundary edges between overlapping bays ──
-    intersection_proj = []
+    intersection_vis = []
+    intersection_hid = []
     if state:
         for (p0_3d, p1_3d) in _compute_intersection_edges(state):
             pa = project(p0_3d)
@@ -757,27 +772,40 @@ def render_axon_pen(triangles_ft, output_path, state=None, az_deg=-50,
             mx = (pa[0]+pb[0]) / 2
             my = (pa[1]+pb[1]) / 2
             md = (pa[2]+pb[2]) / 2
-            if not is_occluded(mx, my, md):
-                intersection_proj.append((pa, pb))
+            if is_occluded(mx, my, md):
+                intersection_hid.append((pa, pb))
+            else:
+                intersection_vis.append((pa, pb))
 
     # ── Draw ──
     fig, ax = plt.subplots(1, 1, figsize=(17, 11))
     ax.set_aspect("equal")
     ax.set_facecolor("white")
 
+    # Hidden lines (thin dashed gray, behind)
+    for (pa, pb) in hidden_edges:
+        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
+                color=(0.65, 0.65, 0.65), linewidth=0.5,
+                linestyle=(0, (3, 3)), zorder=1)
+    for (pa, pb) in intersection_hid:
+        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
+                color=(0.65, 0.65, 0.65), linewidth=0.5,
+                linestyle=(0, (3, 3)), zorder=1)
+
     # Visible mesh edges (thick solid black)
     for (pa, pb) in visible_edges:
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
                 color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
 
-    # Intersection boundary edges (same weight)
-    for (pa, pb) in intersection_proj:
+    # Visible intersection boundary edges (same weight)
+    for (pa, pb) in intersection_vis:
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
                 color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
 
     view_label = title_suffix if title_suffix else "overhead"
     ax.set_title("Axonometric \u2014 Two-Bay Layout (30' + 10' @ 30\u00b0)\n"
-                 "pen mode  |  {}  |  visible edges only".format(view_label),
+                 "pen mode  |  {}  |  solid=visible  dashed=hidden".format(
+                     view_label),
                  fontsize=12, fontweight="bold")
     ax.axis("off")
 
