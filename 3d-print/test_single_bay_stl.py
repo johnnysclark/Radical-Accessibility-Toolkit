@@ -413,7 +413,10 @@ def render_axon_pen(triangles_ft, output_path):
     tri_indices = []
 
     def get_vert_idx(v):
-        key = (round(v[0], 5), round(v[1], 5), round(v[2], 5))
+        # Round to 2 decimals (0.01 ft ≈ 1/8") to merge EPS-offset
+        # infill box vertices with adjacent wall segment vertices.
+        # This eliminates internal seams at header/sill junctions.
+        key = (round(v[0], 2), round(v[1], 2), round(v[2], 2))
         if key not in vert_map:
             vert_map[key] = len(verts_3d)
             verts_3d.append(v)
@@ -452,13 +455,17 @@ def render_axon_pen(triangles_ft, output_path):
             # Silhouette: one face front, one face back
             if d0 * d1 < 0:
                 draw_edges.append((ia, ib))
-            # Crease: both front-facing but normals differ significantly
+            # Crease: both front-facing but normals differ by > 60°
+            # (shows 90° wall corners but hides seams between
+            #  coplanar wall segments and header/sill boxes)
             elif d0 < 0 and d1 < 0:
                 n0 = tp._tri_normal(*[verts_3d[k] for k in tri_indices[faces[0]]])
                 n1 = tp._tri_normal(*[verts_3d[k] for k in tri_indices[faces[1]]])
                 cos_angle = n0[0]*n1[0] + n0[1]*n1[1] + n0[2]*n1[2]
-                if cos_angle < 0.95:  # > ~18° crease
+                if cos_angle < 0.5:  # > ~60° crease
                     draw_edges.append((ia, ib))
+        # edges shared by 3+ faces = internal seams between adjacent
+        # boxes — always skip (they're artifacts of box-based meshing)
 
     # ── Project edges and classify visibility ──
     # Build 2D projected triangle list for occlusion testing
@@ -586,9 +593,13 @@ def render_floor_plan(state, output_path):
     WINDOW_LW = 1.0     # window centerlines
     GRID_LW = 0.4       # light gridlines
 
-    # Sort bays by z_order (draw lower z_order first = behind)
+    # Sort bays by z_order ascending (draw lower z_order first = behind).
+    # Higher z_order bays mask lower ones via a white footprint fill.
     sorted_bays = sorted(state.get("bays", {}).items(),
                          key=lambda kv: kv[1].get("z_order", 0))
+
+    # z_base spaces each bay's drawing layers apart
+    Z_STEP = 10  # zorder gap between bays
 
     for bi, (bay_name, bay) in enumerate(sorted_bays):
         if bay.get("grid_type", "rectangular") != "rectangular":
@@ -605,13 +616,26 @@ def render_floor_plan(state, output_path):
 
         cx, cy_arr = tp._get_spacing_arrays(bay)
         bay_wh = bay.get("wall_height", state.get("tactile3d", {}).get("wall_height", 30))
+        z_base = bi * Z_STEP  # zorder base for this bay
 
         def to_world(lx, ly, _ox=ox, _oy=oy, _rot=rot):
             return tp._local_to_world(lx, ly, (_ox, _oy), _rot)
 
+        # ── White footprint mask (hides lower-z_order bays) ──
+        fp0 = to_world(0, 0)
+        fp1 = to_world(cx[-1], 0)
+        fp2 = to_world(cx[-1], cy_arr[-1])
+        fp3 = to_world(0, cy_arr[-1])
+        footprint = plt.Polygon([fp0, fp1, fp2, fp3],
+                                facecolor="white", edgecolor="none",
+                                zorder=z_base + 1)
+        ax.add_patch(footprint)
+        all_world_pts.extend([fp0, fp1, fp2, fp3])
+
         def draw_wall_rect(seg_start, seg_end, fixed, axis,
-                           _half_t=half_t, _to_world=to_world):
-            """Draw a rotated wall rectangle as black outline, white fill."""
+                           _half_t=half_t, _to_world=to_world,
+                           _z_base=z_base):
+            """Draw a rotated wall rectangle as solid black fill."""
             if axis == "x":
                 c0 = _to_world(seg_start, fixed - _half_t)
                 c1 = _to_world(seg_end,   fixed - _half_t)
@@ -624,9 +648,8 @@ def render_floor_plan(state, output_path):
                 c3 = _to_world(fixed - _half_t, seg_end)
             poly = plt.Polygon([c0, c1, c2, c3],
                                facecolor="black", edgecolor="black",
-                               linewidth=WALL_LW, zorder=2 + bi)
+                               linewidth=WALL_LW, zorder=_z_base + 2)
             ax.add_patch(poly)
-            all_world_pts.extend([c0, c1, c2, c3])
 
         # Horizontal walls (x-axis gridlines)
         for j, y_val in enumerate(cy_arr):
@@ -664,25 +687,22 @@ def render_floor_plan(state, output_path):
                 p1 = to_world(fixed, corner + width)
 
             if ap_type == "door":
-                # Dashed line across opening
                 ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
                         color="black", linewidth=DOOR_LW,
                         linestyle=(0, (4, 3)),
-                        solid_capstyle="round", zorder=4 + bi)
+                        solid_capstyle="round", zorder=z_base + 3)
             elif ap_type == "window":
-                # Thin solid line across opening (single centerline)
                 ax.plot([p0[0], p1[0]], [p0[1], p1[1]],
                         color="black", linewidth=WINDOW_LW,
-                        solid_capstyle="round", zorder=4 + bi)
+                        solid_capstyle="round", zorder=z_base + 3)
 
-        # Bay label at center (light gray so it doesn't dominate on Piaf)
+        # Bay label at center
         center_local = (cx[-1] / 2, cy_arr[-1] / 2)
         center_w = to_world(*center_local)
-        all_world_pts.append(center_w)
         ax.text(center_w[0], center_w[1],
                 f"{bay_name}\n{int(bay_wh)}'",
                 ha="center", va="center", fontsize=10, fontweight="bold",
-                color=(0.6, 0.6, 0.6), zorder=1)
+                color=(0.6, 0.6, 0.6), zorder=z_base + 1)
 
     # ── Auto-fit view limits ──
     if all_world_pts:
