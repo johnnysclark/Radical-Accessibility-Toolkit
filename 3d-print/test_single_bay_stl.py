@@ -38,6 +38,7 @@ FLOORPLAN_PATH = os.path.join(OUTPUT_DIR, "PNG_floor_plan_{}.png".format(TIMESTA
 AXON_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_overhead_{}.png".format(TIMESTAMP))
 AXON2_PATH = os.path.join(OUTPUT_DIR, "PNG_axon_eye_level_{}.png".format(TIMESTAMP))
 VIEWER_PATH = os.path.join(OUTPUT_DIR, "HTML_viewer_{}.html".format(TIMESTAMP))
+GIF_PATH = os.path.join(OUTPUT_DIR, "GIF_turntable_{}.gif".format(TIMESTAMP))
 
 
 def make_three_bay_state(full_state):
@@ -1003,6 +1004,7 @@ def export_turntable_viewer(triangles_ft, output_path, state=None, n_frames=24,
 
     # ── Render frames ──
     frames_b64 = []
+    frames_png = []  # raw PNG bytes for GIF export
     for i in range(n_frames):
         az = i * (360.0 / n_frames)
 
@@ -1034,7 +1036,9 @@ def export_turntable_viewer(triangles_ft, output_path, state=None, n_frames=24,
                     facecolor='white', pad_inches=0.1)
         plt.close(fig)
         buf.seek(0)
-        frames_b64.append(base64.b64encode(buf.read()).decode('ascii'))
+        png_bytes = buf.read()
+        frames_png.append(png_bytes)
+        frames_b64.append(base64.b64encode(png_bytes).decode('ascii'))
 
     # ── Build HTML ──
     html = '''<!DOCTYPE html>
@@ -1131,6 +1135,38 @@ img.addEventListener('pointercancel', function() { dragging = false; });
     print("Turntable viewer saved: {} ({} frames, {:.0f} KB)".format(
         output_path, n_frames, total_kb))
 
+    return frames_png
+
+
+def export_turntable_gif(frames_png, output_path, duration_ms=100):
+    """Save pre-rendered PNG frames as an animated GIF.
+
+    Uses Pillow to assemble frames. Falls back gracefully if Pillow
+    is not installed.
+    """
+    from PIL import Image
+    from io import BytesIO
+
+    pil_frames = []
+    for png_bytes in frames_png:
+        img = Image.open(BytesIO(png_bytes)).convert("RGBA")
+        # Composite onto white background for GIF (no alpha)
+        bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
+        bg.paste(img, mask=img)
+        pil_frames.append(bg.convert("RGB"))
+
+    pil_frames[0].save(
+        output_path,
+        save_all=True,
+        append_images=pil_frames[1:],
+        duration=duration_ms,
+        loop=0,  # infinite loop
+    )
+
+    total_kb = os.path.getsize(output_path) / 1024
+    print("Turntable GIF saved: {} ({} frames, {:.0f} KB)".format(
+        output_path, len(pil_frames), total_kb))
+
 
 def _archive_old_outputs():
     """Move any existing timestamped outputs into Tests/ subfolder."""
@@ -1201,10 +1237,13 @@ def main():
     render_axon_pen(triangles_ft, AXON2_PATH, state=state,
                     az_deg=135, el_deg=-25, title_suffix="eye-level SE")
 
-    # 8. Export turntable viewer
+    # 8. Export turntable viewer + GIF
     print(f"\nExporting turntable viewer to {VIEWER_PATH}")
-    export_turntable_viewer(triangles_ft, VIEWER_PATH, state=state,
-                            n_frames=24, el_deg=30)
+    frames_png = export_turntable_viewer(triangles_ft, VIEWER_PATH, state=state,
+                                         n_frames=24, el_deg=30)
+
+    print(f"\nExporting turntable GIF to {GIF_PATH}")
+    export_turntable_gif(frames_png, GIF_PATH, duration_ms=100)
 
     # Summary
     print("\n" + "=" * 50)
@@ -1216,6 +1255,7 @@ def main():
     print(f"  Axon pen 1:     {AXON_PATH}")
     print(f"  Axon pen 2:     {AXON2_PATH}")
     print(f"  Viewer:         {VIEWER_PATH}")
+    print(f"  Turntable GIF:  {GIF_PATH}")
     print(f"  Triangles:      {count}")
     print(f"  Watertight:     {'YES' if is_wt else 'NO'}")
     print(f"  Boundary edges: {boundary_ct}")
