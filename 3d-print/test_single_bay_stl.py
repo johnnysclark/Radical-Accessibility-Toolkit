@@ -231,7 +231,7 @@ def make_three_bay_state(full_state):
     # ── Bay B: same size, rotated 45°, 10' tall ──
     bay_b = copy.deepcopy(bay)
     bay_b["origin"] = [16, 40]        # offset so ~1/3 of bay A is covered
-    bay_b["rotation_deg"] = 45.0
+    bay_b["rotation_deg"] = 30.0
     bay_b["z_order"] = 0              # lower z_order = drawn behind bay A
     bay_b["wall_height"] = 10.0       # 10' tall (vs bay A's 30')
     bay_b["label"] = "Bay B"
@@ -327,9 +327,6 @@ def export_usdz(triangles_ft, output_path):
 
     Units: feet (metersPerUnit = 0.3048).
     """
-    import zipfile
-    import io
-
     # ── De-duplicate vertices ──
     vert_map = {}
     verts = []
@@ -409,25 +406,168 @@ def Xform "Model"
     usda_bytes = usda.encode("utf-8")
 
     # ── Package as USDZ (uncompressed zip, 64-byte aligned) ──
-    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_STORED) as zf:
-        # The first file in the zip must be the USDA scene
-        zf.writestr("model.usda", usda_bytes)
+    # USDZ spec requires file data aligned to 64-byte boundaries.
+    # Use struct-based writer instead of zipfile for precise control.
+    import binascii
+    fname = b"model.usda"
+    crc = binascii.crc32(usda_bytes) & 0xFFFFFFFF
+    data_len = len(usda_bytes)
+    base_header = 30 + len(fname)
+    pad = (64 - (base_header % 64)) % 64
+    extra = b'\x00' * pad
+
+    with open(output_path, "wb") as f:
+        # Local file header
+        f.write(struct.pack("<I", 0x04034b50))
+        f.write(struct.pack("<H", 20))           # version needed
+        f.write(struct.pack("<H", 0))            # flags
+        f.write(struct.pack("<H", 0))            # compression: stored
+        f.write(struct.pack("<H", 0))            # mod time
+        f.write(struct.pack("<H", 0))            # mod date
+        f.write(struct.pack("<I", crc))
+        f.write(struct.pack("<I", data_len))     # compressed size
+        f.write(struct.pack("<I", data_len))     # uncompressed size
+        f.write(struct.pack("<H", len(fname)))
+        f.write(struct.pack("<H", pad))          # extra field length
+        f.write(fname)
+        f.write(extra)
+        f.write(usda_bytes)
+        # Central directory
+        cd_offset = f.tell()
+        f.write(struct.pack("<I", 0x02014b50))
+        f.write(struct.pack("<H", 20))           # version made by
+        f.write(struct.pack("<H", 20))           # version needed
+        f.write(struct.pack("<H", 0))            # flags
+        f.write(struct.pack("<H", 0))            # compression
+        f.write(struct.pack("<H", 0))            # mod time
+        f.write(struct.pack("<H", 0))            # mod date
+        f.write(struct.pack("<I", crc))
+        f.write(struct.pack("<I", data_len))
+        f.write(struct.pack("<I", data_len))
+        f.write(struct.pack("<H", len(fname)))
+        f.write(struct.pack("<H", 0))            # extra (CD)
+        f.write(struct.pack("<H", 0))            # comment
+        f.write(struct.pack("<H", 0))            # disk start
+        f.write(struct.pack("<H", 0))            # internal attrs
+        f.write(struct.pack("<I", 0))            # external attrs
+        f.write(struct.pack("<I", 0))            # local header offset
+        f.write(fname)
+        cd_size = f.tell() - cd_offset
+        # End of central directory
+        f.write(struct.pack("<I", 0x06054b50))
+        f.write(struct.pack("<H", 0))            # disk number
+        f.write(struct.pack("<H", 0))            # disk with CD
+        f.write(struct.pack("<H", 1))            # entries on disk
+        f.write(struct.pack("<H", 1))            # total entries
+        f.write(struct.pack("<I", cd_size))
+        f.write(struct.pack("<I", cd_offset))
+        f.write(struct.pack("<H", 0))            # comment length
 
     print("USDZ saved: {} ({} verts, {} faces, {:.0f} KB)".format(
         output_path, len(verts), len(faces),
         os.path.getsize(output_path) / 1024))
 
 
-def render_axon_pen(triangles_ft, output_path, az_deg=-50, el_deg=-55,
-                    title_suffix=""):
-    """Render a black-and-white axonometric pen drawing with hidden lines dashed.
+def _clip_polygon_sh(subject, clip):
+    """Sutherland-Hodgman polygon clipping for convex polygons.
 
-    Uses an isometric projection, extracts silhouette and crease edges,
-    then classifies each edge as visible or hidden by testing against
-    the projected triangles (z-buffer style depth test at edge midpoints).
+    Returns the intersection polygon of *subject* and *clip*.
+    Both are lists of (x, y) tuples, wound counterclockwise.
+    """
+    def _inside(p, a, b):
+        return (b[0]-a[0])*(p[1]-a[1]) - (b[1]-a[1])*(p[0]-a[0]) >= 0
 
-    Visible edges: solid black.
-    Hidden edges: dashed light gray.
+    def _line_isect(p1, p2, a, b):
+        x1, y1 = p1; x2, y2 = p2
+        x3, y3 = a;  x4, y4 = b
+        denom = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
+        if abs(denom) < 1e-12:
+            return p1
+        t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / denom
+        return (x1 + t*(x2-x1), y1 + t*(y2-y1))
+
+    output = list(subject)
+    for i in range(len(clip)):
+        if not output:
+            return []
+        a = clip[i]
+        b = clip[(i + 1) % len(clip)]
+        inp = list(output)
+        output = []
+        for j in range(len(inp)):
+            cur = inp[j]
+            nxt = inp[(j + 1) % len(inp)]
+            if _inside(cur, a, b):
+                if _inside(nxt, a, b):
+                    output.append(nxt)
+                else:
+                    output.append(_line_isect(cur, nxt, a, b))
+            elif _inside(nxt, a, b):
+                output.append(_line_isect(cur, nxt, a, b))
+                output.append(nxt)
+    return output
+
+
+def _compute_intersection_edges(state):
+    """Compute 3D line segments at the intersection boundary of overlapping bays.
+
+    Returns list of ((x1,y1,z1), (x2,y2,z2)) tuples representing edges
+    of the intersection polygon extruded to the shorter bay height.
+    """
+    bays_data = []
+    for name, bay in state.get("bays", {}).items():
+        if bay.get("grid_type", "rectangular") != "rectangular":
+            continue
+        w = bay.get("walls", {})
+        if not w.get("enabled"):
+            continue
+        cx, cy = tp._get_spacing_arrays(bay)
+        ox, oy = bay["origin"]
+        rot = bay.get("rotation_deg", 0)
+        h = bay.get("wall_height",
+                     state.get("tactile3d", {}).get("wall_height", 30))
+        corners = [
+            tp._local_to_world(0, 0, (ox, oy), rot),
+            tp._local_to_world(cx[-1], 0, (ox, oy), rot),
+            tp._local_to_world(cx[-1], cy[-1], (ox, oy), rot),
+            tp._local_to_world(0, cy[-1], (ox, oy), rot),
+        ]
+        bays_data.append((name, corners, h))
+
+    edges_3d = []
+    for i in range(len(bays_data)):
+        for j in range(i + 1, len(bays_data)):
+            _, poly_a, h_a = bays_data[i]
+            _, poly_b, h_b = bays_data[j]
+            isect = _clip_polygon_sh(poly_a, poly_b)
+            if len(isect) < 3:
+                continue
+            min_h = min(h_a, h_b)
+            for k in range(len(isect)):
+                p1 = isect[k]
+                p2 = isect[(k + 1) % len(isect)]
+                dx = p2[0] - p1[0]
+                dy = p2[1] - p1[1]
+                if dx*dx + dy*dy < 1e-6:
+                    continue
+                # Bottom edge
+                edges_3d.append(((p1[0], p1[1], 0),
+                                 (p2[0], p2[1], 0)))
+                # Top edge at shorter bay height
+                edges_3d.append(((p1[0], p1[1], min_h),
+                                 (p2[0], p2[1], min_h)))
+                # Vertical at each corner
+                edges_3d.append(((p1[0], p1[1], 0),
+                                 (p1[0], p1[1], min_h)))
+    return edges_3d
+
+
+def render_axon_pen(triangles_ft, output_path, state=None, az_deg=-50,
+                    el_deg=-55, title_suffix=""):
+    """Render a clean axonometric pen drawing.
+
+    Shows only thick visible lines for silhouette, aperture openings,
+    corners, and bay intersection boundaries.  No hidden/dashed lines.
 
     az_deg: azimuth in degrees (rotation around Z axis)
     el_deg: elevation in degrees (negative = looking down)
@@ -588,14 +728,13 @@ def render_axon_pen(triangles_ft, output_path, az_deg=-50, el_deg=-55,
                     return True
         return False
 
-    # Classify each edge
+    # Classify each edge — visible only (skip hidden entirely)
     visible_edges = []
-    hidden_edges = []
     for ia, ib in draw_edges:
         pa = project(verts_3d[ia])
         pb = project(verts_3d[ib])
-        # Test 3 sample points along the edge
-        samples = 3
+        # Test 7 sample points along the edge for robust occlusion
+        samples = 7
         occluded_count = 0
         for s in range(samples):
             t = (s + 1) / (samples + 1)
@@ -604,31 +743,41 @@ def render_axon_pen(triangles_ft, output_path, az_deg=-50, el_deg=-55,
             md = pa[2] + t*(pb[2]-pa[2])
             if is_occluded(mx, my, md):
                 occluded_count += 1
-        if occluded_count > samples // 2:
-            hidden_edges.append((pa, pb))
-        else:
+        if occluded_count <= samples // 2:
             visible_edges.append((pa, pb))
+
+    # ── Intersection boundary edges between overlapping bays ──
+    intersection_proj = []
+    if state:
+        for (p0_3d, p1_3d) in _compute_intersection_edges(state):
+            pa = project(p0_3d)
+            pb = project(p1_3d)
+            if abs(pa[0]-pb[0]) < 0.01 and abs(pa[1]-pb[1]) < 0.01:
+                continue
+            mx = (pa[0]+pb[0]) / 2
+            my = (pa[1]+pb[1]) / 2
+            md = (pa[2]+pb[2]) / 2
+            if not is_occluded(mx, my, md):
+                intersection_proj.append((pa, pb))
 
     # ── Draw ──
     fig, ax = plt.subplots(1, 1, figsize=(17, 11))
     ax.set_aspect("equal")
     ax.set_facecolor("white")
 
-    # Hidden lines first (behind)
-    for (pa, pb) in hidden_edges:
-        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
-                color=(0.7, 0.7, 0.7), linewidth=0.8,
-                linestyle=(0, (4, 3)), zorder=1)
-
-    # Visible lines on top
+    # Visible mesh edges (thick solid black)
     for (pa, pb) in visible_edges:
         ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
                 color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
 
+    # Intersection boundary edges (same weight)
+    for (pa, pb) in intersection_proj:
+        ax.plot([pa[0], pb[0]], [pa[1], pb[1]],
+                color="black", linewidth=1.4, solid_capstyle="round", zorder=2)
+
     view_label = title_suffix if title_suffix else "overhead"
-    ax.set_title("Axonometric — Two-Bay Layout (30' + 10' @ 45\u00b0)\n"
-                 'pen mode  |  {}  |  solid = visible  |  dashed = hidden'.format(
-                     view_label),
+    ax.set_title("Axonometric \u2014 Two-Bay Layout (30' + 10' @ 30\u00b0)\n"
+                 "pen mode  |  {}  |  visible edges only".format(view_label),
                  fontsize=12, fontweight="bold")
     ax.axis("off")
 
@@ -855,11 +1004,11 @@ def main():
 
     # 7. Render axonometric pen drawings (two angles)
     print(f"\nRendering axon pen (overhead) to {AXON_PATH}")
-    render_axon_pen(triangles_ft, AXON_PATH,
+    render_axon_pen(triangles_ft, AXON_PATH, state=state,
                     az_deg=-50, el_deg=-55, title_suffix="overhead")
 
     print(f"\nRendering axon pen (eye-level) to {AXON2_PATH}")
-    render_axon_pen(triangles_ft, AXON2_PATH,
+    render_axon_pen(triangles_ft, AXON2_PATH, state=state,
                     az_deg=135, el_deg=-25, title_suffix="eye-level SE")
 
     # Summary
