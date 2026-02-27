@@ -69,26 +69,29 @@ Micro: Eight wide-flange steel columns support the roof plane, spaced
 in two rows of four along the long edges...
 ```
 
-### Image to PIAF — Tactile Drawing Fabrication
+### [Image to PIAF](tactile/) — Tactile Image Conversion
 
-Converts digital drawings into physical raised-line graphics readable by touch. High-contrast black-and-white conversion with four line weights (heavy for columns, medium for walls, light for grid, fine for hatches), halftone dithering for tonal areas, Grade 2 contracted braille labels, and page tiling with registration marks. Laser printed on PIAF microcapsule paper with carbon-based toner, then heated — the carbon absorbs heat, the microcapsules swell, and black lines rise off the page. Daniel reads his own floor plans through this pipeline.
+Converts any architectural image — photographs, CAD screenshots, scanned plans, textbook figures, precedent studies — into PIAF-ready output for swell paper printing. Ten presets tuned for different image types (floor plans, elevations, photographs, sketches, sections, site plans, renderings, diagrams, historic photos, hand drawings). Density management ensures the swell paper doesn't overload. Braille labels are rendered directly as dot patterns. Large images tile across multiple pages with registration marks for assembly.
 
 ```
-Digital drawing (Rhino export, image file, or vector graphic)
-      |
-      v
-High-contrast black-and-white conversion
-  - Four line weights: heavy (columns), medium (walls), light (grid), fine (hatches)
-  - Halftone/dithering for tonal areas (material fills, shading)
-  - Grade 2 contracted braille labels
-  - Page tiling with registration marks
-      |
-      v
-Laser print on PIAF microcapsule paper (carbon-based black toner required)
-      |
-      v
-Feed through PIAF heater -> raised tactile graphic readable by touch
+>> python tactile/image_to_piaf.py plan.jpg --preset floor_plan --labels "Kitchen;Living Room"
+OK: Converted plan.jpg using preset 'floor_plan'.
+  Output: plan_piaf.png
+  Density: 28%
+  Labels: 2 placed.
+
+>> python tactile/image_to_piaf.py photo.jpg --analyze
+OK: Analysis of photo.jpg
+  Size: 4032 x 3024 px (12.2 MP)
+  Suggested preset: photograph
+  Density at thresholds:
+    Threshold 80: 32%
+    Threshold 100: 25%
 ```
+
+Also runs as an interactive REPL (`python tactile/image_to_piaf.py`) and as an [MCP server](tactile/mcp_server.py) (6 tools, 3 resources, 2 prompts) for AI-driven conversion workflows.
+
+Pipeline: image → contrast enhancement → grayscale → threshold → density management → braille labels → PIAF-ready output at 300 DPI. Printed on PIAF microcapsule paper with carbon-based toner, then heated — the carbon absorbs heat, the microcapsules swell, black lines rise off the page. Daniel reads his own floor plans through this pipeline.
 
 ### 3D Print — Tactile Scale Models
 
@@ -140,6 +143,7 @@ User (natural language)
 ## Requirements
 
 - **Python 3.8+** (stdlib only for controllers — no pip installs)
+- **Pillow** (`pip install Pillow`) for Image-to-PIAF tactile conversion
 - **Rhino 8** (for layout-jig watcher; controllers run independently)
 - **Windows** (Rhino requirement; controllers work cross-platform)
 - **Anthropic API key** (for arch-alt-text and AI assistant layer)
@@ -161,6 +165,9 @@ radical-accessibility/
     MCP_GUIDE.md ......... Full MCP server documentation
     state.json ........... Canonical model artifact
     MANUAL.docx .......... Full user documentation
+  tactile/
+    image_to_piaf.py ..... Image-to-PIAF tactile conversion (Python 3, Pillow)
+    mcp_server.py ........ MCP server v1.0 (6 tools, 3 resources, 2 prompts)
   CLAUDE.md .............. Project instructions for AI coding assistants
   README.md
 ```
