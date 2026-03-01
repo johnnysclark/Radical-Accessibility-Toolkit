@@ -21,6 +21,8 @@ The MCP server is the translator between Claude's intent and your CLI.
 
 MCP also enables the code generation workflow. The AI can inspect the current model, write RhinoPython or Grasshopper scripts targeting that specific geometry, explain the code, and iterate -- all while the user learns the underlying language.
 
+The same model drives three physical output modes: 2D plan drawings for pen plotting and PDF export, PIAF swell paper tactile graphics for reading floor plans by touch, and 3D printed tactile models via the Bambu pipeline. All three are configured and triggered through the same MCP functions.
+
 
 ## 2. Architecture
 
@@ -401,6 +403,50 @@ Pre-built prompts for common design workflows. These load the current model stat
 
     AI: OK. 6 lab doors added at gridline 1. Snapshot saved as
         school-v1-rooms-and-doors.
+
+### Preparing tactile output
+
+    User: Set up the drawing for PIAF swell paper. Make sure every
+          room has a different hatch and braille labels are on.
+
+    AI calls: run_command("legend on")
+    AI calls: run_command("legend show_braille on")
+    AI calls: run_command("legend show_hatches on")
+    AI calls: set_cell(bay="A", col=0, row=2, field="hatch", value="crosshatch")
+    AI calls: set_cell(bay="A", col=0, row=0, field="hatch", value="dots")
+    AI calls: run_command("set style heavy 1.4")
+    AI calls: run_command("set style light 0.08")
+    AI calls: run_command("set print scale 4")
+    AI calls: run_command("set print paper 11x11.5")
+
+    AI: OK. Legend is on with braille and hatch swatches. Classrooms
+        have crosshatch, labs have dots. Style set for high-contrast
+        output. Print scale is 1/4" = 1'-0" on 11 x 11.5 inch paper
+        (standard PIAF sheet). Export the view from Rhino as a
+        high-resolution PNG, print it on swell paper, and run it
+        through the PIAF machine.
+
+### 3D printing a tactile model
+
+    User: Print a 3D model of bay A on the Bambu printer.
+
+    AI calls: run_command("tactile3d on")
+    AI calls: run_command("tactile3d wall_height 9")
+    AI calls: run_command("tactile3d cut_height 4")
+    AI calls: run_command("bambu config ip 192.168.1.100")
+    AI calls: run_command("bambu preview")
+
+    AI: Tactile 3D is on. Walls extruded to 9 ft, clipped at 4 ft.
+        The model fits on the 256x256mm build plate at 1:200 scale.
+        Ready to print. Say "print it" and I will run the full
+        pipeline: export STL, slice, and send to the printer.
+
+    User: Print it.
+
+    AI calls: run_command("bambu print")
+
+    AI: Full pipeline complete. STL exported, sliced to 3MF, uploaded
+        to printer at 192.168.1.100. Print started.
 
 
 ## 7. How Undo Works in MCP Mode

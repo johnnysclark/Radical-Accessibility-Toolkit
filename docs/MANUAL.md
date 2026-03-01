@@ -24,6 +24,13 @@ Tactile Printer (tools/rhino/tactile_print.py)
   Exports the model as watertight STL mesh for 3D printing
   on Bambu Lab printers. No Rhino required.
 
+Swell Print (tools/swell-print/)
+  Converts architectural drawings into high-contrast black and
+  white images for PIAF swell paper machines. The raised output
+  creates tactile floor plans readable by touch. (Placeholder —
+  reference implementation in Ethan Childs' fabric-accessible-
+  graphics repository.)
+
 Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
@@ -49,7 +56,7 @@ mcp/mcp_server.py: The MCP server. This wraps the controller so
 Claude can call commands as typed function calls. It also has the audit
 engine, skill engine, rhino bridge, controller extension tools, state
 introspection tools, bay management tools, controller introspection
-tools, and state comparison tools. 45 tools total.
+tools, and state comparison tools. 46 tools total.
 
 controller/auditor.py: Spatial analysis. Validates the model for
 overlapping bays, ADA compliance, aperture placement, and missing
@@ -396,7 +403,186 @@ MCP, use snapshots instead.
 This saves the state and exits the CLI.
 
 
-## 13. Audit Tools
+## 13. Output Modes
+
+The toolkit produces three kinds of physical output from the same
+model. All three are equally important. A blind designer can touch
+a swell paper plan, hold a 3D printed model, or read a section cut.
+A sighted collaborator can review a pen-plotted drawing. All outputs
+come from the same state.json, so they are always in sync.
+
+
+### 2D Plan Drawing (Pen Plot / PDF)
+
+The Layout Jig is first and foremost a 2D plan drawing tool. The
+Rhino watcher renders the model as a black and white architectural
+plan with columns, walls, corridors, doors, windows, hatches,
+braille labels, and a legend. This drawing can be:
+
+- Pen-plotted on an architectural pen plotter
+- Exported as PDF or PNG from Rhino
+- Printed on standard paper for sighted review
+
+Configure the 2D output:
+
+    set print scale 8
+    set print paper 24x36
+    set print margin 0.5
+    set print dpi 300
+    set print format png
+
+Print scale uses the architectural convention of feet per inch.
+Scale 8 means 1/8" = 1'-0" (a common schematic scale). Scale 4
+means 1/4" = 1'-0" (a detail scale).
+
+Trigger a print request:
+
+    print
+
+This bumps the request_id in state.json, which the watcher detects
+and uses to trigger export.
+
+The drawing style controls how the plan looks:
+
+    set style heavy 1.4
+    set style light 0.08
+    set style wall 0.25
+    set style corridor 0.35
+    set style text_height 0.3
+    set style braille_height 0.5
+
+Heavy lines are outer boundaries. Light lines are gridlines. Wall
+and corridor lines have their own weights. All lineweights are in
+millimeters, matching pen plotter conventions.
+
+
+### PIAF / Swell Paper Output
+
+PIAF (Pictures In A Flash) is a machine that heats special
+microcapsule paper ("swell paper"). Dark areas on the printed image
+swell up and become raised, creating a tactile graphic readable by
+touch. This is one of the most important outputs of the system —
+it lets a blind designer feel the floor plan.
+
+The workflow:
+
+1. Design the plan using the CLI or MCP.
+2. The Rhino watcher renders the plan in black and white with
+   PIAF-optimised settings: high-contrast hatches, braille labels,
+   tactile block symbols, and a braille legend.
+3. Export the view from Rhino as a high-resolution PNG or PDF.
+4. Print the image on swell paper using a standard laser printer.
+5. Run the printed sheet through the PIAF machine. Dark areas
+   rise. Light areas stay flat.
+6. The designer reads the tactile floor plan by touch.
+
+The system has several features specifically designed for PIAF:
+
+Block symbols — doors, windows, and portals use symbols optimised
+for tactile readability. Each has a tactile_weight_mm setting that
+controls line thickness for swell paper:
+
+    block door tactile_weight_mm 0.35
+    block window tactile_weight_mm 0.25
+    block portal tactile_weight_mm 0.35
+
+Hatch patterns — rooms use hatch fills (diagonal, crosshatch, dots,
+horizontal, vertical) so a blind reader can tell rooms apart by
+texture. Different room types get different hatches:
+
+    cell A 0,0 hatch crosshatch
+    cell A 1,0 hatch dots
+    cell A 2,0 hatch diagonal
+
+Braille labels — every bay, room, and legend entry can have both
+an English label and a braille label:
+
+    set bay A label "Library Wing"
+    set bay A braille "lib"
+    legend show_braille on
+
+Legend — the legend includes both English text and braille, plus
+hatch swatches and aperture symbols:
+
+    legend on
+    legend show_braille on
+    legend show_hatches on
+    legend show_apertures on
+
+Hatch library — you can add custom hatch images for more texture
+variety:
+
+    hatch list
+    hatch path ./hatches/
+    hatch add weave ./source_images/weave.png
+
+The swell-print tool (tools/swell-print/) will eventually automate
+the export-to-PIAF pipeline. The reference implementation lives in
+Ethan Childs' fabric-accessible-graphics repository.
+
+
+### 3D Tactile Print
+
+The tactile 3D system extrudes the 2D plan into a physical model
+you can hold. Walls become solid volumes. A floor plate provides a
+base. The model is clipped at a configurable cut height (typically
+4 feet) so you feel the wall layout without the ceiling. The result
+is exported as an STL mesh and sent to a 3D printer.
+
+Configure tactile 3D:
+
+    tactile3d on
+    tactile3d wall_height 9
+    tactile3d cut_height 4
+    tactile3d floor on
+    tactile3d floor_thickness 0.5
+    tactile3d scale_factor 1.0
+
+Export an STL mesh:
+
+    tactile3d export_path ./my_model.stl
+    tactile3d export
+
+Or use auto-export to regenerate the STL every time the model changes:
+
+    tactile3d auto_export on
+
+The Bambu printer pipeline handles the full path from model to print:
+
+    bambu config ip 192.168.1.100
+    bambu config access_code 12345678
+    bambu config serial 01P00C000000001
+    bambu config printer_model p1s
+    bambu config print_scale 200
+    bambu preview
+    bambu export
+    bambu slice
+    bambu send
+    bambu print
+    bambu status
+
+"bambu preview" shows whether the model fits on the build plate.
+"bambu print" runs the full pipeline: export STL, slice to 3MF,
+upload to printer, and start printing.
+
+
+### Section Cuts (SVG)
+
+Section cuts slice through the 3D model along a vertical plane and
+export the result as an SVG file. These are useful for understanding
+wall heights and spatial relationships.
+
+    section x 50
+    section preview
+    section export ./section_x_50.svg
+    section list
+    section clear
+
+Section export requires tactile_print.py to be available (it uses
+the mesh engine to compute the cut).
+
+
+## 14. Audit Tools
 
 ### audit_model
 
@@ -457,7 +643,7 @@ Valid location references:
 - "site center" (the center of the site)
 
 
-## 14. MCP Server
+## 15. MCP Server
 
 The MCP server (mcp/mcp_server.py) wraps the CLI so that AI
 assistants like Claude can call commands as structured function calls.
@@ -545,7 +731,7 @@ Editing (changes state.json):
 45. clone_bay - duplicate a bay
 
 
-## 15. State Introspection
+## 16. State Introspection
 
 ### Dot-notation paths
 
@@ -596,7 +782,7 @@ Lists all keys at a given path. Use to explore the schema.
     list_fields("style")      -> all style properties
 
 
-## 16. Bay Management
+## 17. Bay Management
 
 ### add_bay
 
@@ -623,7 +809,7 @@ change.
     clone_bay("A", "E", 80.0, 80.0)
 
 
-## 17. Skill Manager
+## 18. Skill Manager
 
 ### What is a skill?
 
@@ -686,7 +872,7 @@ following the format above.
 2. enclose-bay-with-door: Turn on walls and add a single entry door
 
 
-## 18. Rhino Client
+## 19. Rhino Client
 
 ### How it works
 
@@ -718,7 +904,7 @@ geometry-modifying functions like rs.AddLine or rs.DeleteObject.
 Important: IronPython 2.7 — use .format() not f-strings.
 
 
-## 19. Extending the Jig
+## 20. Extending the Jig
 
 ### What extend_controller does
 
@@ -808,7 +994,7 @@ When asking an AI to write a new command, use this prompt template:
   controller/controller_cli.py, or restore a snapshot.
 
 
-## 20. Controller Introspection
+## 21. Controller Introspection
 
 ### list_commands
 
@@ -828,7 +1014,7 @@ name ("cmd_corridor", "_cmd_set_bay").
 Use this before writing extensions with extend_controller.
 
 
-## 21. State Comparison
+## 22. State Comparison
 
 ### diff_snapshot
 
@@ -854,7 +1040,7 @@ Checks performed:
 - Are aperture types valid? (door, window, or portal)
 
 
-## 22. Editing state.json by Hand
+## 23. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -972,7 +1158,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 23. How Things Work Under the Hood
+## 24. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1026,7 +1212,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 24. MCP Resources and Prompts
+## 25. MCP Resources and Prompts
 
 ### Resources
 
@@ -1044,7 +1230,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 25. Troubleshooting
+## 26. Troubleshooting
 
 ### "mcp package not found"
 

@@ -34,7 +34,7 @@ Terminal (controller/controller_cli.py)    Claude Code (mcp/mcp_server.py)
               Rhino 8 (tools/rhino/rhino_watcher.py)
                       |
                       v
-              2D plan drawing + optional 3D tactile model
+              2D plan drawing | PIAF swell paper | 3D tactile model
 ```
 
 ---
@@ -170,7 +170,7 @@ See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full
 ```
 radical-accessibility/
   CLAUDE.md ................. Project instructions for AI assistants
-  MANUAL.md ................. Startup instructions
+  STARTUP.md ................ Startup instructions
   README.md ................. This file (detailed overview)
   controller/ ............... Core platform (CLI + supporting modules)
     controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)

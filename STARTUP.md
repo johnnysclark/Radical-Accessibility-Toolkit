@@ -14,19 +14,36 @@ No screen required.
 
 Layout Jig (controller/controller_cli.py)
   The primary design tool. Structural grids, walls, doors,
-  corridors, rooms, legends, section cuts, 3D tactile export.
+  corridors, rooms, legends, section cuts, and all output modes.
 
 Image Describer (tools/image-describer/arch_alt_text.py)
   Structured text descriptions of architectural images
   using Claude vision.
 
-Tactile Printer (tools/rhino/tactile_print.py)
-  Watertight STL mesh export for 3D printing on Bambu Lab printers.
-  No Rhino required.
-
 Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
+
+## Three Output Modes
+
+The same model produces three kinds of physical output:
+
+1. 2D Plan Drawing — black and white architectural plan for
+   pen plotting or PDF export. Configure with "set print" and
+   "set style" commands. Output from Rhino as PDF or PNG.
+
+2. PIAF / Swell Paper — the 2D plan printed on microcapsule
+   paper and run through a swell machine. Dark areas rise to
+   create a tactile floor plan readable by touch. The system
+   has PIAF-optimised hatches, braille labels, tactile block
+   symbols, and a braille legend specifically for this.
+
+3. 3D Tactile Print — walls extruded into a physical model,
+   exported as STL, and 3D printed on a Bambu Lab printer.
+   Configure with "tactile3d" and "bambu" commands.
+
+All three outputs come from the same state.json. Change the
+model once, all outputs update.
 
 ## Two Ways to Use the System
 
@@ -69,7 +86,10 @@ What is now available:
 - Automatic history (every change is saved to history/)
 - Named snapshots (save and restore design states)
 - Text-to-speech (add --tts flag to enable, or type "tts on")
-- Bambu 3D printing (if tactile_print.py is available)
+- 2D plan output settings (set print scale, paper, dpi)
+- PIAF-ready hatches, braille labels, and tactile symbols
+- 3D tactile print pipeline (tactile3d and bambu commands)
+- Section cuts exported as SVG
 
 What is NOT started:
 - The MCP server (that is a separate process, see Step 3)
