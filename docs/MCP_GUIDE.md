@@ -28,7 +28,7 @@ The Layout Jig has three files that form a pipeline. The MCP server sits in fron
 
 ### Layer 1: state.json (the Canonical Model Artifact)
 
-Path: `controller/rhino/state.json`
+Path: `controller/state.json`
 
 A JSON file on disk containing every fact about your design: site dimensions, bay positions, wall thicknesses, door locations, corridor widths, labels, hatches, and print settings.
 
@@ -55,7 +55,7 @@ The controller also maintains an undo stack. Before every mutation, it stores a 
 
 ### Layer 3: rhino_watcher.py (the geometry renderer)
 
-Path: `controller/rhino/rhino_watcher.py`
+Path: `tools/rhino/rhino_watcher.py`
 
 An IronPython 2.7 script that runs inside Rhino. Every half second, it checks if state.json has been modified. If it has, the watcher deletes all geometry in Rhino and rebuilds everything from scratch based on the new state.
 
@@ -73,8 +73,8 @@ Supporting modules:
 
 - `controller/auditor.py` -- spatial validation, descriptions, ADA checks
 - `controller/skill_manager.py` -- save and replay reusable command sequences
-- `controller/rhino_client.py` -- TCP client to query Rhino
-- `controller/rhino/tactile_print.py` -- tactile printing utilities
+- `tools/rhino/rhino_client.py` -- TCP client to query Rhino
+- `tools/rhino/tactile_print.py` -- tactile printing utilities
 
 ### Data flow: what happens when Claude says "rotate bay A by 30 degrees"
 
@@ -141,7 +141,7 @@ Create `.mcp.json` at the project root:
           "args": [
             "controller/mcp_server.py",
             "--state",
-            "controller/rhino/state.json"
+            "controller/state.json"
           ]
         }
       }
@@ -159,11 +159,11 @@ Add via Settings > MCP Servers with the same command and args.
 
 Instead of passing `--state`, you can set the environment variable:
 
-    LAYOUT_JIG_STATE=controller/rhino/state.json python controller/mcp_server.py
+    LAYOUT_JIG_STATE=controller/state.json python controller/mcp_server.py
 
 ### Run standalone (for testing)
 
-    python controller/mcp_server.py --state controller/rhino/state.json
+    python controller/mcp_server.py --state controller/state.json
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 

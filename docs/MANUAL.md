@@ -16,15 +16,15 @@ Layout Jig (controller/controller_cli.py)
   The primary design tool. Define structural grids, walls, doors,
   corridors, rooms, and more via typed or spoken commands.
 
-Image Describer (image-describer/arch_alt_text.py)
+Image Describer (tools/image-describer/arch_alt_text.py)
   Generates structured text descriptions of architectural images
   using Claude vision.
 
-Tactile Printer (controller/rhino/tactile_print.py)
+Tactile Printer (tools/rhino/tactile_print.py)
   Exports the model as watertight STL mesh for 3D printing
   on Bambu Lab printers. No Rhino required.
 
-Rhino Viewer (controller/rhino/rhino_watcher.py)
+Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
 
@@ -60,12 +60,12 @@ controller/skill_manager.py: Reusable command macros. Saves sequences
 of commands as JSON files in controller/skills/ and replays them with
 different parameters.
 
-controller/rhino/rhino_watcher.py: The Rhino viewer. This script runs
-INSIDE Rhino. It watches controller/rhino/state.json for changes and
-rebuilds all geometry when the file changes. Run it in Rhino with
+tools/rhino/rhino_watcher.py: The Rhino viewer. This script runs
+INSIDE Rhino. It watches state.json for changes and rebuilds all
+geometry when the file changes. Run it in Rhino with
 exec(open(...).read()).
 
-controller/rhino_client.py: Optional Rhino query client. This does NOT
+tools/rhino/rhino_client.py: Optional Rhino query client. This does NOT
 run inside Rhino. It is imported by the MCP server and talks to the
 watcher over TCP port 1998 to ask read-only questions about the 3D
 model. Returns OFFLINE messages when Rhino is not running.

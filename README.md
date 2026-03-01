@@ -31,7 +31,7 @@ Terminal (controller/controller_cli.py)    Claude Code (controller/mcp_server.py
                       |
                       | watches (file mtime)
                       v
-              Rhino 8 (controller/rhino/rhino_watcher.py)
+              Rhino 8 (tools/rhino/rhino_watcher.py)
                       |
                       v
               2D plan drawing + optional 3D tactile model
@@ -170,27 +170,29 @@ See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full
 ```
 radical-accessibility/
   CLAUDE.md ................. Project instructions for AI assistants
-  MANUAL.md ................. Quick start and tool overview
-  README.md
+  MANUAL.md ................. Startup instructions
+  README.md ................. This file (detailed overview)
   controller/ ............... Core platform
     controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)
     mcp_server.py ........... MCP server v3.1 (46 functions)
     auditor.py .............. Spatial validation, ADA checks
     skill_manager.py ........ Skill CRUD and replay
-    rhino_client.py ......... TCP client to Rhino watcher
     requirements.txt ........ Python dependencies (mcp only)
     skills/ ................. Bundled reusable command sequences
-    rhino/ .................. Rhino watcher scripts (IronPython 2.7)
-      rhino_watcher.py ...... File watcher + geometry renderer
+    state.json .............. Canonical Model Artifact (created on first run)
+  tools/
+    rhino/ .................. Rhino integration
+      rhino_watcher.py ...... File watcher + geometry renderer (IronPython 2.7)
       tactile_print.py ...... STL mesh generation + Bambu printing
-      state.json ............ Canonical Model Artifact (created on first run)
-  image-describer/ .......... Image description CLI (Claude vision API)
+      rhino_client.py ....... TCP client for querying Rhino
+    image-describer/ ........ Image description (Claude vision API)
   tests/
     run_tests.py ............ End-to-end test suite (123 tests)
   docs/
-    MANUAL.md ............... Full user manual (all commands and tools)
-    MCP_GUIDE.md ............ AI layer: MCP architecture, setup, tool reference
-    TEST_MANUAL.md .......... Step-by-step test walkthrough
+    MANUAL.md ............... Full manual (all commands and tools)
+    MCP_GUIDE.md ............ AI layer (MCP architecture, setup, tool reference)
+    TEST_MANUAL.md .......... Test walkthrough
+    archive/ ................ Older reference docs
 ```
 
 ## License

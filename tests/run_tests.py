@@ -13,9 +13,11 @@ import sys, os, json, copy
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 JIG = os.path.join(ROOT, "controller")
-STATE = os.path.join(JIG, "rhino", "state.json")
+TOOLS_RHINO = os.path.join(ROOT, "tools", "rhino")
+STATE = os.path.join(JIG, "state.json")
 os.environ["LAYOUT_JIG_STATE"] = STATE
 sys.path.insert(0, JIG)
+sys.path.insert(0, TOOLS_RHINO)
 
 import controller_cli as cli
 import auditor
@@ -534,7 +536,7 @@ print("=" * 60)
 print("PHASE 11b: Rhino Watcher File Validation")
 print("=" * 60)
 
-watcher_path = os.path.join(JIG, "rhino", "rhino_watcher.py")
+watcher_path = os.path.join(TOOLS_RHINO, "rhino_watcher.py")
 
 test("rhino_watcher.py exists",
      lambda: None if os.path.exists(watcher_path) else "file not found")

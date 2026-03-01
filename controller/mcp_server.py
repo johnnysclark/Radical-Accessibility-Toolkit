@@ -69,6 +69,10 @@ _here = os.path.dirname(os.path.abspath(__file__))
 if _here not in sys.path:
     sys.path.insert(0, _here)
 
+_tools_rhino = os.path.join(os.path.dirname(_here), "tools", "rhino")
+if _tools_rhino not in sys.path:
+    sys.path.insert(0, _tools_rhino)
+
 import controller_cli as cli
 
 # ── Import engines (lazy-safe: all stdlib-only) ────────

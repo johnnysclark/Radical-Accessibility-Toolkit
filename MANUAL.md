@@ -1,58 +1,80 @@
-# Radical Accessibility Toolkit — Quick Start
+# Radical Accessibility Toolkit — Startup Instructions
 
-The Radical Accessibility Toolkit is a text-based architectural design platform
-for blind, low-vision, and sighted designers. You type commands in a terminal
-to create building layouts, generate tactile output, and describe images —
-no screen required.
+How to get the system running. For the full manual see docs/MANUAL.md.
+For the AI integration guide see docs/MCP_GUIDE.md.
+
+## What This Is
+
+A text-based architectural design platform for blind, low-vision,
+and sighted designers. You type commands in a terminal to create
+building layouts, generate tactile output, and describe images.
+No screen required.
 
 ## Tools
 
 Layout Jig (controller/controller_cli.py)
-  The primary design tool. Define structural grids, walls, doors,
-  corridors, rooms, and more via typed or spoken commands.
+  The primary design tool. Structural grids, walls, doors,
+  corridors, rooms, legends, section cuts, 3D tactile export.
 
-Image Describer (image-describer/arch_alt_text.py)
-  Generates structured text descriptions of architectural images
+Image Describer (tools/image-describer/arch_alt_text.py)
+  Structured text descriptions of architectural images
   using Claude vision.
 
-Tactile Printer (controller/rhino/tactile_print.py)
-  Exports the model as watertight STL mesh for 3D printing
-  on Bambu Lab printers. No Rhino required.
+Tactile Printer (tools/rhino/tactile_print.py)
+  Watertight STL mesh export for 3D printing on Bambu Lab printers.
+  No Rhino required.
 
-Rhino Viewer (controller/rhino/rhino_watcher.py)
+Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
 
-## Taxonomy
+## Step 1: Start the Controller
 
-Tool — a major capability module (Layout Jig, Image Describer, etc.).
-Command — an individual action within a tool ("set bay A rotation 30").
-Skill — a saved sequence of commands, replayable with parameters.
-  Stored as JSON in skills/.
+```
+python controller/controller_cli.py
+```
 
-## Quick Start
+Or with a custom state file location:
+```
+python controller/controller_cli.py --state "/projects/studio/state.json"
+```
 
-1. Start the controller:
-   python controller/controller_cli.py
+## Step 2: Connect Rhino (Optional)
 
-2. Optionally connect Rhino for visual output:
-   setup rhino
+If you want visual output, type inside the controller:
+```
+>> setup rhino
+OK: Launching Rhino with watcher...
+OK: Connected. Rhino is ready. Units: Feet.
+```
 
-3. Type "describe" to hear a summary of the current model.
+Or start the watcher manually in Rhino's Python editor:
+```python
+import sys
+sys.path.insert(0, r"C:\path\to\tools\rhino")
+import rhino_watcher as w
+w.start_watcher()
+```
 
-4. Type "help" for a list of all commands.
+## Step 3: Verify
+
+Type `describe` to hear a summary of the current model.
+Type `help` for a list of all commands.
 
 ## Requirements
 
 Python 3.8 or later (stdlib only — no pip install needed for the CLI).
 Rhino 7 or 8 with IronPython 2.7 (only if you want the visual viewer).
-For the MCP server: see controller/requirements.txt.
+For the MCP server: pip install mcp (see controller/requirements.txt).
 For image description: a Claude API key.
 
 ## Full Documentation
 
-Complete manual with all commands and tools:
+Complete manual with all commands, tools, and extension guide:
   docs/MANUAL.md
 
-AI integration and MCP function reference:
+AI layer — MCP architecture, setup, and 46-function reference:
   docs/MCP_GUIDE.md
+
+Test walkthrough — how to verify everything works:
+  docs/TEST_MANUAL.md

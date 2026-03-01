@@ -32,6 +32,12 @@ SCHEMA = "plan_layout_jig_v2.3"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
+# ── Ensure tools/rhino is importable (for tactile_print) ──
+_controller_dir = os.path.dirname(os.path.abspath(__file__))
+_tools_rhino = os.path.join(os.path.dirname(_controller_dir), "tools", "rhino")
+if os.path.isdir(_tools_rhino) and _tools_rhino not in sys.path:
+    sys.path.insert(0, _tools_rhino)
+
 # ── utilities ─────────────────────────────────────────────
 
 def _now():
