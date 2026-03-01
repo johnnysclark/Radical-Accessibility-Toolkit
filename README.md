@@ -14,7 +14,13 @@ Based at the UIUC School of Architecture, the project is co-designed with Daniel
 
 ## The System
 
-One platform with a shared command shell, undo stack, state management, and screen-reader-native output protocol. Skills plug into this shell. Each skill adds commands and capabilities without touching the others. The system is designed to grow — adding a new skill means writing a new module, not rebuilding the platform. All skills share a common pattern: typed or spoken input, text confirmation output, and a JSON state file as the canonical record of the design. Every skill follows one rule: if it can't be heard, felt, or read by a screen reader, it doesn't ship.
+One platform with a shared command shell, undo stack, state management, and screen-reader-native output protocol. Tools plug into this shell. Each tool adds commands and capabilities without touching the others. The system is designed to grow — adding a new tool means writing a new module, not rebuilding the platform. All tools share a common pattern: typed or spoken input, text confirmation output, and a JSON state file as the canonical record of the design. Every tool follows one rule: if it can't be heard, felt, or read by a screen reader, it doesn't ship.
+
+Three levels of organization:
+
+- **Tool** — a major capability module (Layout Jig, Image Describer, Tactile Printer).
+- **Command** — an individual action within a tool (`set bay A rotation 30`, `wall A on`).
+- **Skill** — a saved sequence of commands, replayable with parameters (`enclose-bay-with-door`).
 
 ```
 Terminal (controller_cli.py)    Claude Code (mcp_server.py)
@@ -33,11 +39,11 @@ Terminal (controller_cli.py)    Claude Code (mcp_server.py)
 
 ---
 
-## Skills
+## Tools
 
 ### Layout Jig — Architectural Modeler
 
-The primary design skill. Commands like `set bay A rotation 30`, `wall A on`, `corridor A width 8` express design intent through text. A separate Rhino watcher reads the state file and rebuilds geometry. Supports rectangular and radial grids, walls with doors/windows/portals, corridors, rooms, hatches, braille legends, section cuts, and snapshots.
+The primary design tool. Commands like `set bay A rotation 30`, `wall A on`, `corridor A width 8` express design intent through text. A separate Rhino watcher reads the state file and rebuilds geometry. Supports rectangular and radial grids, walls with doors/windows/portals, corridors, rooms, hatches, braille legends, section cuts, and snapshots.
 
 ```
 >> set bay A origin 20 10
@@ -96,7 +102,7 @@ Generates watertight triangle meshes from the parametric model (pure Python, no 
 
 ### AI Integration — MCP Server v3.1
 
-An [MCP server](docs/MCP_V3_MANUAL.md) (46 tools, 5 resources, 4 prompts) connects Claude Code to the design system through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays reusable command sequences (skills), queries Rhino geometry, and reads or writes individual state fields directly. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
+An [MCP server](docs/MCP_V3_MANUAL.md) (46 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, and reads or writes individual state fields directly. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
 
 Beyond conversational commands, the AI writes RhinoPython, Grasshopper scripts, or other code-based CAD operations on the user's behalf, then explains what it produced so the user learns the underlying language. Over time, Daniel builds fluency in scripting his own geometry. The AI is a bridge to self-sufficiency, not a permanent dependency.
 
@@ -105,7 +111,7 @@ User (natural language)
         |
         | "make the corridor wider"
         v
-    Claude Code + MCP Server (46 tools)
+    Claude Code + MCP Server (46 functions)
         |
         | validated: CLI command dispatch
         | direct: JSON field read/write
@@ -115,13 +121,13 @@ User (natural language)
 
 The MCP server has seven functional layers:
 
-- **Core pipeline** (21 tools) — semantic wrappers around CLI commands
-- **Auditor** (5 tools) — spatial validation, ADA checks, bay descriptions, circulation analysis, distance measurement
-- **Skill manager** (4 tools) — save, list, show, and replay reusable command sequences
-- **Rhino client** (4 tools) — TCP queries to the Rhino watcher + auto-launch (offline-safe)
-- **Controller extension** (2 tools) — add new command handlers at runtime
-- **State introspection** (7 tools) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
-- **State comparison** (3 tools) — diff against snapshots, validate JSON structure
+- **Core pipeline** (21) — semantic wrappers around CLI commands
+- **Auditor** (5) — spatial validation, ADA checks, bay descriptions, circulation analysis, distance measurement
+- **Skill manager** (4) — save, list, show, and replay skills
+- **Rhino client** (4) — TCP queries to the Rhino watcher + auto-launch (offline-safe)
+- **Controller extension** (2) — add new command handlers at runtime
+- **State introspection** (7) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
+- **State comparison** (3) — diff against snapshots, validate JSON structure
 
 See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture details, [docs/MCP_V3_MANUAL.md](docs/MCP_V3_MANUAL.md) for the full tool reference, and [docs/TEST_MANUAL.md](docs/TEST_MANUAL.md) for a walkthrough of every workflow.
 
@@ -144,7 +150,7 @@ See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture deta
 - **Haptic gloves** — Direct tactile feedback on the hands during digital model navigation. Feel wall edges, surface textures, and spatial boundaries without a physical print. Navigate a 3D model by moving your hands through space and feeling the geometry push back.
 - **High-resolution interactive tactile display** — A pin-array or similar surface that renders the current design state as a dynamic tactile image, updated live as the model changes. Replaces static PIAF prints with a reusable, real-time tactile screen that redraws when the model is edited.
 - **Live AI descriptions with META Ray-Ban glasses** — Continuous scene narration during studio, pin-ups, site visits, and design reviews. Architectural description in real time — not just what's there, but Socratic design questions ("The southern facade is mostly solid — how are you thinking about daylight?").
-- **New skills** — The system is built to extend. Future skills could include structural analysis, environmental simulation, collaborative multi-user design, accessibility auditing of buildings themselves, or direct fabrication machine control — each plugging into the same shell without disrupting existing workflows.
+- **New tools** — The system is built to extend. Future tools could include structural analysis, environmental simulation, collaborative multi-user design, accessibility auditing of buildings themselves, or direct fabrication machine control — each plugging into the same shell without disrupting existing workflows.
 
 ---
 
@@ -165,7 +171,7 @@ See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture deta
 radical-accessibility/
   CLAUDE.md .............. Project instructions for AI assistants
   controller_cli.py ...... Terminal CLI, v2.3 (Python 3, stdlib only)
-  mcp_server.py .......... MCP server v3.1 (46 tools, 5 resources, 4 prompts)
+  mcp_server.py .......... MCP server v3.1 (46 functions, 5 resources, 4 prompts)
   auditor.py ............. Spatial validation, ADA checks, descriptions
   skill_manager.py ....... Skill CRUD and replay
   rhino_client.py ........ TCP client to Rhino watcher

@@ -4,7 +4,7 @@ PLAN LAYOUT JIG — MCP Server  v3.1
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Auditor: spatial validation, ADA checks, rich descriptions
-  - Skill manager: save, list, and replay reusable command sequences
+  - Skill manager: save, list, and replay reusable command sequences (skills)
   - Rhino client: optional TCP queries to the Rhino watcher
   - Controller extension: add new command handlers at runtime
   - State introspection: read/write individual JSON fields by path

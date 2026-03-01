@@ -1,6 +1,6 @@
-# Rhino Layout Jig — Manual
+# Radical Accessibility Toolkit — Manual
 
-Version 2.3 · Scaffold Platform · Radical Accessibility Project
+Version 2.3 · Radical Accessibility Project
 University of Illinois Urbana-Champaign · School of Architecture
 
 Non-Visual Architectural Design System for blind, low-vision, and sighted designers.
@@ -8,17 +8,27 @@ Non-Visual Architectural Design System for blind, low-vision, and sighted design
 # Contents
 
 # 1  Overview
-The Plan Layout Jig is a text-based architectural design tool. You type commands in a terminal to define structural grids, walls, doors, corridors, rooms, and more. A companion script inside Rhino draws everything in real time.
-The system has three components. The controller and watcher communicate through a single JSON file — the controller writes it, the watcher reads it and draws. They never interact directly. The tactile print module reads the same JSON to generate 3D-printable meshes without Rhino. This separation means a blind designer can build a complete plan without visual feedback, while a sighted collaborator can view the live drawing at any time.
+The Radical Accessibility Toolkit is a text-based architectural design platform. You type commands in a terminal to define structural grids, walls, doors, corridors, rooms, and more. A companion script inside Rhino draws everything in real time.
 
+The platform has multiple tools, each a major capability module:
+
+- **Layout Jig** (controller_cli.py) — the primary design tool. Grids, walls, apertures, corridors, rooms, cells, legends, section cuts, 3D tactile export.
+- **Image Describer** (image-describer/) — produces structured text descriptions of architectural images.
+- **Tactile Printer** (rhino/tactile_print.py) — generates watertight STL meshes and sends to a Bambu Lab printer.
+- **Rhino Viewer** (rhino/rhino_watcher.py) — watches the state file and rebuilds geometry in Rhino.
+
+Within each tool, **commands** are the individual actions you type (`set bay A rotation 30`, `wall A on`). **Skills** are saved sequences of commands, replayable with parameters (`enclose-bay-with-door`).
+
+The controller and watcher communicate through a single JSON file — the controller writes it, the watcher reads it and draws. They never interact directly. The tactile print module reads the same JSON to generate 3D-printable meshes without Rhino. This separation means a blind designer can build a complete plan without visual feedback, while a sighted collaborator can view the live drawing at any time.
 
 The system can produce PIAF tactile prints (raised-line swell paper) and 3D-printed tactile plan models via STL export.
+
 # 2  Getting Started
 Requirements: Python 3.8 or later and Rhino 7 or 8 (Windows or Mac). The controller and tactile print module run in any terminal. The watcher runs inside Rhino. No additional packages are needed for basic operation. Bambu 3D printing (Section 10.3) optionally requires OrcaSlicer and paho-mqtt.
 ## 2.1  File Placement
-The scaffold repo contains three key files for this skill:
+The repo contains these key files:
 - `controller_cli.py` — at the repo root. Run this in your terminal.
-- `rhino/rhino_watcher.py` — run this inside Rhino.
+- `rhino/rhino_watcher.py` — run this inside Rhino (or auto-launch with `setup rhino`).
 - `rhino/tactile_print.py` — Bambu 3D print pipeline.
 - `rhino/state.json` — created automatically on first run.
 
@@ -32,8 +42,30 @@ python controller_cli.py
 python controller_cli.py --state "/projects/studio/state.json"
 ```
 
-## 2.3  Start the Watcher
-Open Rhino’s Python editor (EditPythonScript) or a GhPython component. Paste and run:
+## 2.3  Start Rhino (Automated)
+The fastest way — launch Rhino, load the watcher, and set units to Feet in one command:
+```
+>> setup rhino
+OK: Launching Rhino with watcher...
+  Rhino: C:\Program Files\Rhino 8\System\Rhino.exe
+  Watcher: C:\path\to\rhino\rhino_watcher.py
+  Waiting for connection on 127.0.0.1:1998...
+OK: Connected. Rhino is ready. Units: Feet.
+```
+
+If Rhino is installed in a non-default location:
+```
+>> setup rhino --path "D:\Rhino 8\System\Rhino.exe"
+```
+
+Check connection at any time:
+```
+>> setup status
+OK: Rhino watcher is connected on 127.0.0.1:1998.
+```
+
+## 2.4  Start the Watcher (Manual)
+If you prefer to start Rhino manually, open the Python editor (EditPythonScript) or a GhPython component and run:
 ```python
 import sys
 sys.path.insert(0, r"C:\path\to\scaffold\rhino")
@@ -41,7 +73,7 @@ import rhino_watcher as w
 w.start_watcher()
 ```
 
-## 2.4  Verify the Connection
+## 2.5  Verify the Connection
 Type `describe` in the controller. You should see a structured text report of the model. In Rhino, gridlines, columns, and a site boundary should appear. If Rhino is empty, confirm all files are in place and that `rhino/state.json` exists.
 # 3  Reading the Model: Describe
 The describe command is the most important tool in the system. It prints a structured text report of every setting, piece of geometry, and spatial relationship in the model. For a designer working without visual feedback, this command replaces looking at the drawing.
@@ -333,7 +365,7 @@ history/
 snapshot_before_walls.json        # named snapshots
 
 # 14  MCP Server
-The MCP (Model Context Protocol) server wraps the CLI so that AI assistants — Claude Code, Claude Desktop, Cursor — can drive the jig conversationally. Version 2.0 exposes 21 semantic tools with typed parameters, 3 resources, and 2 prompt templates. The AI calls `add_aperture(bay="A", id="d1", type="door", ...)` instead of guessing raw CLI syntax.
+The MCP (Model Context Protocol) server wraps the CLI so that AI assistants — Claude Code, Claude Desktop, Cursor — can drive the jig conversationally. The server exposes commands as MCP functions with typed parameters, plus resources and prompt templates. The AI calls `add_aperture(bay="A", id="d1", type="door", ...)` instead of guessing raw CLI syntax.
 
 For full documentation including example conversations, tool reference, and extension guide, see `docs/MCP_GUIDE.md`.
 
@@ -357,8 +389,8 @@ For Claude Code, place `.mcp.json` at the project root (`CLI/`):
 
 For Claude Desktop, add the same entry to `claude_desktop_config.json`. Or set `LAYOUT_JIG_STATE=path/to/state.json` and omit `--state`.
 
-## 14.2  Available Tools (21 total)
-**Read tools** (no state mutation): `describe()`, `list_bays()`, `get_state()`, `get_help()`, `list_apertures(bay)`, `list_cells(bay)`, `list_rooms()`, `list_snapshots()`.
+## 14.2  Available MCP Functions
+**Read functions** (no state mutation): `describe()`, `list_bays()`, `get_state()`, `get_help()`, `list_apertures(bay)`, `list_cells(bay)`, `list_rooms()`, `list_snapshots()`.
 
 **Bay configuration**: `set_bay(bay, field, value)` — sets any bay property (origin, rotation, bays, spacing, spacing_x, spacing_y, grid_type, z_order, void_center, void_size, void_shape, label, braille, rings, ring_spacing, arms, arc_deg, arc_start_deg).
 
@@ -372,7 +404,7 @@ For Claude Desktop, add the same entry to `claude_desktop_config.json`. Or set `
 
 **Snapshots**: `save_snapshot(name)`, `load_snapshot(name)`. Use snapshots before major changes — undo is not available between MCP calls.
 
-**Escape hatch**: `run_command(command)` — passes any raw CLI string for commands not yet wrapped as typed tools.
+**Escape hatch**: `run_command(command)` — passes any raw CLI string for commands not yet wrapped as MCP functions.
 
 ## 14.3  MCP Resources
 Three read-only resources: `state://current` (full JSON state), `snapshots://list` (available checkpoints), `help://commands` (full CLI reference).
@@ -381,7 +413,7 @@ Three read-only resources: `state://current` (full JSON state), `snapshots://lis
 `design_review` — loads model description, asks for spatial, circulation, and tactile feedback. `aperture_audit` — checks all apertures for missing doors, window placement, and portal sizing.
 
 ## 14.5  Design Notes
-Each tool call loads state from disk, runs the command, and saves back atomically. No persistent session — use named snapshots to checkpoint. Stdout is reserved for JSON-RPC; all CLI print output goes to stderr.
+Each MCP function call loads state from disk, runs the command, and saves back atomically. No persistent session — use named snapshots to checkpoint. Stdout is reserved for JSON-RPC; all CLI print output goes to stderr.
 
 # 15  Style Variables
 Style variables control lineweights, text sizes, and spacing for both screen and tactile output. Set them individually:
@@ -431,7 +463,8 @@ Angle brackets = required.  Vertical bars = alternatives.  Square brackets = opt
 ## 17.13  Text-to-Speech
 ## 17.14  Section Cut
 ## 17.15  History and Snapshots
-## 17.16  MCP Server (tools)
+## 17.16  MCP Server
+## 17.17  Setup (Rhino Auto-Launch)
 # 18  Rhino Layer Map
 The watcher organizes all geometry into named layers. Toggle layer visibility in Rhino to isolate parts of the drawing.
 
@@ -478,7 +511,7 @@ These extensions fit naturally into the existing architecture:
 ## 19.6  Prompt Template
 When you sit down to extend the Jig, this structure works well:
 
-I'm working on the Rhino Layout Jig (part of the Scaffold platform), a CLI + Rhino watcher system.
+I'm working on the Rhino Layout Jig (part of the Radical Accessibility Toolkit), a CLI + Rhino watcher system.
 Here are the source files:
 [paste controller_cli.py]
 [paste rhino/rhino_watcher.py]

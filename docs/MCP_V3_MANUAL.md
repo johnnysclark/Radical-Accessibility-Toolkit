@@ -6,10 +6,10 @@ The MCP server is an intelligent layer between Claude and your Layout Jig.
 It speaks the Model Context Protocol so Claude Code, Claude Desktop, and
 Cursor can drive the jig conversationally.
 
-v3.0 added four engines on top of the 21 existing v2.0 tools:
+v3.0 added four modules on top of the 21 existing v2.0 MCP functions:
 
 - Auditor: validates the model, checks ADA compliance, describes spaces
-- Skill Manager: saves and replays reusable command sequences
+- Skill Manager: saves and replays reusable command sequences (skills)
 - Rhino Client: optionally queries Rhino for geometry information
 - Controller Extension: adds new commands to the CLI at runtime
 
@@ -20,7 +20,7 @@ v3.1 adds direct editing capabilities:
 - Controller Introspection: list commands, read handler source code
 - State Comparison: diff snapshots, validate JSON structure
 
-Total: 45 tools, 5 resources, 4 prompts.
+Total: 46 MCP functions, 5 resources, 4 prompts.
 
 ---
 
