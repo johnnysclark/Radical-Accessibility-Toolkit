@@ -1196,38 +1196,105 @@ def start_listener():
 
 
 # ══════════════════════════════════════════════════════════
-# FILE WATCHER
+# FILE WATCHER (Idle-event based, safe for Rhino)
 # ══════════════════════════════════════════════════════════
+# The watcher hooks Rhino.RhinoApp.Idle so that file checks
+# and geometry rebuilds happen on the MAIN thread.  Never call
+# rhinoscriptsyntax from a background thread — it will crash.
+#
+# The TCP listener is the only background thread; it only reads
+# Rhino state and never modifies geometry.
 
-def watch_loop():
-    print("[PLJ] Watching: {0}".format(STATE_FILE))
-    print("[PLJ] Poll interval: {0}s".format(POLL_SEC))
-    last_mtime = 0
-    while True:
-        try:
-            mt = _state_mtime()
-            if mt > last_mtime:
-                last_mtime = mt
-                state = _load_state()
-                if state: redraw(state)
-            time.sleep(POLL_SEC)
-        except KeyboardInterrupt:
-            print("[PLJ] Watcher stopped."); break
-        except Exception as e:
-            print("[PLJ] Error: {0}".format(e)); time.sleep(2)
+_watcher_state = {
+    "last_mtime": 0,
+    "last_check": 0,
+    "running": False,
+}
+
+
+def _on_idle(sender, args):
+    """Called on Rhino's main thread during idle moments.
+
+    Checks file mtime at most every POLL_SEC seconds.  If the
+    file changed, reloads and redraws on the main thread.
+    """
+    now = time.time()
+    if now - _watcher_state["last_check"] < POLL_SEC:
+        return
+    _watcher_state["last_check"] = now
+    try:
+        mt = _state_mtime()
+        if mt > _watcher_state["last_mtime"]:
+            _watcher_state["last_mtime"] = mt
+            state = _load_state()
+            if state:
+                redraw(state)
+    except Exception as e:
+        print("[PLJ] Watcher error: {0}".format(e))
+
 
 def start_watcher():
-    t = threading.Thread(target=watch_loop)
+    """Hook the Rhino Idle event to watch for file changes."""
+    if not IN_RHINO:
+        print("[PLJ] Not in Rhino. Using fallback thread watcher.")
+        _start_thread_watcher()
+        return
+    Rhino.RhinoApp.Idle += _on_idle
+    _watcher_state["running"] = True
+    print("[PLJ] Watching: {0}".format(STATE_FILE))
+    print("[PLJ] Watcher attached to Rhino Idle event.")
+
+
+def stop_watcher():
+    """Unhook the Rhino Idle event."""
+    if IN_RHINO and _watcher_state["running"]:
+        try:
+            Rhino.RhinoApp.Idle -= _on_idle
+        except Exception:
+            pass
+        _watcher_state["running"] = False
+        print("[PLJ] Watcher stopped.")
+
+
+def _start_thread_watcher():
+    """Fallback for non-Rhino (dry-run) testing only."""
+    def _loop():
+        while True:
+            try:
+                mt = _state_mtime()
+                if mt > _watcher_state["last_mtime"]:
+                    _watcher_state["last_mtime"] = mt
+                    state = _load_state()
+                    if state:
+                        print("[DRY RUN] Would redraw: {0}".format(
+                            list(state["bays"].keys())))
+                time.sleep(POLL_SEC)
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print("[PLJ] Error: {0}".format(e))
+                time.sleep(2)
+    t = threading.Thread(target=_loop)
     t.daemon = True
     t.start()
-    print("[PLJ] Background watcher started.")
-    return t
+
+
+# ── Startup ───────────────────────────────────────────────
 
 state = _load_state()
 if state:
-    redraw(state)
+    try:
+        redraw(state)
+    except Exception as e:
+        print("[PLJ] Initial redraw failed: {0}".format(e))
+        if IN_RHINO:
+            try:
+                rs.EnableRedraw(True)
+            except Exception:
+                pass
     start_watcher()
     start_listener()
+    print("[PLJ] Ready. Edit state.json and the viewport updates automatically.")
 else:
     print("[PLJ] No state file at {0}".format(STATE_FILE))
     print("  Run controller_cli.py to generate one.")
