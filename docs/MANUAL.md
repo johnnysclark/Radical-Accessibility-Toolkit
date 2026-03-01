@@ -53,10 +53,11 @@ of the system. It knows every legal operation on the model and validates
 all input.
 
 mcp/mcp_server.py: The MCP server. This wraps the controller so
-Claude can call commands as typed function calls. It also has the audit
-engine, skill engine, rhino bridge, controller extension tools, state
-introspection tools, bay management tools, controller introspection
-tools, and state comparison tools. 46 tools total.
+Claude can call commands as typed function calls. It also has the
+auditor, skill manager, rhino client, controller extension tools,
+state introspection tools, bay management tools, controller
+introspection tools, state comparison tools, and script generation
+tools. 49 tools total (v3.2).
 
 controller/auditor.py: Spatial analysis. Validates the model for
 overlapping bays, ADA compliance, aperture placement, and missing
@@ -1040,7 +1041,75 @@ Checks performed:
 - Are aperture types valid? (door, window, or portal)
 
 
-## 23. Editing state.json by Hand
+## 23. Mode 3: Learning Rhino Python
+
+The system supports three interaction modes:
+
+Mode 1: Claude Code + MCP. Natural language. Claude translates your
+intent into model changes. Best for getting started and complex
+multi-step operations.
+
+Mode 2: Interactive CLI. Typed commands in a terminal. Direct control.
+Best for fine-tuning and learning the command vocabulary.
+
+Mode 3: Rhino Python editor. You write and run IronPython 2.7 scripts
+that create geometry, query the model, or automate tasks directly
+inside Rhino. Best for building scripting fluency.
+
+Mode 3 matters because the AI should be a bridge to self-sufficiency.
+Over time, you learn to write your own scripts. The system generates
+annotated scripts you can study, modify, and run.
+
+### Script generation tools (MCP)
+
+generate_script: Creates a .py file in the scripts/ folder with
+teaching comments and IronPython 2.7 validation.
+
+list_scripts: Lists all generated scripts with descriptions.
+
+show_script: Shows the full contents of a script file.
+
+### Workflow
+
+1. Ask Claude: "Generate a script that draws a circle at each column"
+2. Claude calls generate_script — file appears in scripts/
+3. Open the file in any text editor (or Rhino's EditPythonScript)
+4. Read the teaching comments to understand what each line does
+5. Modify the script (change values, add features)
+6. Run in Rhino with F5
+7. Ask Claude to explain errors or help debug
+
+### IronPython 2.7 rules
+
+Scripts run inside Rhino's IronPython 2.7 interpreter:
+- No f-strings. Use .format() instead.
+- No pathlib. Use os.path instead.
+- No type hints.
+- print() works as a function.
+
+The generate_script tool checks for these automatically.
+
+### Example: read state.json and print room info
+
+    import json
+    import os
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    state_path = os.path.join(here, "..", "state.json")
+
+    with open(state_path, "r") as f:
+        state = json.load(f)
+
+    rooms = state.get("rooms", {})
+    for name, info in sorted(rooms.items()):
+        label = info.get("label", name)
+        print("{0}: {1}".format(name, label))
+
+See DESIGN_SESSION.md for a complete walkthrough showing all three
+modes in action during a school building design project.
+
+
+## 24. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -1158,7 +1227,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 24. How Things Work Under the Hood
+## 25. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1212,7 +1281,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 25. MCP Resources and Prompts
+## 26. MCP Resources and Prompts
 
 ### Resources
 
@@ -1230,7 +1299,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 26. Troubleshooting
+## 27. Troubleshooting
 
 ### "mcp package not found"
 

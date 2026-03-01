@@ -169,9 +169,9 @@ Instead of passing `--state`, you can set the environment variable:
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 
-    Layout Jig MCP Server v3.1 starting...
+    Layout Jig MCP Server v3.2 starting...
     State file: /path/to/state.json
-    Tools: 46 registered
+    Tools: 49 registered
 
 ### Optional: Rhino connection
 
@@ -187,7 +187,7 @@ If Rhino is not running, those functions return OFFLINE messages. Everything els
 
 ## 4. Tool Reference
 
-46 MCP functions organized by category.
+49 MCP functions organized by category.
 
 ### Core pipeline (21 functions)
 
@@ -306,6 +306,16 @@ Direct state access using dot-notation paths like "bays.A.corridor.width" or "me
 `diff_snapshot(snapshot_name: str)` -- Compare the current state.json to a saved snapshot and list all fields that differ. Like "git diff" for your model.
 
 `validate_state()` -- Check that state.json is structurally correct: valid JSON, required sections present, bay fields have correct types. This is different from audit_model which checks spatial/ADA rules. validate_state checks JSON structure. Use after hand-editing state.json or after set_field changes.
+
+### Script generation (3 functions)
+
+Mode 3: Learning Rhino Python. These tools generate editable IronPython 2.7 scripts that the user can open, study, modify, and run in Rhino. The goal is to build scripting fluency over time so the user is not permanently dependent on the AI.
+
+`generate_script(name: str, description: str, code: str, teach: bool)` -- Create a .py file in the scripts/ folder. Validates for IronPython 2.7 compatibility (rejects f-strings and pathlib). If teach=True (default), prepends commented learning notes. Returns the file path and instructions for running in Rhino's EditPythonScript.
+
+`list_scripts()` -- List all .py files in scripts/ with name, description, and size.
+
+`show_script(name: str)` -- Return the full contents of a script. Supports fuzzy name matching if the exact name is not found.
 
 
 ## 5. Resources and Prompts

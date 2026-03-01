@@ -591,7 +591,73 @@ else:
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 12: Error Handling")
+print("PHASE 12: Script Generation Tools")
+print("=" * 60)
+
+# Add mcp/ to path so we can import mcp_server's script functions
+_mcp_dir = os.path.join(ROOT, "mcp")
+if _mcp_dir not in sys.path:
+    sys.path.insert(0, _mcp_dir)
+
+try:
+    import mcp_server as _mcp_mod
+    _mcp_available = True
+except ImportError:
+    _mcp_available = False
+    print("SKIP: mcp package not installed, skipping script generation tests")
+
+if _mcp_available:
+    # generate_script — valid script
+    gen_msg = _mcp_mod.generate_script(
+        "test-hello", "Print hello from Rhino",
+        "import rhinoscriptsyntax as rs\nprint('Hello from Rhino!')\n",
+        teach=True)
+    test("generate_script creates file",
+         lambda: None if "OK:" in gen_msg else gen_msg[:120])
+
+    test_script_path = os.path.join(JIG, "scripts", "test-hello.py")
+    test("generated script file exists",
+         lambda: None if os.path.exists(test_script_path) else "file not found")
+
+    # show_script
+    show_msg = _mcp_mod.show_script("test-hello")
+    test("show_script returns contents",
+         lambda: None if "Hello from Rhino" in show_msg else show_msg[:120])
+    test("show_script has teaching header",
+         lambda: None if "LEARNING NOTES" in show_msg else show_msg[:120])
+
+    # list_scripts
+    list_msg = _mcp_mod.list_scripts()
+    test("list_scripts shows generated file",
+         lambda: None if "test-hello" in list_msg else list_msg[:120])
+
+    # generate_script — reject f-strings
+    bad_msg = _mcp_mod.generate_script(
+        "test-bad", "Bad script",
+        'x = f"hello {name}"\n')
+    test("generate_script rejects f-strings",
+         lambda: None if "ERROR" in bad_msg and "f-string" in bad_msg else bad_msg[:120])
+
+    # generate_script — reject pathlib
+    bad_msg2 = _mcp_mod.generate_script(
+        "test-bad2", "Bad script",
+        'import pathlib\np = pathlib.Path(".")\n')
+    test("generate_script rejects pathlib",
+         lambda: None if "ERROR" in bad_msg2 and "pathlib" in bad_msg2 else bad_msg2[:120])
+
+    # show_script — missing file
+    miss_msg = _mcp_mod.show_script("nonexistent-script-xyz")
+    test("show_script missing file returns ERROR",
+         lambda: None if "ERROR" in miss_msg else miss_msg[:120])
+
+    # Cleanup test script
+    if os.path.exists(test_script_path):
+        os.remove(test_script_path)
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 13: Error Handling")
 print("=" * 60)
 
 reset_state()
@@ -621,7 +687,7 @@ except ValueError:
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 13: Atomic Write Safety")
+print("PHASE 14: Atomic Write Safety")
 print("=" * 60)
 
 reset_state()

@@ -147,14 +147,30 @@ Then create .mcp.json at the project root:
 Claude Code, Claude Desktop, or Cursor will start the MCP server
 automatically when they connect. You do not need to run it manually.
 
-The MCP server gives Claude access to 46 functions: everything
-the CLI can do, plus auditing, skills, Rhino queries, and direct
-state editing. See docs/MCP_GUIDE.md for the full reference.
+The MCP server gives Claude access to 49 functions (v3.2): everything
+the CLI can do, plus auditing, skills, Rhino queries, direct state
+editing, and script generation. See docs/MCP_GUIDE.md for the full
+reference.
 
 ## Step 4: Verify
 
 Type `describe` to hear a summary of the current model.
 Type `help` for a list of all commands.
+
+## Step 5: Learn Scripting (Mode 3 — Optional)
+
+Once you are comfortable with Mode 1 (Claude) and Mode 2 (CLI), you
+can start writing your own Rhino Python scripts.
+
+Ask Claude: "Generate a script that draws a circle at each column"
+
+Claude creates a .py file in the controller/scripts/ folder with
+teaching comments explaining each line. Open it in any text editor,
+modify it, and run it in Rhino's EditPythonScript (F5). Over time,
+you build fluency in Python and rhinoscriptsyntax.
+
+See DESIGN_SESSION.md for a complete walkthrough showing all three
+modes during a school building design project.
 
 ## Requirements
 
@@ -168,8 +184,11 @@ For image description: a Claude API key.
 Complete manual with all commands, tools, and extension guide:
   docs/MANUAL.md
 
-AI layer — MCP architecture, setup, and 46-function reference:
+AI layer — MCP architecture, setup, and 49-function reference:
   docs/MCP_GUIDE.md
+
+Design session walkthrough (all 3 interaction modes):
+  DESIGN_SESSION.md
 
 Test walkthrough — how to verify everything works:
   docs/TEST_MANUAL.md
