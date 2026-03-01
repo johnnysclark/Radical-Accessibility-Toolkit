@@ -1,0 +1,5 @@
+# Layout Jig — Python dependencies
+#
+# The controller, auditor, skill manager, and rhino client are
+# stdlib-only.  The MCP server is the sole external dependency.
+mcp>=1.26.0

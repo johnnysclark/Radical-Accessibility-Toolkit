@@ -18,9 +18,9 @@ Requirements: Python 3.8 or later and Rhino 7 or 8 (Windows or Mac). The control
 ## 2.1  File Placement
 The scaffold repo contains three key files for this skill:
 - `controller_cli.py` — at the repo root. Run this in your terminal.
-- `rhino-python-driver/rhino_watcher.py` — run this inside Rhino.
-- `rhino-python-driver/tactile_print.py` — Bambu 3D print pipeline.
-- `rhino-python-driver/state.json` — created automatically on first run.
+- `rhino/rhino_watcher.py` — run this inside Rhino.
+- `rhino/tactile_print.py` — Bambu 3D print pipeline.
+- `rhino/state.json` — created automatically on first run.
 
 Optionally create a `hatches/` subfolder for image-based room fill patterns.
 
@@ -36,13 +36,13 @@ python controller_cli.py --state "/projects/studio/state.json"
 Open Rhino’s Python editor (EditPythonScript) or a GhPython component. Paste and run:
 ```python
 import sys
-sys.path.insert(0, r"C:\path\to\scaffold\rhino-python-driver")
+sys.path.insert(0, r"C:\path\to\scaffold\rhino")
 import rhino_watcher as w
 w.start_watcher()
 ```
 
 ## 2.4  Verify the Connection
-Type `describe` in the controller. You should see a structured text report of the model. In Rhino, gridlines, columns, and a site boundary should appear. If Rhino is empty, confirm all files are in place and that `rhino-python-driver/state.json` exists.
+Type `describe` in the controller. You should see a structured text report of the model. In Rhino, gridlines, columns, and a site boundary should appear. If Rhino is empty, confirm all files are in place and that `rhino/state.json` exists.
 # 3  Reading the Model: Describe
 The describe command is the most important tool in the system. It prints a structured text report of every setting, piece of geometry, and spatial relationship in the model. For a designer working without visual feedback, this command replaces looking at the drawing.
 CLI (both forms are equivalent)
@@ -349,7 +349,7 @@ For Claude Code, place `.mcp.json` at the project root (`CLI/`):
   "mcpServers": {
     "layout-jig": {
       "command": "python",
-      "args": ["scaffold/mcp_server.py", "--state", "scaffold/rhino-python-driver/state.json"]
+      "args": ["scaffold/mcp_server.py", "--state", "scaffold/rhino/state.json"]
     }
   }
 }
@@ -481,8 +481,8 @@ When you sit down to extend the Jig, this structure works well:
 I'm working on the Rhino Layout Jig (part of the Scaffold platform), a CLI + Rhino watcher system.
 Here are the source files:
 [paste controller_cli.py]
-[paste rhino-python-driver/rhino_watcher.py]
-[paste rhino-python-driver/tactile_print.py if relevant]
+[paste rhino/rhino_watcher.py]
+[paste rhino/tactile_print.py if relevant]
 
 I want to add [feature]. It should:
 - [what the user types]

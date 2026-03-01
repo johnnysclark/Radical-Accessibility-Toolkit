@@ -3,9 +3,9 @@
 PLAN LAYOUT JIG — MCP Server  v3.1
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
-  - Audit engine: spatial validation, ADA checks, rich descriptions
-  - Skill engine: save, list, and replay reusable command sequences
-  - Rhino bridge: optional TCP queries to the Rhino watcher
+  - Auditor: spatial validation, ADA checks, rich descriptions
+  - Skill manager: save, list, and replay reusable command sequences
+  - Rhino client: optional TCP queries to the Rhino watcher
   - Controller extension: add new command handlers at runtime
   - State introspection: read/write individual JSON fields by path
   - Bay management: create, remove, and clone bays
@@ -17,7 +17,7 @@ v3.1 changes (from v3.0):
   - 3 bay management tools: add_bay, remove_bay, clone_bay
   - 2 controller introspection tools: list_commands, show_command_source
   - 2 state comparison tools: diff_snapshot, validate_state
-  Total: 45 tools (was 35)
+  Total: 46 tools (was 35)
 
 v3.0 changes (from v2.0):
   - 5 audit tools: audit_model, audit_bay, describe_bay,
@@ -42,8 +42,7 @@ Claude Code config (.mcp.json at project root):
   "mcpServers": {
     "layout-jig": {
       "command": "python",
-      "args": ["rhino-python-driver/mcp_server.py", "--state",
-               "rhino-python-driver/state.json"]
+      "args": ["mcp_server.py", "--state", "rhino/state.json"]
     }
   }
 }
@@ -73,9 +72,9 @@ if _here not in sys.path:
 import controller_cli as cli
 
 # ── Import engines (lazy-safe: all stdlib-only) ────────
-import audit_engine
-import skill_engine
-import rhino_bridge
+import auditor
+import skill_manager
+import rhino_client
 
 # ── MCP dependency ─────────────────────────────────────
 try:
@@ -663,8 +662,8 @@ def audit_model() -> str:
     Works offline -- reads state.json only, no Rhino needed.
     """
     state = _load_state()
-    issues = audit_engine.audit_model(state)
-    return audit_engine.format_audit(issues)
+    issues = auditor.audit_model(state)
+    return auditor.format_audit(issues)
 
 
 @mcp.tool()
@@ -678,7 +677,7 @@ def audit_bay(bay: str) -> str:
         bay: Bay name (e.g. "A", "B")
     """
     state = _load_state()
-    return audit_engine.audit_bay(state, bay)
+    return auditor.audit_bay(state, bay)
 
 
 @mcp.tool()
@@ -693,7 +692,7 @@ def describe_bay(bay: str) -> str:
         bay: Bay name (e.g. "A", "B")
     """
     state = _load_state()
-    return audit_engine.describe_bay(state, bay)
+    return auditor.describe_bay(state, bay)
 
 
 @mcp.tool()
@@ -705,7 +704,7 @@ def describe_circulation() -> str:
     Works offline -- reads state.json only, no Rhino needed.
     """
     state = _load_state()
-    return audit_engine.describe_circulation(state)
+    return auditor.describe_circulation(state)
 
 
 @mcp.tool()
@@ -724,7 +723,7 @@ def measure(from_location: str, to_location: str) -> str:
         to_location: Ending point (same format as from_location)
     """
     state = _load_state()
-    return audit_engine.measure(state, from_location, to_location)
+    return auditor.measure(state, from_location, to_location)
 
 
 # ══════════════════════════════════════════════════════════
@@ -738,8 +737,8 @@ def skill_list() -> str:
     Skills are reusable command sequences stored as JSON files in the
     skills/ folder. They can be replayed with different parameters.
     """
-    skills = skill_engine.list_skills()
-    return skill_engine.format_skill_list(skills)
+    skills = skill_manager.list_skills()
+    return skill_manager.format_skill_list(skills)
 
 
 @mcp.tool()
@@ -750,8 +749,8 @@ def skill_show(name: str) -> str:
         name: Skill name (e.g. "add-double-loaded-corridor")
     """
     try:
-        skill = skill_engine.load_skill(name)
-        return skill_engine.format_skill_detail(skill)
+        skill = skill_manager.load_skill(name)
+        return skill_manager.format_skill_detail(skill)
     except ValueError as e:
         return f"ERROR: {e}"
 
@@ -777,7 +776,7 @@ def skill_run(name: str, overrides: str = "") -> str:
                 k, v = pair.split("=", 1)
                 override_dict[k] = v
 
-    return skill_engine.run_skill(name, override_dict, _run)
+    return skill_manager.run_skill(name, override_dict, _run)
 
 
 @mcp.tool()
@@ -811,7 +810,7 @@ def skill_save(name: str, description: str, commands: str,
                 k, v = pair.split("=", 1)
                 param_dict[k] = {"description": f"Value for {k}", "default": v}
 
-    return skill_engine.save_skill(name, description, cmd_list, param_dict)
+    return skill_manager.save_skill(name, description, cmd_list, param_dict)
 
 
 # ══════════════════════════════════════════════════════════
@@ -826,7 +825,7 @@ def rhino_status() -> str:
     rebuild time if connected. Returns OFFLINE message if not.
     Never fails -- offline mode is a first-class result.
     """
-    bridge = rhino_bridge.get_bridge()
+    bridge = rhino_client.get_bridge()
     return bridge.status()
 
 
@@ -846,7 +845,7 @@ def rhino_query(query_type: str, layer: str = "") -> str:
         layer: Optional layer name for "object_count" query
             (e.g. "JIG_COLUMNS", "JIG_WALLS"). Omit for total count.
     """
-    bridge = rhino_bridge.get_bridge()
+    bridge = rhino_client.get_bridge()
     params = {}
     if layer:
         params["layer"] = layer
@@ -869,8 +868,37 @@ def rhino_run_script(code: str) -> str:
         code: Python code to execute. Must use print() for output.
             Example: "import rhinoscriptsyntax as rs\\nprint(rs.ObjectsByLayer('JIG_COLUMNS'))"
     """
-    bridge = rhino_bridge.get_bridge()
+    bridge = rhino_client.get_bridge()
     return bridge.run_script(code)
+
+
+@mcp.tool()
+def setup_rhino(rhino_path: str = "") -> str:
+    """Launch Rhino with the watcher auto-loaded and units set to Feet.
+
+    Automates the manual startup workflow: opens Rhino, runs the watcher
+    script, and sets document units to Feet. Polls for connection on
+    port 1998 for up to 30 seconds.
+
+    If Rhino is already connected, returns the current status instead
+    of launching a new instance.
+
+    Args:
+        rhino_path: Optional path to Rhino.exe. If omitted, searches
+            standard install locations (Program Files).
+    """
+    # Check if already connected
+    bridge = rhino_client.get_bridge()
+    if bridge.is_connected():
+        return bridge.status()
+
+    # Delegate to the CLI setup command
+    tokens = ["setup", "rhino"]
+    if rhino_path:
+        tokens.extend(["--path", rhino_path])
+    state = _load()
+    _, msg = cli.cmd_setup(state, tokens, STATE_PATH)
+    return msg
 
 
 # ══════════════════════════════════════════════════════════
@@ -1581,8 +1609,8 @@ def resource_help() -> str:
 @mcp.resource("skills://list")
 def resource_skill_list() -> str:
     """List of all saved skills with summaries."""
-    skills = skill_engine.list_skills()
-    return skill_engine.format_skill_list(skills)
+    skills = skill_manager.list_skills()
+    return skill_manager.format_skill_list(skills)
 
 
 @mcp.resource("extensions://list")
@@ -1663,9 +1691,9 @@ def accessibility_audit() -> str:
     """
     state = _load_state()
     desc = cli.describe(state)
-    issues = audit_engine.audit_model(state)
-    audit_text = audit_engine.format_audit(issues)
-    circulation = audit_engine.describe_circulation(state)
+    issues = auditor.audit_model(state)
+    audit_text = auditor.format_audit(issues)
+    circulation = auditor.describe_circulation(state)
 
     return (
         f"ACCESSIBILITY AUDIT REQUEST\n\n"
@@ -1691,8 +1719,8 @@ def skill_builder() -> str:
     so Claude can help compose a new skill.
     """
     state = _load_state()
-    skills = skill_engine.list_skills()
-    skill_text = skill_engine.format_skill_list(skills)
+    skills = skill_manager.list_skills()
+    skill_text = skill_manager.format_skill_list(skills)
 
     return (
         f"SKILL BUILDER\n\n"
@@ -1718,6 +1746,6 @@ if __name__ == "__main__":
     _real_print(f"Layout Jig MCP Server v3.1 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
     _real_print(f"Tools: 45 (21 v2.0 + 14 v3.0 + 10 v3.1)", file=sys.stderr)
-    _real_print(f"Engines: audit, skills, rhino_bridge", file=sys.stderr)
-    _real_print(f"Skills dir: {skill_engine.SKILLS_DIR}", file=sys.stderr)
+    _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
+    _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
     mcp.run()

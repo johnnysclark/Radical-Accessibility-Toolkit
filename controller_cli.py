@@ -1748,6 +1748,125 @@ def cmd_tts(state, tokens):
     raise ValueError("TTS subcommands: on, off, rate <-10..10>")
 
 # ══════════════════════════════════════════════════════════
+# SETUP (Rhino auto-launch)
+# ══════════════════════════════════════════════════════════
+
+# Default Rhino install locations (Windows)
+_RHINO_SEARCH_PATHS = [
+    r"C:\Program Files\Rhino 8\System\Rhino.exe",
+    r"C:\Program Files\Rhino 7\System\Rhino.exe",
+    r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
+]
+
+def _find_rhino():
+    """Return the Rhino executable path if found, else None."""
+    for p in _RHINO_SEARCH_PATHS:
+        if os.path.isfile(p):
+            return p
+    return None
+
+def _rhino_is_connected():
+    """Quick TCP check: is the watcher listening on port 1998?"""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect(("127.0.0.1", 1998))
+        s.sendall(b'{"type":"ping"}\n')
+        buf = b""
+        while True:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+            if b"\n" in buf:
+                break
+        s.close()
+        import json as _json
+        resp = _json.loads(buf.strip())
+        return resp.get("status") == "ok"
+    except Exception:
+        return False
+
+def cmd_setup(state, tokens, state_file):
+    """Handle the 'setup' command family.
+
+    setup rhino            — launch Rhino with the watcher auto-loaded
+    setup rhino --path <p> — specify Rhino executable path and launch
+    setup status           — check if the watcher is reachable
+    """
+    if len(tokens) < 2:
+        raise ValueError(
+            "Usage: setup rhino [--path <exe>]  |  setup status")
+    sub = tokens[1].lower()
+
+    if sub == "status":
+        if _rhino_is_connected():
+            return state, "OK: Rhino watcher is connected on 127.0.0.1:1998."
+        return state, "OFFLINE: Rhino watcher is not responding on 127.0.0.1:1998."
+
+    if sub != "rhino":
+        raise ValueError(
+            "Unknown setup target: '{}'. Options: rhino, status".format(sub))
+
+    # Determine Rhino path
+    rhino_path = None
+    for i, t in enumerate(tokens):
+        if t == "--path" and i + 1 < len(tokens):
+            rhino_path = tokens[i + 1]
+            break
+    if rhino_path is None:
+        rhino_path = _find_rhino()
+    if rhino_path is None or not os.path.isfile(rhino_path):
+        return state, (
+            "ERROR: Rhino not found. Use: setup rhino --path "
+            "\"C:\\Program Files\\Rhino 8\\System\\Rhino.exe\"")
+
+    # Build watcher path
+    watcher_path = os.path.join(_script_dir(), "rhino", "rhino_watcher.py")
+    if not os.path.isfile(watcher_path):
+        return state, (
+            "ERROR: Watcher not found at {}.".format(watcher_path))
+
+    # Build command: launch Rhino, auto-run the watcher script,
+    # and set units to Feet.
+    run_cmds = (
+        '_-RunPythonScript "{}"'
+        " _-DocumentProperties _Units _ModelUnits _Feet _Enter _Enter"
+    ).format(watcher_path.replace("\\", "/"))
+
+    try:
+        subprocess.Popen(
+            [rhino_path, "/nosplash",
+             "/runscript={}".format(run_cmds)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+    except Exception as e:
+        return state, "ERROR: Failed to launch Rhino: {}".format(e)
+
+    # Poll for connection (up to 30 seconds)
+    lines = [
+        "OK: Launching Rhino with watcher...",
+        "  Rhino: {}".format(rhino_path),
+        "  Watcher: {}".format(watcher_path),
+        "  Waiting for connection on 127.0.0.1:1998...",
+    ]
+    import time as _time
+    connected = False
+    for _ in range(15):
+        _time.sleep(2)
+        if _rhino_is_connected():
+            connected = True
+            break
+    if connected:
+        lines.append("OK: Connected. Rhino is ready. Units: Feet.")
+    else:
+        lines.append(
+            "WAITING: Rhino launched but watcher not yet responding. "
+            "Check Rhino is open and try 'setup status' in a moment.")
+    return state, "\n".join(lines)
+
+# ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
 # ══════════════════════════════════════════════════════════
 
@@ -1778,6 +1897,7 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "section":  return cmd_section(state, tokens)
     if cmd == "history":  return cmd_history(state, tokens, state_file)
     if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
+    if cmd == "setup":    return cmd_setup(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -1927,6 +2047,11 @@ TEXT-TO-SPEECH:
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>
   print
+
+SETUP (Rhino auto-launch):
+  setup rhino ............. launch Rhino with watcher + set units to Feet
+  setup rhino --path <exe>  specify Rhino executable path
+  setup status ............ check if Rhino watcher is connected
 """
 
 def main():

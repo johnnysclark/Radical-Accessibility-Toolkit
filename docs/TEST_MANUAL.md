@@ -48,12 +48,12 @@ engine, skill engine, rhino bridge, controller extension tools,
 state introspection tools, bay management tools, controller
 introspection tools, and state comparison tools. 45 tools total.
 
-audit_engine.py: Spatial analysis. Validates the model for
+auditor.py: Spatial analysis. Validates the model for
 overlapping bays, ADA compliance, aperture placement, and missing
 labels. Also produces rich text descriptions of individual bays
 and corridor connectivity.
 
-skill_engine.py: Reusable command macros. Saves sequences of
+skill_manager.py: Reusable command macros. Saves sequences of
 commands as JSON files in the skills/ folder and replays them
 with different parameters.
 
@@ -62,7 +62,7 @@ It watches state.json for changes and rebuilds all geometry when the
 file changes. Run it in Rhino with exec(open(...).read()). About
 1,300 lines of IronPython 2.7.
 
-rhino_bridge.py: Optional Rhino query client. This does NOT run
+rhino_client.py: Optional Rhino query client. This does NOT run
 inside Rhino. It is imported by the MCP server and talks to the
 watcher over TCP port 1998 to ask read-only questions about the 3D
 model. If you open this file in Rhino, it will not work. Returns
@@ -135,7 +135,7 @@ see the drawing update as you make changes, follow these steps.
 There are two Rhino-related files. They do different things:
 
     rhino_watcher.py — Runs INSIDE Rhino. This is the viewer.
-    rhino_bridge.py  — Runs OUTSIDE Rhino. This is a query client
+    rhino_client.py  — Runs OUTSIDE Rhino. This is a query client
                        used by the MCP server. Do not open this
                        file in Rhino.
 
@@ -1487,7 +1487,7 @@ The bridge connects on TCP port 1998. Make sure:
 If you get "SyntaxError: unexpected token 'f'" or similar, you
 opened the wrong file in Rhino. Only rhino_watcher.py runs inside
 Rhino. All other Python files (controller_cli.py, mcp_server.py,
-audit_engine.py, skill_engine.py, rhino_bridge.py, run_tests.py)
+auditor.py, skill_manager.py, rhino_client.py, run_tests.py)
 are Python 3 and will not work in Rhino's IronPython 2.7.
 
 ### Snapshot not found

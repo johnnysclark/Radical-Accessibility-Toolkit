@@ -8,9 +8,9 @@ Cursor can drive the jig conversationally.
 
 v3.0 added four engines on top of the 21 existing v2.0 tools:
 
-- Audit Engine: validates the model, checks ADA compliance, describes spaces
-- Skill Engine: saves and replays reusable command sequences
-- Rhino Bridge: optionally queries Rhino for geometry information
+- Auditor: validates the model, checks ADA compliance, describes spaces
+- Skill Manager: saves and replays reusable command sequences
+- Rhino Client: optionally queries Rhino for geometry information
 - Controller Extension: adds new commands to the CLI at runtime
 
 v3.1 adds direct editing capabilities:
@@ -33,7 +33,7 @@ You (speaking or typing to Claude)
   MCP Server (mcp_server.py v3.0)
     |       |         |           |
     v       v         v           v
-  _run()  audit     skills     rhino_bridge
+  _run()  auditor   skill_mgr  rhino_client
     |     engine     engine        |
     v       |         |            v
   controller_cli.py   |     rhino_watcher.py
@@ -54,11 +54,11 @@ Rhino is a viewer. If Rhino crashes, nothing is lost.
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| mcp_server.py | MCP orchestrator, all 45 tools | ~1100 |
+| mcp_server.py | MCP orchestrator, all 46 tools | ~1100 |
 | controller_cli.py | Authoritative state machine | ~2000 |
-| audit_engine.py | Spatial validation, descriptions | ~350 |
-| skill_engine.py | Skill CRUD and replay | ~280 |
-| rhino_bridge.py | TCP client to Rhino watcher | ~180 |
+| auditor.py | Spatial validation, descriptions | ~350 |
+| skill_manager.py | Skill CRUD and replay | ~280 |
+| rhino_client.py | TCP client to Rhino watcher | ~180 |
 | rhino_watcher.py | Geometry renderer + TCP listener | ~1200 |
 | skills/*.json | Saved skill files | varies |
 | state.json | Canonical Model Artifact (CMA) | varies |
@@ -85,9 +85,9 @@ Your .mcp.json at the project root:
     "layout-jig": {
       "command": "python",
       "args": [
-        "rhino-python-driver/mcp_server.py",
+        "mcp_server.py",
         "--state",
-        "rhino-python-driver/state.json"
+        "rhino/state.json"
       ]
     }
   }
@@ -165,7 +165,7 @@ Everything else works without Rhino.
 | 29 | skill_run(name, overrides) | Execute a skill with parameters |
 | 30 | skill_save(name, desc, commands, params) | Save a new skill |
 
-### Rhino Bridge Tools (v3.0 NEW)
+### Rhino Client Tools (v3.0 NEW)
 
 | # | Tool | What it does |
 |---|------|-------------|
@@ -327,7 +327,7 @@ rules. validate_state checks JSON structure.
 
 ---
 
-## Audit Engine Details
+## Auditor Details
 
 ### audit_model
 
@@ -377,7 +377,7 @@ Returns straight-line, horizontal (X), and vertical (Y) distances.
 
 ---
 
-## Skill Engine Details
+## Skill Manager Details
 
 ### What is a skill?
 
@@ -443,13 +443,13 @@ format above.
 
 ---
 
-## Rhino Bridge Details
+## Rhino Client Details
 
 ### How it works
 
 The Rhino watcher (rhino_watcher.py) now starts a TCP listener on
 port 1998 alongside its file-polling loop. The MCP server's
-rhino_bridge.py connects to this listener to ask read-only questions.
+rhino_client.py connects to this listener to ask read-only questions.
 
 Port 1998 is used (not 1999) to avoid conflicting with rhinomcp.
 

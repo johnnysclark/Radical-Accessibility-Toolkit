@@ -2,23 +2,24 @@
 """
 LAYOUT JIG v3.0 — End-to-End Test Suite
 =========================================
-Tests every CLI command, audit engine function, skill engine function,
-and rhino bridge call against the test state.json.
+Tests every CLI command, auditor function, skill manager function,
+and rhino client call against the test state.json.
 
-Run:  python run_tests.py
+Run:  python tests/run_tests.py
 """
 import sys, os, json, copy
 
 # ── Setup ──
 HERE = os.path.dirname(os.path.abspath(__file__))
-STATE = os.path.join(HERE, "state.json")
+ROOT = os.path.dirname(HERE)
+STATE = os.path.join(ROOT, "rhino", "state.json")
 os.environ["LAYOUT_JIG_STATE"] = STATE
-sys.path.insert(0, HERE)
+sys.path.insert(0, ROOT)
 
 import controller_cli as cli
-import audit_engine
-import skill_engine
-import rhino_bridge
+import auditor
+import skill_manager
+import rhino_client
 
 passed = 0
 failed = 0
@@ -199,9 +200,9 @@ d2 = next(a for a in s["bays"]["A"]["apertures"] if a["id"] == "d2")
 test("aperture modify d2 width=4",
      lambda: None if d2["width"] == 4.0 else msg)
 
-s, msg = cli.apply_command(s, cli.tokenize("aperture A add p1 portal x 3 20 10 9"), STATE)
-test("aperture add portal p1",
-     lambda: None if any(a["id"] == "p1" for a in s["bays"]["A"]["apertures"]) else msg)
+s, msg = cli.apply_command(s, cli.tokenize("aperture A add p2 portal x 3 20 10 9"), STATE)
+test("aperture add portal p2",
+     lambda: None if any(a["id"] == "p2" for a in s["bays"]["A"]["apertures"]) else msg)
 
 s, msg = cli.apply_command(s, cli.tokenize("aperture A list"), STATE)
 test("aperture A list",
@@ -327,23 +328,23 @@ test("spacing_arrays A: 4 x-vals, 4 y-vals",
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 9: Audit Engine")
+print("PHASE 9: Auditor")
 print("=" * 60)
 
 reset_state()
 state = cli.load_state(STATE)
 
-issues = audit_engine.audit_model(state)
+issues = auditor.audit_model(state)
 test("audit_model returns list",
      lambda: None if isinstance(issues, list) else type(issues))
 
-formatted = audit_engine.format_audit(issues)
+formatted = auditor.format_audit(issues)
 test("format_audit returns string",
      lambda: None if isinstance(formatted, str) else type(formatted))
 test("format_audit ends with READY:",
      lambda: None if formatted.strip().endswith("READY:") else formatted[-50:])
 
-ab = audit_engine.audit_bay(state, "A")
+ab = auditor.audit_bay(state, "A")
 test("audit_bay A returns report",
      lambda: None if "Bay A" in ab or "AUDIT" in ab else ab[:80])
 test("audit_bay A has grid info",
@@ -351,72 +352,72 @@ test("audit_bay A has grid info",
 test("audit_bay A has column count",
      lambda: None if "Columns" in ab or "columns" in ab else ab[:80])
 
-ab_b = audit_engine.audit_bay(state, "B")
+ab_b = auditor.audit_bay(state, "B")
 test("audit_bay B returns report",
      lambda: None if "Bay B" in ab_b or "AUDIT" in ab_b else ab_b[:80])
 test("audit_bay B has radial info",
      lambda: None if "radial" in ab_b.lower() or "ring" in ab_b.lower() else ab_b[:80])
 
-ab_bad = audit_engine.audit_bay(state, "Z")
+ab_bad = auditor.audit_bay(state, "Z")
 test("audit_bay Z returns ERROR",
      lambda: None if "ERROR" in ab_bad else ab_bad[:80])
 
 # describe_bay
-db = audit_engine.describe_bay(state, "A")
+db = auditor.describe_bay(state, "A")
 test("describe_bay A returns narrative",
      lambda: None if "3-by-3" in db or "rectangular" in db else db[:80])
 test("describe_bay A has spatial relationships",
      lambda: None if "Bay B" in db else db[:80])
 
-db_b = audit_engine.describe_bay(state, "B")
+db_b = auditor.describe_bay(state, "B")
 test("describe_bay B returns narrative",
      lambda: None if "radial" in db_b else db_b[:80])
 
 # describe_circulation
-circ = audit_engine.describe_circulation(state)
+circ = auditor.describe_circulation(state)
 test("describe_circulation returns text",
      lambda: None if "CIRCULATION" in circ else circ[:80])
 test("describe_circulation mentions Bay A corridor",
      lambda: None if "Bay A" in circ else circ[:80])
 
 # measure
-m1 = audit_engine.measure(state, "bay A origin", "bay B center")
+m1 = auditor.measure(state, "bay A origin", "bay B center")
 test("measure A origin to B center",
      lambda: None if "OK:" in m1 else m1[:80])
 test("measure has distance",
      lambda: None if "ft" in m1 else m1[:80])
 
-m2 = audit_engine.measure(state, "site origin", "site center")
+m2 = auditor.measure(state, "site origin", "site center")
 test("measure site origin to center",
      lambda: None if "OK:" in m2 else m2[:80])
 
-m3 = audit_engine.measure(state, "bay A void", "bay B void")
+m3 = auditor.measure(state, "bay A void", "bay B void")
 test("measure void to void",
      lambda: None if "OK:" in m3 else m3[:80])
 
-m_bad = audit_engine.measure(state, "bay Z origin", "site center")
+m_bad = auditor.measure(state, "bay Z origin", "site center")
 test("measure bad bay returns ERROR",
      lambda: None if "ERROR" in m_bad else m_bad[:80])
 
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 10: Skill Engine")
+print("PHASE 10: Skill Manager")
 print("=" * 60)
 
-skills = skill_engine.list_skills()
+skills = skill_manager.list_skills()
 test("list_skills returns list",
      lambda: None if isinstance(skills, list) else type(skills))
 test("list_skills finds 2 bundled skills",
      lambda: None if len(skills) >= 2 else str(len(skills)))
 
-fmt = skill_engine.format_skill_list(skills)
+fmt = skill_manager.format_skill_list(skills)
 test("format_skill_list returns string",
      lambda: None if isinstance(fmt, str) and "OK:" in fmt else fmt[:80])
 test("format_skill_list ends with READY:",
      lambda: None if fmt.strip().endswith("READY:") else fmt[-50:])
 
-sk = skill_engine.load_skill("add-double-loaded-corridor")
+sk = skill_manager.load_skill("add-double-loaded-corridor")
 test("load_skill corridor",
      lambda: None if sk["name"] == "add-double-loaded-corridor" else str(sk))
 test("skill has 4 commands",
@@ -424,12 +425,12 @@ test("skill has 4 commands",
 test("skill has 3 params",
      lambda: None if len(sk["params"]) == 3 else str(len(sk["params"])))
 
-detail = skill_engine.format_skill_detail(sk)
+detail = skill_manager.format_skill_detail(sk)
 test("format_skill_detail",
      lambda: None if "OK:" in detail and "READY:" in detail else detail[:80])
 
 # save a new skill
-save_msg = skill_engine.save_skill(
+save_msg = skill_manager.save_skill(
     "test-skill",
     "Test skill for validation",
     ["set site width {w}", "set site height {h}"],
@@ -440,12 +441,12 @@ test("save_skill test-skill",
      lambda: None if "OK:" in save_msg else save_msg)
 
 # verify it appears in list
-skills2 = skill_engine.list_skills()
+skills2 = skill_manager.list_skills()
 test("new skill in list",
      lambda: None if any(s["name"] == "test-skill" for s in skills2) else "missing")
 
 # load it back
-sk2 = skill_engine.load_skill("test-skill")
+sk2 = skill_manager.load_skill("test-skill")
 test("load new skill",
      lambda: None if sk2["name"] == "test-skill" else str(sk2))
 
@@ -463,7 +464,7 @@ def fake_run(cmd):
     except Exception as e:
         return "ERROR: {}".format(e)
 
-run_msg = skill_engine.run_skill("test-skill", {"w": "150", "h": "180"}, fake_run)
+run_msg = skill_manager.run_skill("test-skill", {"w": "150", "h": "180"}, fake_run)
 test("run_skill test-skill",
      lambda: None if "completed" in run_msg.lower() or "OK:" in run_msg else run_msg[:120])
 
@@ -476,7 +477,7 @@ test("skill changed site height to 180",
 
 # Run corridor skill
 reset_state()
-run_msg2 = skill_engine.run_skill("add-double-loaded-corridor", {"bay": "B"}, fake_run)
+run_msg2 = skill_manager.run_skill("add-double-loaded-corridor", {"bay": "B"}, fake_run)
 test("run corridor skill on bay B",
      lambda: None if "completed" in run_msg2.lower() or "OK:" in run_msg2 else run_msg2[:120])
 
@@ -485,7 +486,7 @@ test("corridor skill turned on bay B corridor",
      lambda: None if st_after2["bays"]["B"]["corridor"]["enabled"] else "still off")
 
 # bad skill name
-bad_msg = skill_engine.run_skill("nonexistent-skill", {}, fake_run)
+bad_msg = skill_manager.run_skill("nonexistent-skill", {}, fake_run)
 test("run nonexistent skill returns ERROR",
      lambda: None if "ERROR" in bad_msg else bad_msg[:80])
 
@@ -497,10 +498,10 @@ if os.path.exists(test_skill_path):
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 11: Rhino Bridge (Offline)")
+print("PHASE 11: Rhino Client (Offline)")
 print("=" * 60)
 
-bridge = rhino_bridge.get_bridge()
+bridge = rhino_client.get_bridge()
 
 connected = bridge.is_connected()
 test("bridge.is_connected() = False (no Rhino)",

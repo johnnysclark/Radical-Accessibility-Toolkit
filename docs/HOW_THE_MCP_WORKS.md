@@ -149,7 +149,7 @@ The MCP v3.0 server added four engines onto this core pipeline.
 v3.1 added direct-editing tools built into the MCP server itself.
 Each engine is a separate Python file with zero external dependencies.
 
-### Engine 1: Audit Engine (audit_engine.py)
+### Engine 1: Auditor (auditor.py)
 
 Purpose: answer questions about the model without changing it.
 
@@ -168,16 +168,16 @@ corridor connectivity, designed for screen readers.
 
 The audit engine never writes to state.json. It is purely analytical.
 
-How it connects to MCP: Five tools call directly into audit_engine
+How it connects to MCP: Five tools call directly into auditor
 functions, passing the loaded state dict. No CLI commands involved.
 
-    audit_model() -> audit_engine.audit_model(state)
-    audit_bay("A") -> audit_engine.audit_bay(state, "A")
-    describe_bay("A") -> audit_engine.describe_bay(state, "A")
-    describe_circulation() -> audit_engine.describe_circulation(state)
-    measure("bay A origin", "bay B center") -> audit_engine.measure(state, ...)
+    audit_model() -> auditor.audit_model(state)
+    audit_bay("A") -> auditor.audit_bay(state, "A")
+    describe_bay("A") -> auditor.describe_bay(state, "A")
+    describe_circulation() -> auditor.describe_circulation(state)
+    measure("bay A origin", "bay B center") -> auditor.measure(state, ...)
 
-### Engine 2: Skill Engine (skill_engine.py)
+### Engine 2: Skill Manager (skill_manager.py)
 
 Purpose: save and replay reusable command sequences.
 
@@ -219,12 +219,12 @@ goes through the controller.
 
 How it connects to MCP: Four tools.
 
-    skill_list() -> skill_engine.list_skills()
-    skill_show("name") -> skill_engine.load_skill("name")
-    skill_run("name", "bay=B") -> skill_engine.run_skill("name", overrides, _run)
-    skill_save("name", "desc", "commands") -> skill_engine.save_skill(...)
+    skill_list() -> skill_manager.list_skills()
+    skill_show("name") -> skill_manager.load_skill("name")
+    skill_run("name", "bay=B") -> skill_manager.run_skill("name", overrides, _run)
+    skill_save("name", "desc", "commands") -> skill_manager.save_skill(...)
 
-### Engine 3: Rhino Bridge (rhino_bridge.py)
+### Engine 3: Rhino Client (rhino_client.py)
 
 Purpose: ask Rhino questions without going through state.json.
 
@@ -402,7 +402,7 @@ step 14. Rhino updates on its own schedule (within 0.5 seconds).
   handlers live in controller_cli.py. The MCP server delegates to
   the controller for all validated mutations.
 - It does not require Rhino to be running. Every tool works offline
-  except the three rhino_bridge tools, and even those return graceful
+  except the three rhino_client tools, and even those return graceful
   OFFLINE messages.
 
 Note on v3.1 direct editing: The set_field, add_bay, remove_bay,
@@ -471,7 +471,7 @@ Claude Code launches: python mcp_server.py --state state.json
 The server:
 1. Redirects print() to stderr (stdout is reserved for JSON-RPC)
 2. Imports controller_cli.py from the same directory
-3. Imports audit_engine.py, skill_engine.py, rhino_bridge.py
+3. Imports auditor.py, skill_manager.py, rhino_client.py
 4. Registers all 45 tools, 5 resources, and 4 prompts with FastMCP
 5. Calls mcp.run() which starts the JSON-RPC stdio loop
 
@@ -489,9 +489,9 @@ traffic.
 | Original v1.0 tools | 5 | _run() passthrough |
 | v2.0 read tools | 4 | _run() passthrough |
 | v2.0 bay config tools | 12 | _run() passthrough |
-| v3.0 audit tools | 5 | audit_engine.py |
-| v3.0 skill tools | 4 | skill_engine.py |
-| v3.0 rhino tools | 3 | rhino_bridge.py |
+| v3.0 audit tools | 5 | auditor.py |
+| v3.0 skill tools | 4 | skill_manager.py |
+| v3.0 rhino tools | 3 | rhino_client.py |
 | v3.0 extension tools | 2 | built-in |
 | v3.1 state introspection | 3 | get_field, set_field, list_fields |
 | v3.1 bay management | 3 | add_bay, remove_bay, clone_bay |
@@ -535,15 +535,15 @@ The v3.1 tools bridge three layers:
       Python 3 stdlib only
       no pip packages, no conda, no virtual environment
 
-    audit_engine.py
+    auditor.py
       imports controller_cli for geometry helpers
       Python 3 stdlib only
 
-    skill_engine.py
+    skill_manager.py
       Python 3 stdlib only (json, os, re)
       reads/writes skills/*.json files
 
-    rhino_bridge.py
+    rhino_client.py
       Python 3 stdlib only (socket, json, threading)
       connects to localhost:1998 if available
 

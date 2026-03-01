@@ -1060,7 +1060,7 @@ def redraw(state):
 # TCP QUERY LISTENER (v3.0)
 # ══════════════════════════════════════════════════════════
 # Optional TCP server on port 1998 that answers read-only queries
-# from the MCP server's rhino_bridge.  Port 1998 avoids conflict
+# from the MCP server's rhino_client.  Port 1998 avoids conflict
 # with rhinomcp (port 1999).
 #
 # Supported queries:

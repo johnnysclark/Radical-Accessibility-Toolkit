@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Skill Engine  v1.0
-======================================
+PLAN LAYOUT JIG — Skill Manager  v1.0
+=======================================
 Stores, lists, and replays reusable command sequences ("skills").
 
 A skill is a JSON file in the skills/ folder containing:
