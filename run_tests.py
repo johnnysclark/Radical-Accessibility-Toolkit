@@ -529,6 +529,64 @@ test("bridge.run_script -> OFFLINE",
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
+print("PHASE 11b: Rhino Watcher File Validation")
+print("=" * 60)
+
+watcher_path = os.path.join(HERE, "rhino_watcher.py")
+
+test("rhino_watcher.py exists",
+     lambda: None if os.path.exists(watcher_path) else "file not found")
+
+# Read the file and check for f-strings (IronPython 2.7 compat)
+if os.path.exists(watcher_path):
+    with open(watcher_path, encoding="utf-8") as wf:
+        watcher_src = wf.read()
+
+    test("rhino_watcher.py is non-empty",
+         lambda: None if len(watcher_src) > 100 else "file too small")
+
+    # Check no f-strings (IronPython 2.7 does not support them)
+    import re as _re
+    fstring_hits = _re.findall(r'(?<!\w)f"[^"]*\{', watcher_src)
+    fstring_hits += _re.findall(r"(?<!\w)f'[^']*\{", watcher_src)
+    test("rhino_watcher.py has no f-strings",
+         lambda: None if len(fstring_hits) == 0
+         else "found {} f-string(s)".format(len(fstring_hits)))
+
+    # Check it parses as valid Python
+    import ast as _ast
+    try:
+        _ast.parse(watcher_src)
+        test("rhino_watcher.py parses as valid Python", lambda: None)
+    except SyntaxError as e:
+        test("rhino_watcher.py parses as valid Python",
+             lambda: "SyntaxError: {}".format(str(e)))
+
+    # Check key markers exist
+    test("watcher has rhinoscriptsyntax import",
+         lambda: None if "rhinoscriptsyntax" in watcher_src else "missing import")
+    test("watcher has state.json file watch",
+         lambda: None if "state.json" in watcher_src or "STATE_FILE" in watcher_src
+         else "no state file reference")
+    test("watcher has Idle event hook",
+         lambda: None if "Idle" in watcher_src or "on_idle" in watcher_src
+         else "no idle hook")
+    test("watcher has JIG_ layer names",
+         lambda: None if "JIG_COLUMNS" in watcher_src else "no JIG layer names")
+else:
+    # Skip all watcher tests if file missing
+    for label in ["rhino_watcher.py is non-empty",
+                  "rhino_watcher.py has no f-strings",
+                  "rhino_watcher.py parses as valid Python",
+                  "watcher has rhinoscriptsyntax import",
+                  "watcher has state.json file watch",
+                  "watcher has Idle event hook",
+                  "watcher has JIG_ layer names"]:
+        test(label, lambda: "SKIPPED: file not found")
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
 print("PHASE 12: Error Handling")
 print("=" * 60)
 

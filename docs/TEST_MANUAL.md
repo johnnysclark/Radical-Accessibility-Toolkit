@@ -57,14 +57,21 @@ skill_engine.py: Reusable command macros. Saves sequences of
 commands as JSON files in the skills/ folder and replays them
 with different parameters.
 
-rhino_bridge.py: Optional Rhino connection. Talks to the Rhino
-watcher over TCP port 1998 to ask questions about the 3D model.
-Returns OFFLINE messages when Rhino is not running.
+rhino_watcher.py: The Rhino viewer. This script runs INSIDE Rhino.
+It watches state.json for changes and rebuilds all geometry when the
+file changes. Run it in Rhino with exec(open(...).read()). About
+1,300 lines of IronPython 2.7.
+
+rhino_bridge.py: Optional Rhino query client. This does NOT run
+inside Rhino. It is imported by the MCP server and talks to the
+watcher over TCP port 1998 to ask read-only questions about the 3D
+model. If you open this file in Rhino, it will not work. Returns
+OFFLINE messages when Rhino is not running.
 
 state.json: The model itself. This JSON file contains every fact
 about the design. It is the single source of truth.
 
-run_tests.py: Automated test suite. Runs 115 tests covering every
+run_tests.py: Automated test suite. Runs 123 tests covering every
 engine and command family.
 
 skills/: Folder containing saved skill files (JSON).
@@ -118,6 +125,49 @@ command line. You type commands here and the controller executes them.
 Type "describe" and press Enter to see the full model.
 
 Type "quit" and press Enter when you are done.
+
+### Step 6: View the model in Rhino (optional)
+
+Rhino is the viewer. It reads state.json and draws the geometry.
+You do not need Rhino to use the CLI or MCP. But if you want to
+see the drawing update as you make changes, follow these steps.
+
+There are two Rhino-related files. They do different things:
+
+    rhino_watcher.py — Runs INSIDE Rhino. This is the viewer.
+    rhino_bridge.py  — Runs OUTSIDE Rhino. This is a query client
+                       used by the MCP server. Do not open this
+                       file in Rhino.
+
+To start the watcher:
+
+1. Open Rhino 8.
+
+2. In the Rhino command line, type EditPythonScript and press Enter.
+   This opens the Rhino Python editor.
+
+3. In the editor, paste this one line and run it:
+
+    exec(open(r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CLI JIG TEST\rhino_watcher.py").read())
+
+4. The watcher prints a startup message to the Rhino command line:
+
+    [PLJ] Watching: C:\...\CLI JIG TEST\state.json
+    [PLJ] TCP listener on 127.0.0.1:1998
+
+5. The watcher reads state.json and draws all geometry. You should
+   see columns, walls, corridors, and bays appear in the viewport.
+
+6. From now on, every time the CLI or MCP writes state.json, the
+   watcher detects the file change and rebuilds the geometry. You
+   do not need to do anything in Rhino. Just work in the terminal
+   or with Claude and watch the viewport update.
+
+If the watcher does not start, check the Troubleshooting section
+at the bottom of this manual.
+
+If Rhino crashes, nothing is lost. The model is in state.json.
+Restart Rhino, run the watcher again, and everything rebuilds.
 
 ---
 
@@ -1431,6 +1481,14 @@ The bridge connects on TCP port 1998. Make sure:
 - No firewall is blocking localhost port 1998
 - You are not also running rhinomcp (which uses port 1999, but
   check for conflicts)
+
+### SyntaxError when opening a file in Rhino
+
+If you get "SyntaxError: unexpected token 'f'" or similar, you
+opened the wrong file in Rhino. Only rhino_watcher.py runs inside
+Rhino. All other Python files (controller_cli.py, mcp_server.py,
+audit_engine.py, skill_engine.py, rhino_bridge.py, run_tests.py)
+are Python 3 and will not work in Rhino's IronPython 2.7.
 
 ### Snapshot not found
 
