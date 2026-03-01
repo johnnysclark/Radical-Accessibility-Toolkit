@@ -5,6 +5,7 @@ __pycache__/
 *.tmp
 history/
 state.json
+skills/test-skill.json
 
 .env
 .mcp.json
