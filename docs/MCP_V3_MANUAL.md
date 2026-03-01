@@ -1,4 +1,6 @@
-# Layout Jig MCP Server v3.1 Manual
+# Layout Jig MCP Server v3.2 Manual
+
+Last updated: 2026-02-28
 
 ## What This Is
 
@@ -20,7 +22,13 @@ v3.1 adds direct editing capabilities:
 - Controller Introspection: list commands, read handler source code
 - State Comparison: diff snapshots, validate JSON structure
 
-Total: 45 tools, 5 resources, 4 prompts.
+v3.2 adds Mode 3 (Learning Rhino Python):
+
+- Script Generation: create, list, and view editable IronPython 2.7 scripts
+- Scripts are validated for IronPython 2.7 compatibility automatically
+- Teaching comments explain each section so blind users can learn scripting
+
+Total: 48 tools, 5 resources, 4 prompts.
 
 ---
 
@@ -54,7 +62,7 @@ Rhino is a viewer. If Rhino crashes, nothing is lost.
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| mcp_server.py | MCP orchestrator, all 45 tools | ~1100 |
+| mcp_server.py | MCP orchestrator, all 48 tools | ~1200 |
 | controller_cli.py | Authoritative state machine | ~2000 |
 | audit_engine.py | Spatial validation, descriptions | ~350 |
 | skill_engine.py | Skill CRUD and replay | ~280 |
@@ -209,6 +217,53 @@ Everything else works without Rhino.
 |---|------|-------------|
 | 44 | diff_snapshot(snapshot_name) | Compare current state to a snapshot |
 | 45 | validate_state() | Check JSON structure for errors |
+
+### Script Generation Tools (v3.2 NEW)
+
+| # | Tool | What it does |
+|---|------|-------------|
+| 46 | generate_script(name, description, code, teach) | Create an editable IronPython 2.7 script |
+| 47 | list_scripts() | List all generated scripts in scripts/ folder |
+| 48 | show_script(name) | Show full contents of a script |
+
+---
+
+## Script Generation Details (v3.2)
+
+### Mode 3: Learning Rhino Python
+
+The script generation tools support Mode 3 — learning to write your own
+Rhino Python scripts. The progression:
+
+1. Mode 1 (Claude Code): AI does everything via natural language
+2. Mode 2 (CLI): You type commands directly
+3. Mode 3 (Scripts): You write and run IronPython scripts in Rhino
+
+### generate_script
+
+Creates an editable .py file in the scripts/ folder. The file includes:
+- A header explaining how to run it in Rhino
+- Teaching comments (when teach=True) explaining each code pattern
+- The actual script body, validated for IronPython 2.7 compatibility
+
+Validation checks:
+- Rejects f-strings (IronPython 2.7 does not support them)
+- Rejects pathlib imports (not available in IronPython 2.7)
+- Validates Python syntax via ast.parse()
+- Warns (but allows) geometry-modifying rs.Add*/Delete* calls
+
+Example:
+    generate_script("draw-columns", "Draw circles at bay A columns",
+        "import rhinoscriptsyntax as rs\nrs.AddCircle([0,0,0], 1.0)\n")
+
+### list_scripts
+
+Lists all .py files in scripts/ with name, description, and size.
+
+### show_script
+
+Returns the full text of a script file. Supports fuzzy name matching
+if the exact name is not found.
 
 ---
 
@@ -578,7 +633,7 @@ Just run the watcher and the bridge auto-connects.
 Claude -> MCP Server -> Controller CLI -> state.json -> Watcher -> Rhino
 ```
 
-- 45 tools, semantic, accessibility-first
+- 48 tools, semantic, accessibility-first
 - JSON is truth, Rhino is viewer
 - Skills for reusable command sequences
 - Audit engine for validation

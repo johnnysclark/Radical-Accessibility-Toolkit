@@ -1,5 +1,7 @@
 # How the MCP Layer Works
 
+Last updated: 2026-02-28
+
 This document explains what the MCP server does, how it fits into the
 Layout Jig architecture, and how every piece connects.
 
@@ -472,7 +474,7 @@ The server:
 1. Redirects print() to stderr (stdout is reserved for JSON-RPC)
 2. Imports controller_cli.py from the same directory
 3. Imports audit_engine.py, skill_engine.py, rhino_bridge.py
-4. Registers all 45 tools, 5 resources, and 4 prompts with FastMCP
+4. Registers all 48 tools, 5 resources, and 4 prompts with FastMCP
 5. Calls mcp.run() which starts the JSON-RPC stdio loop
 
 From this point, Claude sends JSON-RPC messages over stdin, the
@@ -497,7 +499,8 @@ traffic.
 | v3.1 bay management | 3 | add_bay, remove_bay, clone_bay |
 | v3.1 controller introspection | 2 | list_commands, show_command_source |
 | v3.1 state comparison | 2 | diff_snapshot, validate_state |
-| Total | 45 | |
+| v3.2 script generation | 3 | generate_script, list_scripts, show_script |
+| Total | 48 | |
 
 | Resources | 5 | state, snapshots, help, skills, extensions |
 | Prompts | 4 | design_review, aperture_audit, accessibility_audit, skill_builder |
@@ -521,6 +524,17 @@ The v3.1 tools bridge three layers:
 4. State comparison: Diff the current state against a snapshot
    (like git diff for your model) and validate JSON structure
    after hand edits.
+
+The v3.2 tools add Mode 3 (Learning Rhino Python):
+
+5. Script generation: Create editable IronPython 2.7 script files
+   that users can open in Rhino's EditPythonScript editor, study,
+   modify, and run. The generate_script tool validates code for
+   IronPython 2.7 compatibility (no f-strings, no pathlib) and
+   prepends teaching comments explaining each code pattern. This
+   supports the progression from AI-driven design (Mode 1) to
+   independent scripting (Mode 3). See DESIGN_SESSION.md for a
+   complete walkthrough.
 
 ---
 

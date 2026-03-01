@@ -94,26 +94,32 @@ Feed through PIAF heater -> raised tactile graphic readable by touch
 
 Generates watertight triangle meshes from the parametric model (pure Python, no Rhino dependency), validates solidity, and exports binary STL scaled for a Bambu Lab P1S printer. Daniel holds the printed model during design review — walls, corridors, openings physically present at 1:200 scale.
 
-### AI Integration — MCP Server v3.1
+### AI Integration — MCP Server v3.2
 
-An [MCP server](docs/MCP_V3_MANUAL.md) (45 tools, 5 resources, 4 prompts) connects Claude Code to the design system through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays reusable command sequences (skills), queries Rhino geometry, and reads or writes individual state fields directly. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
+An [MCP server](docs/MCP_V3_MANUAL.md) (48 tools, 5 resources, 4 prompts) connects Claude Code to the design system through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays reusable command sequences (skills), queries Rhino geometry, reads or writes individual state fields directly, and generates editable IronPython scripts for learning. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
 
-Beyond conversational commands, the AI writes RhinoPython, Grasshopper scripts, or other code-based CAD operations on the user's behalf, then explains what it produced so the user learns the underlying language. Over time, Daniel builds fluency in scripting his own geometry. The AI is a bridge to self-sufficiency, not a permanent dependency.
+Beyond conversational commands, the AI generates annotated RhinoPython scripts that the user can open, study, modify, and run independently. Teaching comments explain each code pattern. Over time, Daniel builds fluency in scripting his own geometry. The AI is a bridge to self-sufficiency, not a permanent dependency. See [DESIGN_SESSION.md](CLI%20JIG%20TEST/DESIGN_SESSION.md) for a complete walkthrough of all three interaction modes.
 
 ```
 User (natural language)
         |
         | "make the corridor wider"
         v
-    Claude Code + MCP Server (45 tools)
+    Claude Code + MCP Server (48 tools)
         |
         | validated: CLI command dispatch
         | direct: JSON field read/write
+        | scripts: generate editable .py files
         v
     state.json mutation + confirmation readback
 ```
 
-The MCP server has seven functional layers:
+The system supports three interaction modes:
+1. **Mode 1: Claude Code + MCP** — natural language, AI translates to commands
+2. **Mode 2: Interactive CLI** — typed commands, direct control
+3. **Mode 3: Rhino Python** — editable scripts the user writes and runs in Rhino
+
+The MCP server has eight functional layers:
 
 - **Core pipeline** (21 tools) — semantic wrappers around CLI commands
 - **Audit engine** (5 tools) — spatial validation, ADA checks, bay descriptions, circulation analysis, distance measurement
@@ -122,6 +128,7 @@ The MCP server has seven functional layers:
 - **Controller extension** (2 tools) — add new command handlers at runtime
 - **State introspection** (7 tools) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
 - **State comparison** (3 tools) — diff against snapshots, validate JSON structure
+- **Script generation** (3 tools) — create, list, and view editable IronPython 2.7 scripts for learning
 
 See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture details, [docs/MCP_V3_MANUAL.md](docs/MCP_V3_MANUAL.md) for the full tool reference, and [docs/TEST_MANUAL.md](docs/TEST_MANUAL.md) for a walkthrough of every workflow.
 
@@ -164,22 +171,24 @@ See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture deta
 ```
 radical-accessibility/
   controller_cli.py ...... Terminal CLI, v2.3 (Python 3, stdlib only)
-  mcp_server.py .......... MCP server v3.1 (45 tools, 5 resources, 4 prompts)
+  mcp_server.py .......... MCP server v3.2 (48 tools, 5 resources, 4 prompts)
   audit_engine.py ........ Spatial validation, ADA checks, descriptions
   skill_engine.py ........ Skill CRUD and replay
   rhino_bridge.py ........ TCP client to Rhino watcher
-  run_tests.py ........... End-to-end test suite (115 tests)
+  run_tests.py ........... End-to-end test suite (131 tests)
   skills/ ................ Bundled reusable command sequences
+  scripts/ ............... Generated IronPython scripts (Mode 3)
   arch-alt-text/ ......... Image description CLI (Claude vision API)
   3d-print/ .............. STL mesh generation + Bambu printing
   piaf/ .................. Tactile paper pipeline
   rhino-python-driver/ ... Rhino watcher scripts (IronPython 2.7)
   docs/
     HOW_THE_MCP_WORKS.md . MCP architecture deep dive
-    MCP_V3_MANUAL.md ..... Full MCP tool reference
+    MCP_V3_MANUAL.md ..... Full MCP tool reference (updated 2026-02-28)
     TEST_MANUAL.md ....... Step-by-step test walkthrough
     MCP_GUIDE.md ......... Original v2.0 MCP guide
     CLAUDE.md ............ Project instructions for AI assistants
+  DESIGN_SESSION.md ...... Full design session walkthrough (2026-02-28)
   MANUAL.md .............. Full user documentation
   README.md
 ```
