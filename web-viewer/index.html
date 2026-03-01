@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Layout Jig — Web Viewer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="toolbar">
+  <div class="toolbar-group">
+    <button id="btn-load" title="Load state.json">Load JSON</button>
+    <input type="file" id="file-input" accept=".json" hidden>
+    <button id="btn-export-svg" title="Export SVG">Export SVG</button>
+    <button id="btn-export-png" title="Export PNG">Export PNG</button>
+  </div>
+  <div class="toolbar-group tabs">
+    <button class="tab active" data-view="2d">2D Plan</button>
+    <button class="tab" data-view="3d">3D Tactile</button>
+  </div>
+  <div class="toolbar-group">
+    <label>Layers:</label>
+    <div id="layer-toggles"></div>
+  </div>
+  <div class="toolbar-group">
+    <button id="btn-zoom-fit" title="Zoom to fit">Fit</button>
+    <button id="btn-zoom-in" title="Zoom in">+</button>
+    <button id="btn-zoom-out" title="Zoom out">-</button>
+  </div>
+</div>
+
+<div id="view-container">
+  <div id="view-2d" class="view active">
+    <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div id="view-3d" class="view"></div>
+</div>
+
+<div id="status-bar">
+  <span id="status-text">No file loaded</span>
+  <span id="mouse-pos"></span>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="svg-renderer.js"></script>
+<script type="module" src="three-viewer.js"></script>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "plan-layout-jig-web-viewer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Web viewer for Plan Layout Jig state.json — 2D SVG + 3D Three.js",
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "capture-svg": "node capture.js ../rhino-python-driver/state.json -o plan-layout.svg",
+    "capture-png": "node capture.js ../rhino-python-driver/state.json -f png -o plan-layout.png"
+  },
+  "dependencies": {
+    "jsdom": "^25.0.0"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
