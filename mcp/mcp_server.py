@@ -42,7 +42,7 @@ Claude Code config (.mcp.json at project root):
   "mcpServers": {
     "layout-jig": {
       "command": "python",
-      "args": ["mcp_server.py", "--state", "rhino/state.json"]
+      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
     }
   }
 }
@@ -64,12 +64,14 @@ def _stderr_print(*args, **kwargs):
 
 builtins.print = _stderr_print
 
-# ── Import controller_cli from same directory ──────────
+# ── Import controller_cli from controller/ directory ───
 _here = os.path.dirname(os.path.abspath(__file__))
-if _here not in sys.path:
-    sys.path.insert(0, _here)
+_root = os.path.dirname(_here)
+_controller = os.path.join(_root, "controller")
+if _controller not in sys.path:
+    sys.path.insert(0, _controller)
 
-_tools_rhino = os.path.join(os.path.dirname(_here), "tools", "rhino")
+_tools_rhino = os.path.join(_root, "tools", "rhino")
 if _tools_rhino not in sys.path:
     sys.path.insert(0, _tools_rhino)
 
@@ -98,7 +100,7 @@ def _resolve_state_path():
     env = os.environ.get("LAYOUT_JIG_STATE")
     if env:
         return os.path.abspath(env)
-    return os.path.join(_here, "state.json")
+    return os.path.join(_controller, "state.json")
 
 
 STATE_PATH = _resolve_state_path()
@@ -968,7 +970,7 @@ def extend_controller(function_name: str, code: str) -> str:
         return f"ERROR: Command '{cmd_word}' already exists. Choose a different name."
 
     # Read current controller file
-    cli_path = os.path.join(_here, "controller_cli.py")
+    cli_path = os.path.join(_controller, "controller_cli.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             cli_source = f.read()
@@ -1301,7 +1303,7 @@ def list_commands() -> str:
     category. Includes commands added via extend_controller.
     """
     import re
-    cli_path = os.path.join(_here, "controller_cli.py")
+    cli_path = os.path.join(_controller, "controller_cli.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             source = f.read()
@@ -1360,7 +1362,7 @@ def show_command_source(command: str) -> str:
         command: Command word (e.g. "corridor", "wall", "aperture")
             or full function name (e.g. "cmd_corridor", "_cmd_set_bay")
     """
-    cli_path = os.path.join(_here, "controller_cli.py")
+    cli_path = os.path.join(_controller, "controller_cli.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             lines = f.readlines()

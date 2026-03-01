@@ -23,7 +23,7 @@ Three levels of organization:
 - **Skill** — a saved sequence of commands, replayable with parameters (`enclose-bay-with-door`).
 
 ```
-Terminal (controller/controller_cli.py)    Claude Code (controller/mcp_server.py)
+Terminal (controller/controller_cli.py)    Claude Code (mcp/mcp_server.py)
         |                                          |
         | writes                                   | calls controller + direct JSON
         v                                          v
@@ -172,20 +172,22 @@ radical-accessibility/
   CLAUDE.md ................. Project instructions for AI assistants
   MANUAL.md ................. Startup instructions
   README.md ................. This file (detailed overview)
-  controller/ ............... Core platform
+  controller/ ............... Core platform (CLI + supporting modules)
     controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)
-    mcp_server.py ........... MCP server v3.1 (46 functions)
     auditor.py .............. Spatial validation, ADA checks
     skill_manager.py ........ Skill CRUD and replay
-    requirements.txt ........ Python dependencies (mcp only)
     skills/ ................. Bundled reusable command sequences
     state.json .............. Canonical Model Artifact (created on first run)
+  mcp/ ...................... AI integration layer
+    mcp_server.py ........... MCP server v3.1 (46 functions)
+    requirements.txt ........ Python dependencies (mcp only)
   tools/
     rhino/ .................. Rhino integration
       rhino_watcher.py ...... File watcher + geometry renderer (IronPython 2.7)
       tactile_print.py ...... STL mesh generation + Bambu printing
       rhino_client.py ....... TCP client for querying Rhino
     image-describer/ ........ Image description (Claude vision API)
+    swell-print/ ............ Tactile swell paper graphics (placeholder)
   tests/
     run_tests.py ............ End-to-end test suite (123 tests)
   docs/

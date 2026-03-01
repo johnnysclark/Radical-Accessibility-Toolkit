@@ -45,7 +45,7 @@ controller/controller_cli.py: The command processor. This is the brain
 of the system. It knows every legal operation on the model and validates
 all input.
 
-controller/mcp_server.py: The MCP server. This wraps the controller so
+mcp/mcp_server.py: The MCP server. This wraps the controller so
 Claude can call commands as typed function calls. It also has the audit
 engine, skill engine, rhino bridge, controller extension tools, state
 introspection tools, bay management tools, controller introspection
@@ -70,12 +70,12 @@ run inside Rhino. It is imported by the MCP server and talks to the
 watcher over TCP port 1998 to ask read-only questions about the 3D
 model. Returns OFFLINE messages when Rhino is not running.
 
-controller/rhino/state.json: The model itself. This JSON file contains
+controller/state.json: The model itself. This JSON file contains
 every fact about the design. It is the single source of truth.
 
 controller/skills/: Folder containing saved skill files (JSON).
 
-controller/rhino/tactile_print.py: Exports the current model as a
+tools/rhino/tactile_print.py: Exports the current model as a
 watertight STL mesh suitable for 3D printing.
 
 
@@ -108,7 +108,7 @@ not installed or not on your PATH.
 
 Type this and press Enter:
 
-    python controller/controller_cli.py --state controller/rhino/state.json
+    python controller/controller_cli.py
 
 You will see a welcome message and a >> prompt. This is the interactive
 command line. You type commands here and the controller executes them.
@@ -127,10 +127,10 @@ see the drawing update as you make changes, follow these steps.
 
 There are two Rhino-related files. They do different things:
 
-    controller/rhino/rhino_watcher.py — Runs INSIDE Rhino. This is the viewer.
-    controller/rhino_client.py — Runs OUTSIDE Rhino. This is a query client
-                                 used by the MCP server. Do not open this
-                                 file in Rhino.
+    tools/rhino/rhino_watcher.py — Runs INSIDE Rhino. This is the viewer.
+    tools/rhino/rhino_client.py — Runs OUTSIDE Rhino. This is a query client
+                                  used by the MCP server. Do not open this
+                                  file in Rhino.
 
 To start the watcher:
 
@@ -141,11 +141,11 @@ To start the watcher:
 
 3. In the editor, paste this one line and run it:
 
-    exec(open(r"path\to\controller\rhino\rhino_watcher.py").read())
+    exec(open(r"path\to\tools\rhino\rhino_watcher.py").read())
 
 4. The watcher prints a startup message to the Rhino command line:
 
-    [PLJ] Watching: path\to\controller\rhino\state.json
+    [PLJ] Watching: path\to\controller\state.json
     [PLJ] TCP listener on 127.0.0.1:1998
 
 5. The watcher reads state.json and draws all geometry. You should
@@ -168,7 +168,7 @@ writes state.json to disk, and prints a confirmation.
 
 Start the CLI:
 
-    python controller/controller_cli.py --state controller/rhino/state.json
+    python controller/controller_cli.py
 
 ### Reading the model (no changes)
 
@@ -459,14 +459,14 @@ Valid location references:
 
 ## 14. MCP Server
 
-The MCP server (controller/mcp_server.py) wraps the CLI so that AI
+The MCP server (mcp/mcp_server.py) wraps the CLI so that AI
 assistants like Claude can call commands as structured function calls.
 It speaks the Model Context Protocol so Claude Code, Claude Desktop,
 and Cursor can drive the jig conversationally.
 
 The server imports controller/controller_cli.py directly, so every MCP
 tool call runs exactly the same code path as typing a command in the
-terminal. The canonical model artifact (controller/rhino/state.json)
+terminal. The canonical model artifact (controller/state.json)
 remains the single source of truth.
 
 For full MCP setup, tool reference, and integration details, see
@@ -485,9 +485,9 @@ Configure your AI client with .mcp.json at the project root:
         "layout-jig": {
           "command": "python",
           "args": [
-            "controller/mcp_server.py",
+            "mcp/mcp_server.py",
             "--state",
-            "controller/rhino/state.json"
+            "controller/state.json"
           ]
         }
       }
@@ -690,7 +690,7 @@ following the format above.
 
 ### How it works
 
-The Rhino watcher (controller/rhino/rhino_watcher.py) starts a TCP
+The Rhino watcher (tools/rhino/rhino_watcher.py) starts a TCP
 listener on port 1998 alongside its file-polling loop. The MCP server's
 rhino_client.py connects to this listener to ask read-only questions.
 
@@ -787,7 +787,7 @@ When asking an AI to write a new command, use this prompt template:
 
     You are extending the Layout Jig controller.
     The controller lives at controller/controller_cli.py.
-    The state file is at controller/rhino/state.json.
+    The state file is at controller/state.json.
     Skills are stored in controller/skills/.
 
     Write a function called cmd_YOURCOMMAND(state, tokens) that:
@@ -962,7 +962,7 @@ Corridor fields:
 After editing state.json by hand, verify it is valid JSON. Load it
 with the CLI:
 
-    python controller/controller_cli.py --state controller/rhino/state.json
+    python controller/controller_cli.py
 
 Type "describe" to see if your changes look right. If the JSON is
 malformed (missing comma, unmatched bracket), the CLI will show an
@@ -1062,7 +1062,7 @@ path to controller/controller_cli.py.
 
 Run from the project root, or specify the full path:
 
-    python controller/controller_cli.py --state controller/rhino/state.json
+    python controller/controller_cli.py
 
 ### CLI shows garbage characters
 
@@ -1081,10 +1081,10 @@ The bridge connects on TCP port 1998. Make sure:
 ### SyntaxError when opening a file in Rhino
 
 If you get "SyntaxError: unexpected token 'f'" or similar, you
-opened the wrong file in Rhino. Only controller/rhino/rhino_watcher.py
+opened the wrong file in Rhino. Only tools/rhino/rhino_watcher.py
 runs inside Rhino. All other Python files (controller/controller_cli.py,
-controller/mcp_server.py, controller/auditor.py, controller/skill_manager.py,
-controller/rhino_client.py) are Python 3 and will not work in Rhino's
+mcp/mcp_server.py, controller/auditor.py, controller/skill_manager.py,
+tools/rhino/rhino_client.py) are Python 3 and will not work in Rhino's
 IronPython 2.7.
 
 ### Snapshot not found

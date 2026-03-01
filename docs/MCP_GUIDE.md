@@ -7,7 +7,7 @@ How the AI layer works and how to use it.
 
 The MCP (Model Context Protocol) server is a bridge between AI assistants and the Layout Jig. It wraps the entire CLI command vocabulary as structured MCP functions that an AI can call with typed parameters. The AI becomes a collaborator that can read the model, make changes, answer questions, generate code, and critique designs -- all through the same state file that drives the Rhino watcher.
 
-The server lives in one file: `controller/mcp_server.py`. It imports `controller_cli.py` directly, so every MCP function call runs exactly the same code path as typing a command in the terminal. The Rhino watcher does not know or care whether a command came from a human or an AI -- it just watches the state file for changes.
+The server lives in one file: `mcp/mcp_server.py`. It imports `controller_cli.py` directly, so every MCP function call runs exactly the same code path as typing a command in the terminal. The Rhino watcher does not know or care whether a command came from a human or an AI -- it just watches the state file for changes.
 
 This is not a separate system. It is another input device for the same platform, like voice or the pegboard. The canonical model artifact (`state.json`) remains the single source of truth.
 
@@ -65,7 +65,7 @@ If Rhino crashes, you restart it, run the watcher again, and everything rebuilds
 
 ### Layer 4: mcp_server.py (the MCP orchestrator)
 
-Path: `controller/mcp_server.py`
+Path: `mcp/mcp_server.py`
 
 The newest layer. It wraps the controller CLI so that Claude can call commands as typed function calls instead of raw strings.
 
@@ -139,7 +139,7 @@ Create `.mcp.json` at the project root:
         "layout-jig": {
           "command": "python",
           "args": [
-            "controller/mcp_server.py",
+            "mcp/mcp_server.py",
             "--state",
             "controller/state.json"
           ]
@@ -159,11 +159,11 @@ Add via Settings > MCP Servers with the same command and args.
 
 Instead of passing `--state`, you can set the environment variable:
 
-    LAYOUT_JIG_STATE=controller/state.json python controller/mcp_server.py
+    LAYOUT_JIG_STATE=controller/state.json python mcp/mcp_server.py
 
 ### Run standalone (for testing)
 
-    python controller/mcp_server.py --state controller/state.json
+    python mcp/mcp_server.py --state controller/state.json
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 
