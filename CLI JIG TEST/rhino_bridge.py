@@ -90,15 +90,16 @@ class RhinoBridge:
         resp = self._send({"type": "status"})
         if resp is None:
             return ("OFFLINE: Rhino watcher is not connected on "
-                    f"{self.host}:{self.port}. "
-                    "All model data is available in state.json.")
+                    "{}:{}. "
+                    "All model data is available in state.json.").format(
+                        self.host, self.port)
         result = resp.get("result", {})
         lines = [
             "OK: Rhino watcher connected.",
-            f"  Host: {self.host}:{self.port}",
-            f"  Layers: {result.get('layer_count', '?')}",
-            f"  Objects: {result.get('object_count', '?')}",
-            f"  Last rebuild: {result.get('last_rebuild', '?')}",
+            "  Host: {}:{}".format(self.host, self.port),
+            "  Layers: {}".format(result.get('layer_count', '?')),
+            "  Objects: {}".format(result.get('object_count', '?')),
+            "  Last rebuild: {}".format(result.get('last_rebuild', '?')),
             "READY:"
         ]
         return "\n".join(lines)
@@ -122,11 +123,12 @@ class RhinoBridge:
         resp = self._send(request)
         if resp is None:
             return ("OFFLINE: Cannot query Rhino. The watcher is not "
-                    f"listening on {self.host}:{self.port}. "
-                    "Model data is still available in state.json.")
+                    "listening on {}:{}. "
+                    "Model data is still available in state.json.").format(
+                        self.host, self.port)
 
         if resp.get("status") == "error":
-            return f"ERROR: Rhino query failed: {resp.get('message', '?')}"
+            return "ERROR: Rhino query failed: {}".format(resp.get('message', '?'))
 
         result = resp.get("result", {})
 
@@ -134,7 +136,7 @@ class RhinoBridge:
         if query_type == "layer_stats":
             lines = ["OK: Rhino layer statistics:"]
             for layer_name, count in sorted(result.items()):
-                lines.append(f"  {layer_name}: {count} object(s)")
+                lines.append("  {}: {} object(s)".format(layer_name, count))
             lines.append("READY:")
             return "\n".join(lines)
 
@@ -144,20 +146,20 @@ class RhinoBridge:
                 return "OK: No geometry in Rhino.\nREADY:"
             lines = [
                 "OK: Geometry bounding box:",
-                f"  X: [{bb.get('min_x', '?'):.1f}, {bb.get('max_x', '?'):.1f}]",
-                f"  Y: [{bb.get('min_y', '?'):.1f}, {bb.get('max_y', '?'):.1f}]",
-                f"  Z: [{bb.get('min_z', '?'):.1f}, {bb.get('max_z', '?'):.1f}]",
+                "  X: [{:.1f}, {:.1f}]".format(bb.get('min_x', 0), bb.get('max_x', 0)),
+                "  Y: [{:.1f}, {:.1f}]".format(bb.get('min_y', 0), bb.get('max_y', 0)),
+                "  Z: [{:.1f}, {:.1f}]".format(bb.get('min_z', 0), bb.get('max_z', 0)),
                 "READY:"
             ]
             return "\n".join(lines)
 
         elif query_type == "object_count":
             layer = (params or {}).get("layer", "all")
-            return f"OK: {result.get('count', 0)} object(s) on {layer}.\nREADY:"
+            return "OK: {} object(s) on {}.\nREADY:".format(result.get('count', 0), layer)
 
         else:
             # Generic JSON dump for unknown queries
-            return f"OK: {json.dumps(result, indent=2)}\nREADY:"
+            return "OK: {}\nREADY:".format(json.dumps(result, indent=2))
 
     def run_script(self, code):
         """Execute a read-only Python snippet inside Rhino.
@@ -178,7 +180,7 @@ class RhinoBridge:
                     "Use the controller CLI for model queries instead.")
 
         if resp.get("status") == "error":
-            return f"ERROR: Script execution failed: {resp.get('message', '?')}"
+            return "ERROR: Script execution failed: {}".format(resp.get('message', '?'))
 
         output = resp.get("result", {}).get("output", "")
         if not output:
@@ -186,7 +188,7 @@ class RhinoBridge:
 
         lines = ["OK: Script output:", ""]
         for line in output.strip().split("\n"):
-            lines.append(f"  {line}")
+            lines.append("  {}".format(line))
         lines.append("READY:")
         return "\n".join(lines)
 
