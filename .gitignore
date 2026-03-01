@@ -4,6 +4,8 @@ __pycache__/
 ~$*
 *.tmp
 history/
+state.json
 
 .env
+.mcp.json
 arch_alt_text_history.json
