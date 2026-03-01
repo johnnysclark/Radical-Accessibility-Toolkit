@@ -2,27 +2,36 @@
  * Viewer Controller — ties SVG renderer + Three.js viewer together
  * =================================================================
  * Handles: file loading, view switching, layer toggles,
- * SVG pan/zoom, export (SVG + PNG).
+ * SVG pan/zoom, 3D camera presets, element toggles, section slider,
+ * export (SVG + PNG).
  */
 
 import { renderSVG, exportSVGString, LAYER_ORDER } from "./svg-renderer.js";
-import { initThreeViewer, buildScene, captureImage } from "./three-viewer.js";
+import {
+  initThreeViewer, buildScene, captureImage,
+  setCameraPreset, setGroupVisible, setSectionHeight,
+  setClippingEnabled,
+} from "./three-viewer.js";
 
 let currentState = null;
 let svgInfo = null;
 let threeInitialized = false;
 
-// ── SVG Pan / Zoom ────────────────────────────────────
-
-let viewBox = { x: 0, y: 0, w: 400, h: 400 };
-let isPanning = false;
-let panStart = { x: 0, y: 0 };
+// ── DOM refs ──────────────────────────────────────────
 
 const svgCanvas = document.getElementById("svg-canvas");
 const view2d = document.getElementById("view-2d");
 const view3d = document.getElementById("view-3d");
 const statusText = document.getElementById("status-text");
 const mousePos = document.getElementById("mouse-pos");
+const panel3d = document.getElementById("panel-3d");
+const controls2d = document.getElementById("controls-2d");
+
+// ── SVG Pan / Zoom ────────────────────────────────────
+
+let viewBox = { x: 0, y: 0, w: 400, h: 400 };
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
 
 function updateViewBox() {
   svgCanvas.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
@@ -51,7 +60,6 @@ window.addEventListener("mousemove", (e) => {
     updateViewBox();
     panStart = svgPointFromEvent(e);
   }
-  // Update mouse position display
   if (currentState && view2d.classList.contains("active")) {
     const pt = svgPointFromEvent(e);
     mousePos.textContent = `X: ${pt.x.toFixed(1)}  Y: ${(-pt.y).toFixed(1)}`;
@@ -118,7 +126,6 @@ fileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-// Also try to load state.json from the same directory or parent
 async function tryAutoLoad() {
   const paths = [
     "../rhino-python-driver/state.json",
@@ -145,12 +152,18 @@ function loadState(state, filename) {
   updateViewBox();
 
   // Build 3D scene
-  if (threeInitialized) {
-    buildScene(state);
-  }
+  if (threeInitialized) buildScene(state);
 
   // Build layer toggles
   buildLayerToggles();
+
+  // Update section slider range from state
+  const wallH = (state.tactile3d || {}).wall_height || 9;
+  const cutH = (state.tactile3d || {}).cut_height || 4;
+  const slider = document.getElementById("slider-section");
+  slider.max = wallH;
+  slider.value = cutH;
+  document.getElementById("section-height-val").textContent = cutH.toFixed(1);
 
   const nBays = Object.keys(state.bays).length;
   const nAps = Object.values(state.bays).reduce((s, b) => s + (b.apertures || []).length, 0);
@@ -158,7 +171,7 @@ function loadState(state, filename) {
   statusText.textContent = `${filename} — ${nBays} bays, ${nAps} apertures, ${nRooms} rooms — schema ${state.schema}`;
 }
 
-// ── Layer Toggles ─────────────────────────────────────
+// ── Layer Toggles (2D) ───────────────────────────────
 
 function buildLayerToggles() {
   const container = document.getElementById("layer-toggles");
@@ -190,8 +203,12 @@ tabs.forEach((tab) => {
 
     if (viewName === "2d") {
       view2d.classList.add("active");
+      panel3d.classList.add("hidden");
+      controls2d.classList.remove("hidden");
     } else {
       view3d.classList.add("active");
+      panel3d.classList.remove("hidden");
+      controls2d.classList.add("hidden");
       if (!threeInitialized) {
         initThreeViewer(view3d);
         threeInitialized = true;
@@ -199,6 +216,35 @@ tabs.forEach((tab) => {
       }
     }
   });
+});
+
+// ── 3D Camera Presets ─────────────────────────────────
+
+document.querySelectorAll(".cam-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setCameraPreset(btn.dataset.preset));
+});
+
+// ── 3D Element Toggles ───────────────────────────────
+
+document.querySelectorAll("#element-toggles input[type=checkbox]").forEach((cb) => {
+  cb.addEventListener("change", () => {
+    setGroupVisible(cb.dataset.group, cb.checked);
+  });
+});
+
+// ── Section Cut Slider ────────────────────────────────
+
+const sectionSlider = document.getElementById("slider-section");
+const sectionVal = document.getElementById("section-height-val");
+
+sectionSlider.addEventListener("input", () => {
+  const h = parseFloat(sectionSlider.value);
+  sectionVal.textContent = h.toFixed(1);
+  setSectionHeight(h);
+});
+
+document.getElementById("chk-clipping").addEventListener("change", (e) => {
+  setClippingEnabled(e.target.checked);
 });
 
 // ── Export ─────────────────────────────────────────────
@@ -219,11 +265,9 @@ document.getElementById("btn-export-png").addEventListener("click", () => {
   const activeView = document.querySelector(".tab.active").dataset.view;
 
   if (activeView === "3d" && threeInitialized) {
-    // Export 3D view
     const dataUrl = captureImage(2400, 1800);
     if (dataUrl) downloadDataUrl(dataUrl, "plan-layout-3d.png");
   } else {
-    // Export 2D SVG as PNG via canvas
     exportSVGAsPNG(currentState);
   }
 });
@@ -239,7 +283,6 @@ function exportSVGAsPNG(state) {
   const svgStr = exportSVGString(state);
   const printCfg = state.print || {};
   const dpi = printCfg.dpi || 300;
-  // Use paper size from print config, or default to reasonable dimensions
   const pxW = (printCfg.paper_width_in || 24) * dpi;
   const pxH = (printCfg.paper_height_in || 36) * dpi;
 
@@ -265,11 +308,16 @@ function exportSVGAsPNG(state) {
 // ── Keyboard Shortcuts ────────────────────────────────
 
 window.addEventListener("keydown", (e) => {
+  // Don't capture when typing in inputs
+  if (e.target.tagName === "INPUT") return;
   if (e.key === "1") document.querySelector('[data-view="2d"]').click();
   if (e.key === "2") document.querySelector('[data-view="3d"]').click();
   if (e.key === "f" || e.key === "F") document.getElementById("btn-zoom-fit").click();
   if (e.key === "+" || e.key === "=") document.getElementById("btn-zoom-in").click();
   if (e.key === "-") document.getElementById("btn-zoom-out").click();
+  // 3D camera presets
+  if (e.key === "p") setCameraPreset("perspective");
+  if (e.key === "t") setCameraPreset("plan");
 });
 
 // ── Init ──────────────────────────────────────────────

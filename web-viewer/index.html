@@ -18,7 +18,7 @@
     <button class="tab active" data-view="2d">2D Plan</button>
     <button class="tab" data-view="3d">3D Tactile</button>
   </div>
-  <div class="toolbar-group">
+  <div class="toolbar-group" id="controls-2d">
     <label>Layers:</label>
     <div id="layer-toggles"></div>
   </div>
@@ -26,6 +26,57 @@
     <button id="btn-zoom-fit" title="Zoom to fit">Fit</button>
     <button id="btn-zoom-in" title="Zoom in">+</button>
     <button id="btn-zoom-out" title="Zoom out">-</button>
+  </div>
+</div>
+
+<!-- 3D Controls Panel (shown only in 3D view) -->
+<div id="panel-3d" class="side-panel hidden">
+  <div class="panel-section">
+    <div class="panel-heading">Camera</div>
+    <div class="panel-row">
+      <button class="cam-btn" data-preset="perspective" title="Perspective view">Persp</button>
+      <button class="cam-btn" data-preset="plan" title="Top-down plan view">Plan</button>
+    </div>
+    <div class="panel-row">
+      <button class="cam-btn" data-preset="north" title="North elevation">N</button>
+      <button class="cam-btn" data-preset="east" title="East elevation">E</button>
+      <button class="cam-btn" data-preset="south" title="South elevation">S</button>
+      <button class="cam-btn" data-preset="west" title="West elevation">W</button>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-heading">Section Cut</div>
+    <div class="panel-row">
+      <label class="toggle-label">
+        <input type="checkbox" id="chk-clipping" checked>
+        Clip at height
+      </label>
+    </div>
+    <div class="panel-row">
+      <input type="range" id="slider-section" min="0" max="20" step="0.5" value="4"
+        title="Section cut height">
+      <span id="section-height-val">4.0</span>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-heading">Elements</div>
+    <div id="element-toggles">
+      <label class="toggle-label"><input type="checkbox" data-group="walls" checked> Walls</label>
+      <label class="toggle-label"><input type="checkbox" data-group="columns" checked> Columns</label>
+      <label class="toggle-label"><input type="checkbox" data-group="floor" checked> Floor</label>
+      <label class="toggle-label"><input type="checkbox" data-group="corridors" checked> Corridors</label>
+      <label class="toggle-label"><input type="checkbox" data-group="voids" checked> Voids</label>
+      <label class="toggle-label"><input type="checkbox" data-group="doors" checked> Doors</label>
+      <label class="toggle-label"><input type="checkbox" data-group="windows" checked> Windows</label>
+      <label class="toggle-label"><input type="checkbox" data-group="site" checked> Site</label>
+      <label class="toggle-label"><input type="checkbox" data-group="grid" checked> Grid</label>
+      <label class="toggle-label"><input type="checkbox" data-group="labels" checked> Labels</label>
+      <label class="toggle-label"><input type="checkbox" data-group="edges" checked> Edges</label>
+      <label class="toggle-label"><input type="checkbox" data-group="section" checked> Section Plane</label>
+      <label class="toggle-label"><input type="checkbox" data-group="ground" checked> Ground</label>
+    </div>
   </div>
 </div>
 

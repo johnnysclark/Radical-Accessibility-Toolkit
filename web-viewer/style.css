@@ -10,6 +10,8 @@ body {
   overflow: hidden;
 }
 
+/* ── Toolbar ─────────────────────────────────────── */
+
 #toolbar {
   display: flex;
   align-items: center;
@@ -19,6 +21,7 @@ body {
   border-bottom: 1px solid #444;
   flex-wrap: wrap;
   min-height: 44px;
+  z-index: 10;
 }
 
 .toolbar-group {
@@ -79,6 +82,8 @@ button.tab.active {
   accent-color: #6af;
 }
 
+/* ── View Container ──────────────────────────────── */
+
 #view-container {
   flex: 1;
   position: relative;
@@ -111,6 +116,97 @@ button.tab.active {
   height: 100% !important;
 }
 
+/* ── 3D Side Panel ───────────────────────────────── */
+
+.side-panel {
+  position: fixed;
+  top: 48px;
+  right: 0;
+  width: 180px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  background: rgba(30, 30, 30, 0.92);
+  border-left: 1px solid #444;
+  border-bottom: 1px solid #444;
+  border-radius: 0 0 0 6px;
+  padding: 8px;
+  z-index: 20;
+  backdrop-filter: blur(6px);
+}
+
+.side-panel.hidden { display: none; }
+
+.panel-section {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.panel-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.panel-heading {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.cam-btn {
+  flex: 1;
+  padding: 3px 6px;
+  font-size: 11px;
+  min-width: 32px;
+  text-align: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+  color: #ccc;
+}
+
+.toggle-label:hover { color: #fff; }
+
+.toggle-label input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  accent-color: #6af;
+}
+
+#slider-section {
+  flex: 1;
+  accent-color: #f66;
+  cursor: pointer;
+}
+
+#section-height-val {
+  font-size: 11px;
+  color: #f88;
+  min-width: 28px;
+  text-align: right;
+}
+
+#element-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ── Status Bar ──────────────────────────────────── */
+
 #status-bar {
   display: flex;
   justify-content: space-between;
@@ -120,3 +216,9 @@ button.tab.active {
   font-size: 11px;
   color: #888;
 }
+
+/* ── Scrollbar (side panel) ──────────────────────── */
+
+.side-panel::-webkit-scrollbar { width: 5px; }
+.side-panel::-webkit-scrollbar-track { background: transparent; }
+.side-panel::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
