@@ -12,9 +12,10 @@ import sys, os, json, copy
 # ── Setup ──
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-STATE = os.path.join(ROOT, "rhino", "state.json")
+JIG = os.path.join(ROOT, "controller")
+STATE = os.path.join(JIG, "rhino", "state.json")
 os.environ["LAYOUT_JIG_STATE"] = STATE
-sys.path.insert(0, ROOT)
+sys.path.insert(0, JIG)
 
 import controller_cli as cli
 import auditor
@@ -491,7 +492,7 @@ test("run nonexistent skill returns ERROR",
      lambda: None if "ERROR" in bad_msg else bad_msg[:80])
 
 # Clean up test skill
-test_skill_path = os.path.join(HERE, "skills", "test-skill.json")
+test_skill_path = os.path.join(JIG, "skills", "test-skill.json")
 if os.path.exists(test_skill_path):
     os.remove(test_skill_path)
 
@@ -533,7 +534,7 @@ print("=" * 60)
 print("PHASE 11b: Rhino Watcher File Validation")
 print("=" * 60)
 
-watcher_path = os.path.join(HERE, "rhino_watcher.py")
+watcher_path = os.path.join(JIG, "rhino", "rhino_watcher.py")
 
 test("rhino_watcher.py exists",
      lambda: None if os.path.exists(watcher_path) else "file not found")

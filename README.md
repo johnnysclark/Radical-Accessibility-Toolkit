@@ -23,15 +23,15 @@ Three levels of organization:
 - **Skill** — a saved sequence of commands, replayable with parameters (`enclose-bay-with-door`).
 
 ```
-Terminal (controller_cli.py)    Claude Code (mcp_server.py)
-        |                               |
-        | writes                        | calls controller + direct JSON
-        v                               v
+Terminal (controller/controller_cli.py)    Claude Code (controller/mcp_server.py)
+        |                                          |
+        | writes                                   | calls controller + direct JSON
+        v                                          v
               state.json  (canonical model artifact)
                       |
                       | watches (file mtime)
                       v
-              Rhino 8 (rhino_watcher.py)
+              Rhino 8 (controller/rhino/rhino_watcher.py)
                       |
                       v
               2D plan drawing + optional 3D tactile model
@@ -102,7 +102,7 @@ Generates watertight triangle meshes from the parametric model (pure Python, no 
 
 ### AI Integration — MCP Server v3.1
 
-An [MCP server](docs/MCP_V3_MANUAL.md) (46 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, and reads or writes individual state fields directly. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
+An [MCP server](docs/MCP_GUIDE.md) (46 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, and reads or writes individual state fields directly. The server delegates validated mutations to the controller CLI and provides direct JSON access for fields with no CLI command.
 
 Beyond conversational commands, the AI writes RhinoPython, Grasshopper scripts, or other code-based CAD operations on the user's behalf, then explains what it produced so the user learns the underlying language. Over time, Daniel builds fluency in scripting his own geometry. The AI is a bridge to self-sufficiency, not a permanent dependency.
 
@@ -129,7 +129,7 @@ The MCP server has seven functional layers:
 - **State introspection** (7) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
 - **State comparison** (3) — diff against snapshots, validate JSON structure
 
-See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture details, [docs/MCP_V3_MANUAL.md](docs/MCP_V3_MANUAL.md) for the full tool reference, and [docs/TEST_MANUAL.md](docs/TEST_MANUAL.md) for a walkthrough of every workflow.
+See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full tool reference. See [docs/TEST_MANUAL.md](docs/TEST_MANUAL.md) for a walkthrough of every workflow.
 
 ---
 
@@ -169,28 +169,28 @@ See [docs/HOW_THE_MCP_WORKS.md](docs/HOW_THE_MCP_WORKS.md) for architecture deta
 
 ```
 radical-accessibility/
-  CLAUDE.md .............. Project instructions for AI assistants
-  controller_cli.py ...... Terminal CLI, v2.3 (Python 3, stdlib only)
-  mcp_server.py .......... MCP server v3.1 (46 functions, 5 resources, 4 prompts)
-  auditor.py ............. Spatial validation, ADA checks, descriptions
-  skill_manager.py ....... Skill CRUD and replay
-  rhino_client.py ........ TCP client to Rhino watcher
-  requirements.txt ....... Python dependencies (mcp only)
-  skills/ ................ Bundled reusable command sequences
-  rhino/ ................. Rhino watcher scripts (IronPython 2.7)
-    rhino_watcher.py ..... File watcher + geometry renderer
-    tactile_print.py ..... STL mesh generation + Bambu printing
-    state.json ........... Canonical Model Artifact (created on first run)
-  image-describer/ ....... Image description CLI (Claude vision API)
-  tests/
-    run_tests.py ......... End-to-end test suite (115 tests)
-  docs/
-    HOW_THE_MCP_WORKS.md . MCP architecture deep dive
-    MCP_V3_MANUAL.md ..... Full MCP tool reference
-    TEST_MANUAL.md ....... Step-by-step test walkthrough
-    MCP_GUIDE.md ......... Original v2.0 MCP guide
-  MANUAL.md .............. Full user documentation
+  CLAUDE.md ................. Project instructions for AI assistants
+  MANUAL.md ................. Quick start and tool overview
   README.md
+  controller/ ............... Core platform
+    controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)
+    mcp_server.py ........... MCP server v3.1 (46 functions)
+    auditor.py .............. Spatial validation, ADA checks
+    skill_manager.py ........ Skill CRUD and replay
+    rhino_client.py ......... TCP client to Rhino watcher
+    requirements.txt ........ Python dependencies (mcp only)
+    skills/ ................. Bundled reusable command sequences
+    rhino/ .................. Rhino watcher scripts (IronPython 2.7)
+      rhino_watcher.py ...... File watcher + geometry renderer
+      tactile_print.py ...... STL mesh generation + Bambu printing
+      state.json ............ Canonical Model Artifact (created on first run)
+  image-describer/ .......... Image description CLI (Claude vision API)
+  tests/
+    run_tests.py ............ End-to-end test suite (123 tests)
+  docs/
+    MANUAL.md ............... Full user manual (all commands and tools)
+    MCP_GUIDE.md ............ AI layer: MCP architecture, setup, tool reference
+    TEST_MANUAL.md .......... Step-by-step test walkthrough
 ```
 
 ## License
