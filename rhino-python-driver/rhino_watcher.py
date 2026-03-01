@@ -29,7 +29,7 @@ one-way: controller writes, watcher reads.
 Run inside Rhino or Grasshopper Python:
     exec(open("C:/path/to/rhino_watcher.py").read())
 """
-import io, json, math, os, time, threading
+import io, json, math, os, subprocess, time, threading
 
 try:
     import rhinoscriptsyntax as rs
@@ -68,6 +68,71 @@ LAYER_COLORS = {
 }
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
+
+# ── Audio feedback ────────────────────────────────────────
+# Short audio signals so a blind user knows the rebuild happened
+# without needing to read the Rhino command line.
+#
+# AUDIO_MODE controls what plays after each rebuild:
+#   "chime"  — short system beep only (fast, non-blocking)
+#   "speak"  — spoken summary via Windows TTS (e.g. "2 bays, 1 door")
+#   "both"   — chime then speak
+#   "none"   — silent (screen reader users who read Rhino output)
+AUDIO_MODE = os.environ.get("LAYOUT_JIG_AUDIO", "both")
+SPEAK_RATE = int(os.environ.get("LAYOUT_JIG_SPEAK_RATE", "3"))
+
+
+def _chime():
+    """Play a short system beep. Non-blocking, fire-and-forget."""
+    try:
+        # Windows: [System.Console]::Beep(frequency_hz, duration_ms)
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-Command",
+             "[System.Console]::Beep(880, 120)"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
+def _speak(text):
+    """Speak text via Windows PowerShell SpeechSynthesizer.
+
+    Non-blocking (fire-and-forget). Uses SPEAK_RATE for speed.
+    """
+    escaped = text.replace("'", "''")
+    ps_cmd = (
+        "Add-Type -AssemblyName System.Speech;"
+        "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+        "$s.Rate={0};"
+        "$s.Speak('{1}')").format(SPEAK_RATE, escaped)
+    try:
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
+def _audio_feedback(state):
+    """Play audio after a successful rebuild."""
+    if AUDIO_MODE == "none":
+        return
+
+    if AUDIO_MODE in ("chime", "both"):
+        _chime()
+
+    if AUDIO_MODE in ("speak", "both"):
+        nbays = len(state.get("bays", {}))
+        total_aps = sum(len(b.get("apertures", []))
+                        for b in state.get("bays", {}).values())
+        nrooms = len(state.get("rooms", {}))
+        parts = []
+        parts.append("{0} bay{1}".format(nbays, "" if nbays == 1 else "s"))
+        if total_aps:
+            parts.append("{0} aperture{1}".format(
+                total_aps, "" if total_aps == 1 else "s"))
+        parts.append("{0} room{1}".format(nrooms, "" if nrooms == 1 else "s"))
+        _speak("Rebuilt. " + ", ".join(parts) + ".")
 
 # Map user-facing hatch names to Rhino's built-in hatch patterns
 HATCH_MAP = {"diagonal": "Hatch1", "crosshatch": "Grid", "dots": "Dots",
@@ -989,6 +1054,7 @@ def redraw(state):
     total_aps = sum(len(b.get("apertures",[])) for b in state["bays"].values())
     print("[PLJ] Redrawn: {0} bays, {1} apertures, {2} rooms{3}{4}".format(
         len(state["bays"]), total_aps, len(state.get("rooms", {})), leg_s, t3_s))
+    _audio_feedback(state)
 
 # ══════════════════════════════════════════════════════════
 # TCP QUERY LISTENER (v3.0)
