@@ -16,9 +16,17 @@ Layout Jig (controller/controller_cli.py)
   The primary design tool. Structural grids, walls, doors,
   corridors, rooms, legends, section cuts, and all output modes.
 
+Swell-Print (tools/swell-print/swell_print.py)
+  Converts designs and images to PIAF-ready tactile graphics.
+  Renders state.json directly (no Rhino) or converts any image.
+  Ten presets, density management, braille labels.
+
 Image Describer (tools/image-describer/arch_alt_text.py)
   Structured text descriptions of architectural images
   using Claude vision.
+
+Braille Module (controller/braille.py)
+  Grade 1/2 braille translation. Stdlib-only. Used by all tools.
 
 Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
@@ -191,6 +199,55 @@ OK: Converted photo.jpg -> photo_tactile.png (density 31.2%)
 
 Or through Claude Code via MCP tools: render_tactile,
 convert_to_tactile, check_tactile_density, list_tactile_presets.
+
+## Quick Start Workflow: Design to Tactile Print
+
+This shows the full path from an empty model to a physical
+tactile floor plan Daniel can read by touch. Takes about
+10 minutes.
+
+```
+# 1. Start the CLI
+python controller/controller_cli.py
+
+# 2. Set up the site and bay
+>> set site width 150
+>> set site height 100
+>> set bay A origin 20 20
+>> set bay A bays 3 2
+>> set bay A spacing 24 24
+
+# 3. Add walls, corridor, and a door
+>> wall A on
+>> corridor A on
+>> corridor A width 8
+>> aperture A add d1 door x 0 10 3.5 7
+
+# 4. Name rooms with different hatches (so Daniel can
+#    tell them apart by texture)
+>> cell A 0,0 name "Classroom"
+>> cell A 0,0 hatch diagonal
+>> cell A 2,0 name "Office"
+>> cell A 2,0 hatch crosshatch
+
+# 5. Check your work
+>> describe
+
+# 6. Generate a tactile print (no Rhino needed)
+>> quit
+python tools/swell-print/swell_print.py render
+OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 24.1%)
+
+# 7. Print the PDF on swell paper with a laser printer
+#    (must use carbon-based black toner)
+# 8. Feed the printed sheet through the PIAF heater
+# 9. Dark areas swell into raised lines — Daniel reads
+#    the floor plan by touch
+```
+
+The same model also produces a 3D printed tactile model
+(via tactile3d and bambu commands) and a standard 2D plan
+drawing (via Rhino). Change the model once, all outputs update.
 
 ## Requirements
 

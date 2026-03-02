@@ -25,11 +25,17 @@ Tactile Printer (tools/rhino/tactile_print.py)
   on Bambu Lab printers. No Rhino required.
 
 Swell Print (tools/swell-print/)
-  Converts architectural drawings into high-contrast black and
-  white images for PIAF swell paper machines. The raised output
-  creates tactile floor plans readable by touch. (Placeholder —
-  reference implementation in Ethan Childs' fabric-accessible-
-  graphics repository.)
+  Converts designs and images into high-contrast black and white
+  output for PIAF swell paper. Two modes: render state.json directly
+  (no Rhino needed) or convert any image (photo, sketch, CAD export).
+  Ten presets, density management, braille labels. Requires Pillow
+  and reportlab (pip install -r tools/swell-print/requirements.txt).
+
+Braille Module (controller/braille.py)
+  Translates ASCII text to Unicode Braille (U+2800-U+28FF).
+  Grade 1 (uncontracted) built-in using stdlib only. Grade 2
+  (contracted) available when liblouis is installed. Used by
+  all tools for braille label generation.
 
 Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
@@ -91,7 +97,8 @@ watertight STL mesh suitable for 3D printing.
 
 Python 3.8 or later (stdlib only — no pip install needed for the CLI).
 Rhino 7 or 8 with IronPython 2.7 (only if you want the visual viewer).
-For the MCP server: pip install mcp (the only external dependency).
+For the MCP server: pip install mcp (the only external dependency for MCP).
+For swell-print: pip install -r tools/swell-print/requirements.txt (Pillow, reportlab).
 For image description: a Claude API key.
 
 
@@ -517,9 +524,26 @@ variety:
     hatch path ./hatches/
     hatch add weave ./source_images/weave.png
 
-The swell-print tool (tools/swell-print/) will eventually automate
-the export-to-PIAF pipeline. The reference implementation lives in
-Ethan Childs' fabric-accessible-graphics repository.
+The swell-print tool (tools/swell-print/) automates the entire
+export-to-PIAF pipeline. It can render state.json directly to
+a 300 DPI B&W image (no Rhino needed) or convert any image file
+to PIAF-ready output. Ten conversion presets are available for
+different image types (floor plans, sketches, photographs, etc.).
+
+From the swell-print CLI:
+
+    python tools/swell-print/swell_print.py
+    >> render
+    OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+
+Or from Claude via MCP:
+
+    render_tactile(paper_size="letter", output_format="pdf")
+
+The tool manages black pixel density to ensure optimal swell
+results: target 25-40%, warning above 40%, rejection above 45%.
+Labels are rendered in both English and Grade 1 braille using
+the stdlib-only controller/braille.py module.
 
 
 ### 3D Tactile Print
@@ -680,7 +704,7 @@ Configure your AI client with .mcp.json at the project root:
       }
     }
 
-### All 45 MCP Functions
+### All 53 MCP Functions
 
 Querying (read-only, no changes):
  1. describe - full model description
@@ -730,6 +754,20 @@ Editing (changes state.json):
 43. add_bay - create a new bay
 44. remove_bay - delete a bay
 45. clone_bay - duplicate a bay
+
+Rhino setup:
+46. setup_rhino - configure Rhino path
+
+Script generation (Mode 3 learning):
+47. generate_script - create a .py script file
+48. list_scripts - list generated scripts
+49. show_script - show script contents
+
+Swell-print (tactile graphics):
+50. render_tactile - render state.json to tactile output
+51. convert_to_tactile - convert image to tactile output
+52. check_tactile_density - check image density for PIAF
+53. list_tactile_presets - list conversion presets
 
 
 ## 16. State Introspection
@@ -1183,7 +1221,122 @@ Grade 2 (contracted) is available when liblouis is installed.
     braille.from_braille(text)        # Reverse: braille -> ASCII
 
 
-## 25. Editing state.json by Hand
+## 25. End-to-End Workflows
+
+These workflows show complete sequences from start to finish,
+combining multiple tools for real tasks.
+
+
+### Workflow A: First Design Session
+
+A new user goes from zero to a complete floor plan with tactile
+output, all in one session.
+
+    # Start the CLI
+    python controller/controller_cli.py
+
+    # Set the site
+    >> set site width 200
+    >> set site height 150
+
+    # Position and size the bay
+    >> set bay A origin 20 20
+    >> set bay A bays 4 3
+    >> set bay A spacing 24 24
+
+    # Turn on walls and corridor
+    >> wall A on
+    >> corridor A on
+    >> corridor A width 8
+    >> corridor A loading double
+
+    # Add doors
+    >> aperture A add d1 door x 0 10 3.5 7
+    >> aperture A add d2 door y 0 5 3 7
+
+    # Name rooms and assign hatches
+    >> cell A 0,0 name "Classroom 1"
+    >> cell A 0,0 hatch diagonal
+    >> cell A 1,0 name "Classroom 2"
+    >> cell A 1,0 hatch crosshatch
+
+    # Check accessibility (via Claude and MCP)
+    # Claude calls audit_model() and reports any ADA issues
+
+    # Generate tactile output
+    python tools/swell-print/swell_print.py
+    >> render
+    OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+
+    # Print the PDF on swell paper, run through PIAF heater
+    # Daniel reads the floor plan by touch
+
+
+### Workflow B: Studying a Precedent
+
+Daniel wants to understand an existing building plan he cannot
+see. He uses the image describer to get a text description, then
+converts the image to a tactile print, and finally recreates the
+design in the Layout Jig.
+
+    # Step 1: Get a description of the building plan image
+    python tools/image-describer/arch_alt_text.py farnsworth_plan.jpg
+    # Claude vision describes the plan in structured text
+
+    # Step 2: Convert the image to a tactile print
+    python tools/swell-print/swell_print.py convert farnsworth_plan.jpg --preset floor_plan
+    OK: Converted farnsworth_plan.jpg -> farnsworth_plan_tactile.png (density 31.2%)
+
+    # Step 3: Print on swell paper, run through PIAF
+    # Daniel now has a tactile version of the Farnsworth House plan
+
+    # Step 4: Recreate in the Layout Jig based on what he learned
+    python controller/controller_cli.py
+    >> set site width 120
+    >> set site height 60
+    >> set bay A bays 4 1
+    >> set bay A spacing 22 28
+    # Continue building the design from tactile + text understanding
+
+
+### Workflow C: Design Review Preparation
+
+Daniel prepares three physical artifacts for a design review:
+a tactile floor plan, a 3D printed model, and a practiced
+verbal description.
+
+    # 1. Audit the design for issues
+    # Ask Claude: "Run an accessibility audit on my design"
+    # Claude calls audit_model() and reports any ADA issues
+    # Fix any problems before generating output
+
+    # 2. Generate a tactile floor plan (swell paper)
+    python tools/swell-print/swell_print.py
+    >> render --paper tabloid
+    OK: Rendered state_tactile.pdf (Tabloid, 300 DPI, density 26.1%)
+
+    # 3. Generate a 3D tactile model
+    python controller/controller_cli.py
+    >> tactile3d on
+    >> tactile3d wall_height 9
+    >> tactile3d cut_height 4
+    >> tactile3d export
+    >> bambu print
+    OK: STL sent to Bambu printer.
+
+    # 4. Prepare the verbal description
+    >> describe
+    # Read the full model description to practice presenting
+    # The describe output covers: site, bays, walls, corridors,
+    # apertures, rooms, and any validation issues
+
+    # Daniel brings to the review:
+    # - Tactile floor plan (swell paper) for pinup
+    # - 3D printed model for the jury to hold
+    # - Practiced verbal description of the design intent
+
+
+## 26. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -1301,7 +1454,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 26. How Things Work Under the Hood
+## 27. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1355,7 +1508,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 27. MCP Resources and Prompts
+## 28. MCP Resources and Prompts
 
 ### Resources
 
@@ -1373,7 +1526,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 28. Troubleshooting
+## 29. Troubleshooting
 
 ### "mcp package not found"
 

@@ -75,8 +75,11 @@ Supporting modules:
 
 - `controller/auditor.py` -- spatial validation, descriptions, ADA checks
 - `controller/skill_manager.py` -- save and replay reusable command sequences
+- `controller/braille.py` -- Grade 1/2 braille translation (stdlib-only)
 - `tools/rhino/rhino_client.py` -- TCP client to query Rhino
 - `tools/rhino/tactile_print.py` -- tactile printing utilities
+- `tools/swell-print/state_renderer.py` -- render state.json to B&W image
+- `tools/swell-print/image_converter.py` -- convert images to PIAF-ready B&W
 
 ### Data flow: what happens when Claude says "rotate bay A by 30 degrees"
 
@@ -126,11 +129,18 @@ Steps 15-16 happen independently. The MCP call is already done by step 14. Rhino
 
 ### Install the MCP package
 
-This is the only external dependency in the entire project:
+For MCP functionality:
 
     pip install mcp
 
-Tested with mcp 1.26.0. Everything else is Python stdlib.
+Tested with mcp 1.26.0. The controller itself is Python stdlib only.
+
+For swell-print tactile graphics (optional):
+
+    pip install -r tools/swell-print/requirements.txt
+
+This installs Pillow and reportlab. Without these, the 4 swell-print
+MCP tools return a helpful error message; all other tools work normally.
 
 ### Configure Claude Code
 
@@ -171,7 +181,7 @@ The server communicates over stdio using JSON-RPC. All normal print output is re
 
     Layout Jig MCP Server v3.3 starting...
     State file: /path/to/state.json
-    Tools: 49 registered
+    Tools: 53 registered
 
 ### Optional: Rhino connection
 
@@ -187,7 +197,7 @@ If Rhino is not running, those functions return OFFLINE messages. Everything els
 
 ## 4. Tool Reference
 
-49 MCP functions organized by category.
+53 MCP functions organized by category.
 
 ### Core pipeline (21 functions)
 

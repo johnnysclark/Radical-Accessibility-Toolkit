@@ -1517,7 +1517,7 @@ a syntax error). Restart the MCP server to pick up the change.
 
 ## Quick Reference
 
-### All 45 MCP Tools
+### All 53 MCP Tools
 
 Querying (read-only, no changes):
  1. describe - full model description
@@ -1567,3 +1567,14 @@ Editing (changes state.json):
 43. add_bay - create a new bay (v3.1)
 44. remove_bay - delete a bay (v3.1)
 45. clone_bay - duplicate a bay (v3.1)
+46. generate_script - create editable .py script (v3.2)
+47. list_scripts - list generated scripts (v3.2)
+48. show_script - show script contents (v3.2)
+49. render_tactile - render state.json to tactile output (v3.3)
+50. convert_to_tactile - convert image to tactile output (v3.3)
+51. check_tactile_density - check image density for PIAF (v3.3)
+52. list_tactile_presets - list conversion presets (v3.3)
+
+Special (no state changes, swell-print dependencies optional):
+53. braille module (controller/braille.py) - used internally by
+    render_tactile for label generation, available to all tools
