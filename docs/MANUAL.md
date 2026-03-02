@@ -41,6 +41,12 @@ Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
 
+Setup Script (setup.py)
+  One-command setup for the entire system. Checks Python version,
+  installs dependencies (mcp, Pillow, reportlab), creates .mcp.json,
+  validates state.json, and tests MCP server readiness.
+  Run: python setup.py
+
 
 ## 2. Taxonomy
 
@@ -404,14 +410,36 @@ through the MCP server because MCP calls are stateless. Through
 MCP, use snapshots instead.
 
 
-## 12. Quit
+## 12. Text-to-Speech
+
+Enable spoken confirmation of commands:
+
+    tts on
+
+Disable:
+
+    tts off
+
+Change the speech rate (-10 to 10):
+
+    tts rate 4
+
+When TTS is on, every command confirmation is spoken aloud via
+Windows PowerShell SpeechSynthesizer. This includes describe and
+list bays output — the full model description is read aloud when
+requested.
+
+TTS is OFF by default. It works on Windows only.
+
+
+## 13. Quit
 
     quit
 
 This saves the state and exits the CLI.
 
 
-## 13. Output Modes
+## 14. Output Modes
 
 The toolkit produces three kinds of physical output from the same
 model. All three are equally important. A blind designer can touch
@@ -545,6 +573,18 @@ results: target 25-40%, warning above 40%, rejection above 45%.
 Labels are rendered in both English and Grade 1 braille using
 the stdlib-only controller/braille.py module.
 
+The CLI print command now generates tactile output directly. Type
+print in the interactive CLI and it renders state_tactile.pdf in
+the controller/ directory using the swell-print renderer. If
+swell-print dependencies are not installed, the command still
+reports print settings but notes that no image was generated.
+
+Braille labels on PIAF output use paper-absolute sizing conforming
+to BANA standards (Braille Authority of North America): 30pt font
+producing approximately 10mm line spacing. English text renders at
+12pt. These sizes are fixed regardless of model scale — the same
+braille is readable whether the site is 100 feet or 1000 feet wide.
+
 
 ### 3D Tactile Print
 
@@ -571,6 +611,11 @@ Export an STL mesh:
 Or use auto-export to regenerate the STL every time the model changes:
 
     tactile3d auto_export on
+
+When auto_export is on and tactile3d is enabled, every command
+that changes the model automatically exports a new STL file to
+the configured export_path. This means the 3D model stays in
+sync with your design without manual export commands.
 
 The Bambu printer pipeline handles the full path from model to print:
 
@@ -607,7 +652,7 @@ Section export requires tactile_print.py to be available (it uses
 the mesh engine to compute the cut).
 
 
-## 14. Audit Tools
+## 15. Audit Tools
 
 ### audit_model
 
@@ -668,7 +713,7 @@ Valid location references:
 - "site center" (the center of the site)
 
 
-## 15. MCP Server
+## 16. MCP Server
 
 The MCP server (mcp/mcp_server.py) wraps the CLI so that AI
 assistants like Claude can call commands as structured function calls.
@@ -770,7 +815,7 @@ Swell-print (tactile graphics):
 53. list_tactile_presets - list conversion presets
 
 
-## 16. State Introspection
+## 17. State Introspection
 
 ### Dot-notation paths
 
@@ -821,7 +866,7 @@ Lists all keys at a given path. Use to explore the schema.
     list_fields("style")      -> all style properties
 
 
-## 17. Bay Management
+## 18. Bay Management
 
 ### add_bay
 
@@ -848,7 +893,7 @@ change.
     clone_bay("A", "E", 80.0, 80.0)
 
 
-## 18. Skill Manager
+## 19. Skill Manager
 
 ### What is a skill?
 
@@ -911,7 +956,7 @@ following the format above.
 2. enclose-bay-with-door: Turn on walls and add a single entry door
 
 
-## 19. Rhino Client
+## 20. Rhino Client
 
 ### How it works
 
@@ -943,7 +988,7 @@ geometry-modifying functions like rs.AddLine or rs.DeleteObject.
 Important: IronPython 2.7 — use .format() not f-strings.
 
 
-## 20. Extending the Jig
+## 21. Extending the Jig
 
 ### What extend_controller does
 
@@ -1033,7 +1078,7 @@ When asking an AI to write a new command, use this prompt template:
   controller/controller_cli.py, or restore a snapshot.
 
 
-## 21. Controller Introspection
+## 22. Controller Introspection
 
 ### list_commands
 
@@ -1053,7 +1098,7 @@ name ("cmd_corridor", "_cmd_set_bay").
 Use this before writing extensions with extend_controller.
 
 
-## 22. State Comparison
+## 23. State Comparison
 
 ### diff_snapshot
 
@@ -1079,7 +1124,7 @@ Checks performed:
 - Are aperture types valid? (door, window, or portal)
 
 
-## 23. Mode 3: Learning Rhino Python
+## 24. Mode 3: Learning Rhino Python
 
 The system supports three interaction modes:
 
@@ -1147,7 +1192,7 @@ See DESIGN_SESSION.md for a complete walkthrough showing all three
 modes in action during a school building design project.
 
 
-## 24. Swell-Print: PIAF Tactile Graphics
+## 25. Swell-Print: PIAF Tactile Graphics
 
 The swell-print tool converts designs into physical tactile graphics
 readable by touch on PIAF swell paper. Two modes of operation:
@@ -1220,56 +1265,391 @@ Grade 2 (contracted) is available when liblouis is installed.
     braille.to_braille("Bay A", 2)    # Grade 2 (requires liblouis)
     braille.from_braille(text)        # Reverse: braille -> ASCII
 
+On PIAF swell paper output, braille is rendered at the BANA standard
+size (approximately 30pt, producing 10mm line spacing) regardless of
+model scale. English labels render at 12pt. The state.json
+style.braille_text_height and label_text_height values (in feet)
+control the Rhino watcher only; the swell-print renderer uses
+paper-absolute sizes for PIAF compliance.
 
-## 25. End-to-End Workflows
+
+## 26. End-to-End Workflows
 
 These workflows show complete sequences from start to finish,
 combining multiple tools for real tasks.
 
 
-### Workflow A: First Design Session
+### Workflow A: Complete System Walkthrough
 
-A new user goes from zero to a complete floor plan with tactile
-output, all in one session.
+This walkthrough takes you from first setup through design,
+audit, physical output, and iteration. It shows both the
+interactive CLI (Mode 2) and Claude/MCP (Mode 1) for every
+step, so you can use whichever you prefer.
 
-    # Start the CLI
+The scenario: Daniel is designing a small community library with
+a reading room, a study room, and an accessible corridor. He
+wants a tactile floor plan on swell paper and a 3D printed model
+to bring to his design review.
+
+
+Step 1: System setup.
+
+Run the setup script to verify Python, install dependencies,
+and configure the MCP server:
+
+    python setup.py
+
+Expected output:
+
+    OK: Python 3.11.5 detected.
+    OK: mcp package installed.
+    OK: Pillow installed.
+    OK: reportlab installed.
+    OK: .mcp.json created.
+    OK: state.json is valid.
+    OK: Setup complete. All systems ready.
+
+If any step fails, setup.py tells you exactly what to install.
+
+
+Step 2: Start the CLI and see the model.
+
     python controller/controller_cli.py
 
-    # Set the site
-    >> set site width 200
-    >> set site height 150
+    >> describe
 
-    # Position and size the bay
-    >> set bay A origin 20 20
+This prints the full model: schema version, site dimensions, all
+bays, all rooms, and totals.
+
+Claude/MCP equivalent: ask Claude "describe the current model."
+Claude calls describe() and reads the output to you.
+
+
+Step 3: Set up the site.
+
+    >> set site width 150
+    OK: Site width = 150.0 ft. Was 200.0 ft.
+
+    >> set site height 100
+    OK: Site height = 100.0 ft. Was 200.0 ft.
+
+Claude/MCP equivalent: "set the site to 150 by 100 feet."
+Claude calls set_site(field="width", value=150) and
+set_site(field="height", value=100).
+
+
+Step 4: Position and size the main bay.
+
+    >> set bay A origin 10 10
+    OK: Bay A origin = [10.0, 10.0]. Was [10.0, 10.0].
+
     >> set bay A bays 4 3
+    OK: Bay A grid = [4, 3]. Was [3, 3].
+
     >> set bay A spacing 24 24
+    OK: Bay A spacing = [24.0, 24.0]. Was [24.0, 24.0].
 
-    # Turn on walls and corridor
+    >> set bay A label "Community Library"
+    OK: Bay A label = "Community Library". Was "".
+
+Claude/MCP equivalent: "set bay A to a 4 by 3 grid at origin
+10,10 with 24 foot spacing, label it Community Library."
+Claude calls set_bay for each property.
+
+
+Step 5: Turn on walls with a corridor.
+
     >> wall A on
+    OK: Bay A walls ON.
+
+    >> wall A thickness 0.5
+    OK: Bay A wall thickness = 0.50 ft. Was 0.50 ft.
+
     >> corridor A on
+    OK: Bay A corridor ON.
+
     >> corridor A width 8
+    OK: Bay A corridor width = 8.0 ft. Was 8.0 ft.
+
+    >> corridor A axis x
+    OK: Bay A corridor axis = x. Was x.
+
     >> corridor A loading double
+    OK: Bay A corridor loading = double. Was double.
 
-    # Add doors
+Claude/MCP equivalent: "turn on walls for bay A, then enable
+a double-loaded east-west corridor, 8 feet wide."
+Claude calls set_walls(bay="A", enabled=true) and
+set_corridor(bay="A", enabled=true, field="width", value="8").
+
+
+Step 6: Add doors.
+
     >> aperture A add d1 door x 0 10 3.5 7
-    >> aperture A add d2 door y 0 5 3 7
+    OK: Added door d1 to bay A.
 
-    # Name rooms and assign hatches
-    >> cell A 0,0 name "Classroom 1"
+    >> aperture A add d2 door x 3 10 3.5 7
+    OK: Added door d2 to bay A.
+
+    >> aperture A add d3 door y 0 5 3.5 7
+    OK: Added door d3 to bay A.
+
+d1 is on the south wall (x-axis gridline 0), 10 feet from the
+corner, 3.5 feet wide, 7 feet tall. d2 is on the north wall.
+d3 is on the west wall. All doors are 3.5 feet wide, which
+meets the ADA minimum of 3 feet clear width.
+
+Claude/MCP equivalent: "add three doors: d1 on the south wall
+at 10 feet, d2 on the north wall at 10 feet, d3 on the west
+wall at 5 feet. All 3.5 feet wide, 7 feet tall."
+Claude calls add_aperture three times.
+
+
+Step 7: Name rooms and assign hatches.
+
+    >> cell A 0,0 name "Reading Room"
+    OK: Cell A(0,0) name = "Reading Room".
+
     >> cell A 0,0 hatch diagonal
-    >> cell A 1,0 name "Classroom 2"
-    >> cell A 1,0 hatch crosshatch
+    OK: Cell A(0,0) hatch = diagonal.
 
-    # Check accessibility (via Claude and MCP)
-    # Claude calls audit_model() and reports any ADA issues
+    >> cell A 1,0 name "Reading Room"
+    OK: Cell A(1,0) name = "Reading Room".
 
-    # Generate tactile output
-    python tools/swell-print/swell_print.py
-    >> render
+    >> cell A 1,0 hatch diagonal
+    OK: Cell A(1,0) hatch = diagonal.
+
+    >> cell A 0,2 name "Study Room"
+    OK: Cell A(0,2) name = "Study Room".
+
+    >> cell A 0,2 hatch crosshatch
+    OK: Cell A(0,2) hatch = crosshatch.
+
+    >> cell A 1,2 name "Study Room"
+    OK: Cell A(1,2) name = "Study Room".
+
+    >> cell A 1,2 hatch crosshatch
+    OK: Cell A(1,2) hatch = crosshatch.
+
+Cells with the same name merge into one room. The Reading Room
+is on the south side (two cells with diagonal hatch), the Study
+Room is on the north side (two cells with crosshatch). A blind
+reader can tell the rooms apart by texture on the swell paper.
+
+Claude/MCP equivalent: "name the bottom two cells Reading Room
+with diagonal hatch, and the top two cells Study Room with
+crosshatch." Claude calls set_cell for each.
+
+
+Step 8: Save a snapshot before auditing.
+
+    >> snapshot save before-audit
+    OK: Snapshot "before-audit" saved.
+
+This preserves the current state so you can roll back if needed.
+
+Claude/MCP equivalent: "save a snapshot called before-audit."
+Claude calls save_snapshot(name="before-audit").
+
+
+Step 9: Ask Claude for a design critique.
+
+Mode 1 only (this is where MCP shines). Ask Claude:
+
+    "Review my library design. Check for ADA issues and
+    suggest improvements to the spatial layout."
+
+Claude calls audit_model(), describe_bay(bay="A"), and
+describe_circulation(). It reports back in natural language:
+
+    "Your design has 0 ADA issues. All three doors meet the
+    3.5 foot minimum. The 8-foot corridor supports wheelchair
+    passing. I notice the Reading Room has no windows. Consider
+    adding a window on the east wall for daylight access."
+
+
+Step 10: Fix an issue based on the critique.
+
+    >> aperture A add w1 window y 4 12 6 4
+    OK: Added window w1 to bay A.
+
+A 6-foot window on the east wall of the Reading Room.
+
+Claude/MCP equivalent: "add a 6-foot window on the east wall,
+12 feet from the corner, 4 feet tall."
+Claude calls add_aperture(bay="A", id="w1", type="window",
+axis="y", gridline=4, corner=12, width=6, height=4).
+
+
+Step 11: Run the formal audit.
+
+    >> audit
+    OK: 0 issues found.
+
+If there were problems, the audit lists them with numbers:
+
+    1. Bay A door d3 width 2.5 ft is below ADA minimum 3.0 ft.
+    2. Bay A corridor width 4.0 ft is below ADA minimum 5.0 ft.
+
+Claude/MCP equivalent: "run an accessibility audit."
+Claude calls audit_model() and reads each issue.
+
+
+Step 12: Extend the controller with a custom command.
+
+Mode 1 only. Ask Claude:
+
+    "Add a command called floorarea that calculates the
+    total floor area of all rectangular bays."
+
+Claude calls extend_controller with:
+
+    function_name: "cmd_floorarea"
+    code: '''
+    def cmd_floorarea(state, tokens):
+        total = 0
+        for name, bay in state.get("bays", {}).items():
+            if bay.get("grid_type") != "rectangular":
+                continue
+            nx, ny = bay["bays"]
+            sx = bay.get("spacing", [24, 24])
+            w = nx * sx[0]
+            h = ny * sx[1]
+            total += w * h
+        msg = "OK: Total floor area: {:.0f} sq ft.".format(total)
+        return state, msg
+    '''
+
+Now use it from the CLI:
+
+    >> floorarea
+    OK: Total floor area: 6912 sq ft.
+
+The command persists across sessions because it is written into
+controller_cli.py. It also works through MCP via run_command.
+
+
+Step 13: Generate 2D tactile output (PIAF swell paper).
+
+    >> print
     OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
 
-    # Print the PDF on swell paper, run through PIAF heater
-    # Daniel reads the floor plan by touch
+The print command generates a PDF ready for swell paper. The
+braille labels are rendered at BANA standard size (30pt, 10mm
+line spacing), readable by touch regardless of drawing scale.
+
+Print the PDF on swell paper with a laser printer, then run it
+through the PIAF heater. Dark areas swell up. Daniel reads the
+floor plan by touch: diagonal hatch is the Reading Room,
+crosshatch is the Study Room, and the corridor is between them.
+
+Claude/MCP equivalent: "generate a tactile PDF for swell paper."
+Claude calls render_tactile(paper_size="letter", output_format="pdf").
+
+To convert a reference image instead of the model:
+
+    python tools/swell-print/swell_print.py convert photo.jpg --preset floor_plan
+    OK: Converted photo.jpg -> photo_tactile.png (density 31.2%)
+
+
+Step 14: Generate 3D tactile output (3D print).
+
+    >> tactile3d on
+    OK: Tactile 3D: ON.
+
+    >> tactile3d wall_height 9
+    OK: Tactile 3D wall height = 9.0 ft.
+
+    >> tactile3d cut_height 4
+    OK: Tactile 3D cut height = 4.0 ft.
+
+    >> tactile3d floor on
+    OK: Tactile 3D floor: ON.
+
+    >> tactile3d export_path ./library_model.stl
+    OK: Tactile 3D export path = "./library_model.stl".
+
+    >> tactile3d export
+    OK: Exported STL to ./library_model.stl (12,456 triangles).
+
+For continuous sync during design iteration:
+
+    >> tactile3d auto_export on
+    OK: Tactile 3D auto-export: ON.
+
+Now every model change regenerates the STL automatically.
+
+Claude/MCP equivalent: "enable tactile 3D with 9-foot walls,
+cut at 4 feet, export to library_model.stl."
+Claude calls run_command for each tactile3d setting.
+
+
+Step 15: Send to the Bambu 3D printer.
+
+    >> bambu config ip 192.168.1.100
+    OK: Bambu printer IP = 192.168.1.100.
+
+    >> bambu config access_code 12345678
+    OK: Bambu access code set.
+
+    >> bambu config serial 01P00C000000001
+    OK: Bambu serial = 01P00C000000001.
+
+    >> bambu preview
+    OK: Model fits on build plate. Dimensions: 120mm x 80mm x 24mm.
+
+    >> bambu print
+    OK: STL exported, sliced, uploaded. Print started.
+
+Claude/MCP equivalent: "configure the Bambu printer at
+192.168.1.100 and start printing." Claude calls run_command
+for each bambu config, then run_command("bambu print").
+
+
+Step 16: Iterate with snapshots.
+
+    >> snapshot save with-window
+    OK: Snapshot "with-window" saved.
+
+Make an experimental change:
+
+    >> set bay A rotation 15
+    OK: Bay A rotation = 15.0 deg. Was 0.0 deg.
+
+Compare what changed:
+
+Claude/MCP: "compare the current state to snapshot with-window."
+Claude calls diff_snapshot(snapshot_name="with-window") and reports:
+
+    "One field changed: bays.A.rotation_deg was 0.0, now 15.0."
+
+Decide the rotation does not work. Restore:
+
+    >> snapshot load with-window
+    OK: Snapshot "with-window" loaded.
+
+    >> describe
+    (Bay A rotation is back to 0 degrees.)
+
+Claude/MCP equivalent: "restore the with-window snapshot."
+Claude calls load_snapshot(name="with-window").
+
+
+Step 17: Final check.
+
+    >> describe
+    >> audit
+
+Review the full model description. Confirm zero audit issues.
+Daniel now has:
+
+- A tactile floor plan on swell paper for the pinup wall.
+- A 3D printed model for the jury to hold.
+- A practiced verbal description from the describe output.
+- A saved snapshot he can restore and continue iterating from.
+
+The entire session used one terminal window and one JSON file.
+No screen was required at any point.
 
 
 ### Workflow B: Studying a Precedent
@@ -1336,7 +1716,7 @@ verbal description.
     # - Practiced verbal description of the design intent
 
 
-## 26. Editing state.json by Hand
+## 27. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -1454,7 +1834,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 27. How Things Work Under the Hood
+## 28. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1508,7 +1888,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 28. MCP Resources and Prompts
+## 29. MCP Resources and Prompts
 
 ### Resources
 
@@ -1526,7 +1906,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 29. Troubleshooting
+## 30. Troubleshooting
 
 ### "mcp package not found"
 

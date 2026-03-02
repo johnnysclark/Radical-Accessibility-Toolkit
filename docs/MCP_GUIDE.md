@@ -23,6 +23,8 @@ MCP also enables the code generation workflow. The AI can inspect the current mo
 
 The same model drives three physical output modes: 2D plan drawings for pen plotting and PDF export, PIAF swell paper tactile graphics for reading floor plans by touch, and 3D printed tactile models via the Bambu pipeline. All three are configured and triggered through the same MCP functions.
 
+When TTS is enabled (`tts on` in the CLI), the `describe` and `list_bays` commands speak their output aloud via Windows SpeechSynthesizer, in addition to printing to the terminal.
+
 
 ## 2. Architecture
 
@@ -126,6 +128,18 @@ Steps 15-16 happen independently. The MCP call is already done by step 14. Rhino
 
 
 ## 3. Setup
+
+### Automated Setup
+
+Run the setup script from the CONTROLLER directory:
+
+    python setup.py
+
+This checks Python version, installs mcp/Pillow/reportlab, creates
+.mcp.json, validates state.json, and tests MCP server readiness.
+All output uses OK:/ERROR: prefixes for screen readers.
+
+If you prefer manual setup, follow the steps below.
 
 ### Install the MCP package
 
@@ -331,7 +345,9 @@ Mode 3: Learning Rhino Python. These tools generate editable IronPython 2.7 scri
 
 PIAF tactile graphics generation. Render state.json directly to B&W output (no Rhino needed) or convert any image to tactile-ready format. Requires Pillow and reportlab (`pip install -r tools/swell-print/requirements.txt`). Tools degrade gracefully if dependencies are not installed.
 
-`render_tactile(paper_size: str, output_format: str)` -- Render state.json to a PIAF-ready tactile graphic. Draws columns, walls, corridors, apertures, room hatches, labels (English + Braille), legend, and section cuts. Output is 300 DPI B&W in PDF or PNG format. No Rhino needed.
+`render_tactile(paper_size: str, output_format: str)` -- Render state.json to a PIAF-ready tactile graphic. Draws columns, walls, corridors, apertures, room hatches, labels (English + Braille), legend, and section cuts. Output is 300 DPI B&W in PDF or PNG format. No Rhino needed. Braille on PIAF output conforms to BANA standards: 30pt font producing 10mm line spacing. English text renders at 12pt. These sizes are paper-absolute and do not change with model scale.
+
+The CLI `print` command also generates PIAF output directly by calling the swell-print renderer. Users can type `print` in the interactive CLI to generate state_tactile.pdf without using MCP.
 
 `convert_to_tactile(image_path: str, preset: str, threshold: int, paper_size: str)` -- Convert any image (photo, sketch, CAD export) to PIAF-ready B&W output. Ten presets available for different image types.
 
@@ -479,6 +495,8 @@ Pre-built prompts for common design workflows. These load the current model stat
 
     AI: Full pipeline complete. STL exported, sliced to 3MF, uploaded
         to printer at 192.168.1.100. Print started.
+
+Set `tactile3d auto_export on` to automatically regenerate the STL file after every model change. The export path is set with `tactile3d export_path ./model.stl`.
 
 
 ## 7. How Undo Works in MCP Mode

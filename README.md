@@ -100,11 +100,13 @@ OK: 10 presets available:
 
 **Manual (Rhino export).** For drawings that include geometry beyond the state.json model — annotations, custom line work, overlaid analysis — export a high-contrast image from Rhino and run it through the `convert` command with the appropriate preset. The image converter applies contrast enhancement (S-curve, CLAHE, or auto-contrast depending on preset), thresholds to pure black and white, scales to fit the paper, and checks density before saving.
 
-Both pipelines produce output that laser prints on PIAF microcapsule paper and heats to a raised tactile graphic. Braille labels use the stdlib-only `controller/braille.py` module (Grade 1 built-in, Grade 2 via liblouis). Density above 40% triggers a warning; above 45% the tool rejects the output because excessive swelling destroys tactile detail.
+Both pipelines produce output that laser prints on PIAF microcapsule paper and heats to a raised tactile graphic. Braille labels conform to BANA standards (Braille Authority of North America): 30pt font producing approximately 10mm line spacing, paper-absolute regardless of model scale. English text renders at 12pt. These sizes are fixed on the paper — the same braille is readable whether the site is 100 feet or 1000 feet wide. Density above 40% triggers a warning; above 45% the tool rejects the output because excessive swelling destroys tactile detail.
+
+The CLI `print` command generates PIAF output directly — type `print` at the `>>` prompt and it renders `state_tactile.pdf` in the controller directory. No need to switch to the swell-print tool separately.
 
 ### 3D Print — Tactile Scale Models
 
-Generates watertight triangle meshes from the parametric model (pure Python, no Rhino dependency), validates solidity, and exports binary STL scaled for a Bambu Lab P1S printer. Daniel holds the printed model during design review — walls, corridors, openings physically present at 1:200 scale.
+Generates watertight triangle meshes from the parametric model (pure Python, no Rhino dependency), validates solidity, and exports binary STL scaled for a Bambu Lab P1S printer. Daniel holds the printed model during design review — walls, corridors, openings physically present at 1:200 scale. With `tactile3d auto_export on`, the STL regenerates automatically after every model change — the physical model stays in sync with the design without manual export commands.
 
 ### AI Integration — MCP Server v3.3
 
@@ -544,6 +546,7 @@ radical-accessibility/
   STARTUP.md ................ Startup instructions
   DESIGN_SESSION.md ......... Full design session walkthrough (all 3 modes)
   README.md ................. This file (detailed overview)
+  setup.py .................. One-command setup (deps, .mcp.json, validation)
   controller/ ............... Core platform (CLI + supporting modules)
     controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)
     auditor.py .............. Spatial validation, ADA checks

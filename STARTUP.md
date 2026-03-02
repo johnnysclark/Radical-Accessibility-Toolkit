@@ -134,7 +134,19 @@ again, and everything rebuilds from state.json.
 
 ## Step 3: Enable AI Assistant via MCP (Optional)
 
-To let Claude drive the system conversationally:
+To let Claude drive the system conversationally, run the automated
+setup script:
+
+```
+python setup.py
+```
+
+This does everything: checks Python version, installs pip dependencies
+(mcp, Pillow, reportlab), creates .mcp.json with correct paths,
+validates state.json, and tests MCP server readiness. Output uses
+OK:/ERROR: prefixes for screen readers.
+
+If you prefer manual setup:
 
 ```
 pip install mcp
@@ -233,16 +245,21 @@ python controller/controller_cli.py
 # 5. Check your work
 >> describe
 
-# 6. Generate a tactile print (no Rhino needed)
->> quit
-python tools/swell-print/swell_print.py render
-OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 24.1%)
+# 6. Generate a tactile print directly from the CLI
+>> print
+OK: Print requested (id=1).
+  Output: /path/to/controller/state_tactile.pdf
+  Density: 24.1%
 
 # 7. Print the PDF on swell paper with a laser printer
 #    (must use carbon-based black toner)
 # 8. Feed the printed sheet through the PIAF heater
 # 9. Dark areas swell into raised lines — Daniel reads
 #    the floor plan by touch
+#
+# Braille labels are rendered at BANA standard size
+# (30pt, 10mm line spacing) regardless of model scale.
+# English text renders at 12pt.
 ```
 
 The same model also produces a 3D printed tactile model
