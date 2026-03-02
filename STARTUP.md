@@ -53,15 +53,30 @@ The same model produces three kinds of physical output:
 All three outputs come from the same state.json. Change the
 model once, all outputs update.
 
+## IMPORTANT: What Runs Where
+
+The system has TWO separate Python environments. Do not mix them.
+
+1. cmd.exe terminal (Python 3) — runs the controller, MCP server,
+   swell-print, and all design tools. Open a Windows Command
+   Prompt (cmd.exe) and type commands there.
+
+2. Rhino Python editor (IronPython 2.7) — runs ONLY the watcher
+   script (tools/rhino/rhino_watcher.py). Nothing else.
+
+Do NOT open controller_cli.py in Rhino. It uses Python 3 syntax
+(f-strings, pathlib, etc.) and will show "SyntaxError: invalid
+syntax" if you try to run it in Rhino's IronPython 2.7.
+
 ## Two Ways to Use the System
 
 There are two independent ways to interact with the Layout Jig.
 You can use either one or both at the same time.
 
-1. Interactive CLI — you type commands directly in a terminal.
-   This is the controller. It gives you a >> prompt and you
-   type commands like "set bay A rotation 30". No setup needed
-   beyond Python.
+1. Interactive CLI — you type commands directly in a cmd.exe
+   terminal. This is the controller. It gives you a >> prompt
+   and you type commands like "set bay A rotation 30". Requires
+   Python 3.8 or later. No setup needed beyond Python.
 
 2. AI assistant via MCP — Claude types the commands for you.
    You talk to Claude in natural language ("rotate bay A by 30
@@ -73,6 +88,8 @@ that file and redraws whenever it changes, regardless of which
 method made the change.
 
 ## Step 1: Start the Controller (Interactive CLI)
+
+Open cmd.exe (not Rhino, not Windows Terminal). Then type:
 
 ```
 python controller/controller_cli.py
@@ -114,20 +131,20 @@ You do not need Rhino to design. The model lives in state.json
 and the CLI works without any visual output. But if you or a
 sighted collaborator wants to see the drawing update live:
 
-Type inside the controller:
+Open Rhino, then open the Python editor (EditPythonScript or F2).
+Paste this ONE line and press F5 to run it:
+
 ```
->> setup rhino
-OK: Launching Rhino with watcher...
-OK: Connected. Rhino is ready. Units: Feet.
+exec(open(r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py").read())
 ```
 
-Or start the watcher manually in Rhino's Python editor:
-```python
-import sys
-sys.path.insert(0, r"C:\path\to\tools\rhino")
-import rhino_watcher as w
-w.start_watcher()
-```
+Replace the path with wherever your CONTROLLER folder is. The
+watcher will print status to the Rhino command line. It reads
+state.json and rebuilds geometry automatically.
+
+IMPORTANT: Only rhino_watcher.py runs inside Rhino. Do NOT open
+controller_cli.py, mcp_server.py, or any other file in Rhino.
+Those are Python 3 files and will fail with syntax errors.
 
 If Rhino crashes, nothing is lost. Restart Rhino, run the watcher
 again, and everything rebuilds from state.json.
@@ -152,17 +169,33 @@ If you prefer manual setup:
 pip install mcp
 ```
 
-Then create .mcp.json at the project root:
+Then create .mcp.json in the PARENT folder of CONTROLLER (the
+folder where Claude Code opens the project). The paths must
+include CONTROLLER/ because the file is one level above it:
+
 ```json
 {
   "mcpServers": {
     "layout-jig": {
       "command": "python",
-      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+      "args": [
+        "CONTROLLER/mcp/mcp_server.py",
+        "--state",
+        "CONTROLLER/controller/state.json"
+      ]
     }
   }
 }
 ```
+
+IMPORTANT: Do not copy-paste this into a terminal. Create the
+file with a text editor or use "python setup.py" which does it
+automatically. The paths above assume the folder structure is:
+
+  CLI/                    (project root, where .mcp.json goes)
+    CONTROLLER/           (this toolkit folder)
+      mcp/mcp_server.py
+      controller/state.json
 
 Claude Code, Claude Desktop, or Cursor will start the MCP server
 automatically when they connect. You do not need to run it manually.

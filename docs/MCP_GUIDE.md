@@ -158,24 +158,43 @@ MCP tools return a helpful error message; all other tools work normally.
 
 ### Configure Claude Code
 
-Create `.mcp.json` at the project root:
+Create `.mcp.json` in the PARENT folder of CONTROLLER (the folder
+where Claude Code opens the project). The paths must include
+CONTROLLER/ because the file sits one level above it:
 
     {
       "mcpServers": {
         "layout-jig": {
           "command": "python",
           "args": [
-            "mcp/mcp_server.py",
+            "CONTROLLER/mcp/mcp_server.py",
             "--state",
-            "controller/state.json"
+            "CONTROLLER/controller/state.json"
           ]
         }
       }
     }
 
+Use "python setup.py" to create this file automatically with
+the correct paths for your installation.
+
 ### Configure Claude Desktop
 
-Add the same entry to `claude_desktop_config.json` (found in your Claude Desktop settings directory). Adjust paths to be absolute if needed.
+Add the same entry to `claude_desktop_config.json` (found in
+your Claude Desktop settings directory). Use absolute paths:
+
+    {
+      "mcpServers": {
+        "layout-jig": {
+          "command": "python",
+          "args": [
+            "C:/path/to/CONTROLLER/mcp/mcp_server.py",
+            "--state",
+            "C:/path/to/CONTROLLER/controller/state.json"
+          ]
+        }
+      }
+    }
 
 ### Configure Cursor
 
@@ -185,11 +204,11 @@ Add via Settings > MCP Servers with the same command and args.
 
 Instead of passing `--state`, you can set the environment variable:
 
-    LAYOUT_JIG_STATE=controller/state.json python mcp/mcp_server.py
+    LAYOUT_JIG_STATE=CONTROLLER/controller/state.json python CONTROLLER/mcp/mcp_server.py
 
 ### Run standalone (for testing)
 
-    python mcp/mcp_server.py --state controller/state.json
+    python CONTROLLER/mcp/mcp_server.py --state CONTROLLER/controller/state.json
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 

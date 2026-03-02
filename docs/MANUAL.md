@@ -110,6 +110,15 @@ For image description: a Claude API key.
 
 ## 5. Getting Started
 
+IMPORTANT: What runs where
+
+The controller (controller_cli.py) runs in a cmd.exe terminal
+with Python 3. Do NOT run it inside Rhino. Only ONE file runs
+inside Rhino: tools/rhino/rhino_watcher.py (the viewer).
+
+If you get "SyntaxError: invalid syntax" pointing at an f-string
+(a line starting with f"), you opened the wrong file in Rhino.
+
 ### Step 1: Open a terminal
 
 Open cmd.exe (not Windows Terminal, not PowerShell). If you use a
@@ -160,9 +169,12 @@ To start the watcher:
 2. In the Rhino command line, type EditPythonScript and press Enter.
    This opens the Rhino Python editor.
 
-3. In the editor, paste this one line and run it:
+3. In the editor, paste this one line and press F5 to run it:
 
-    exec(open(r"path\to\tools\rhino\rhino_watcher.py").read())
+    exec(open(r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py").read())
+
+   Replace the path with wherever your CONTROLLER folder is.
+   This is the ONLY file you should ever open in Rhino.
 
 4. The watcher prints a startup message to the Rhino command line:
 
@@ -730,24 +742,36 @@ MCP_GUIDE.md.
 
 ### Quick MCP setup
 
-Install the MCP package (the only external dependency):
+The easiest way is the automated setup script:
+
+    python setup.py
+
+This installs dependencies, creates .mcp.json with correct paths,
+and validates everything. See STARTUP.md for details.
+
+For manual setup, install the MCP package:
 
     pip install mcp
 
-Configure your AI client with .mcp.json at the project root:
+Then create .mcp.json in the PARENT folder of CONTROLLER (the
+folder where Claude Code opens the project). Paths must include
+CONTROLLER/ because the file is one level above it:
 
     {
       "mcpServers": {
         "layout-jig": {
           "command": "python",
           "args": [
-            "mcp/mcp_server.py",
+            "CONTROLLER/mcp/mcp_server.py",
             "--state",
-            "controller/state.json"
+            "CONTROLLER/controller/state.json"
           ]
         }
       }
     }
+
+IMPORTANT: Use "python setup.py" if unsure about paths. It
+detects the correct folder structure automatically.
 
 ### All 53 MCP Functions
 
