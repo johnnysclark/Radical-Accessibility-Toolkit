@@ -1935,6 +1935,34 @@ def do_print(state, state_file):
              f"  Model area: {mw:.0f} x {mh:.0f} ft."]
     if site["width"] > mw or site["height"] > mh:
         lines.append("  WARNING: Site exceeds paper at this scale.")
+    # --- Render tactile output via swell-print if available ---
+    try:
+        _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "..", "tools", "swell-print")
+        if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+            sys.path.insert(0, _swell_dir)
+        import state_renderer as _sr
+        import pdf_generator as _pg
+        paper = "tabloid" if pw > 12 else "letter"
+        img = _sr.render(state, dpi=dpi, paper_size=paper)
+        out_dir = os.path.dirname(os.path.abspath(state_file))
+        fmt = pr.get("format", "pdf").lower()
+        if fmt == "pdf":
+            out_path = os.path.join(out_dir, "state_tactile.pdf")
+            _pg.generate_pdf(img, out_path, paper_size=paper)
+        else:
+            out_path = os.path.join(out_dir, "state_tactile.png")
+            img.save(out_path, dpi=(dpi, dpi))
+        dens = _sr.density(img)
+        lines.append(f"  Output: {out_path}")
+        lines.append(f"  Density: {dens:.1f}%")
+        if dens > 40:
+            lines.append("  WARNING: Density above 40% may reduce PIAF clarity.")
+    except ImportError:
+        lines.append("  (swell-print not installed; no image generated)")
+        lines.append("  Run: pip install -r tools/swell-print/requirements.txt")
+    except Exception as e:
+        lines.append(f"  (render failed: {e})")
     return "\n".join(lines)
 
 HELP_TEXT = """
@@ -2126,8 +2154,8 @@ def main():
             except: pass
             print(f"History: {history_seq} entries")
             continue
-        if msg == "__DESCRIBE__": print(describe(state)); continue
-        if msg == "__LIST_BAYS__": print(list_bays(state)); continue
+        if msg == "__DESCRIBE__": _out(describe(state)); continue
+        if msg == "__LIST_BAYS__": _out(list_bays(state)); continue
         if msg == "__UNDO__":
             if undo_stack:
                 state = undo_stack.pop()
@@ -2148,6 +2176,17 @@ def main():
             t3 = state.get("tactile3d")
             if t3 and t3.get("_export_once"):
                 t3["_export_once"] = False
+            # Auto-export STL if tactile3d is enabled and auto_export is on
+            if t3 and t3.get("auto_export") and t3.get("enabled"):
+                _export_path = t3.get("export_path", "./tactile3d_export.stl")
+                try:
+                    import tactile_print as _tp
+                    _export_msg = _tp.do_export(state, _export_path)
+                    _out("AUTO-EXPORT: " + _export_msg)
+                except ImportError:
+                    pass  # tactile_print not available; silent skip
+                except Exception as _e:
+                    _out(f"[WARNING] Auto-export failed: {_e}")
         except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")
     try: save_state(state_file, state)
     except: pass

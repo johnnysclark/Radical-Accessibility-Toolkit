@@ -44,6 +44,30 @@ DEFAULT_DPI = 300
 DEFAULT_MARGIN_IN = 0.5
 MIN_LINE_PX = 2  # minimum line width for PIAF readability
 
+# ---------------------------------------------------------------------------
+# PIAF text sizing — paper-absolute, independent of model scale
+# ---------------------------------------------------------------------------
+# BANA standard (Braille Authority of North America) specifies:
+#   Cell-to-cell horizontal: 0.245 in (6.2 mm)
+#   Line spacing: 0.400 in (10.0 mm)
+#   Dot-to-dot within cell: 0.092 in (2.34 mm)
+# A font size of ~30pt renders Unicode Braille characters at approximately
+# 10 mm line height, matching the BANA line-spacing standard.
+# These are PAPER-ABSOLUTE sizes — they do not change with model scale.
+# The state.json style.label_text_height / braille_text_height fields
+# (in feet) still control the Rhino watcher; this renderer overrides them
+# because PIAF output must have fixed braille dimensions.
+BRAILLE_FONT_PT = 30    # ~10 mm line height (BANA standard)
+TEXT_FONT_PT = 12        # 12 pt English text (~4.2 mm)
+LEGEND_TITLE_FONT_PT = 16  # 16 pt legend title (~5.6 mm)
+LEGEND_TEXT_FONT_PT = 12   # 12 pt legend labels
+LEGEND_BRAILLE_FONT_PT = 30  # BANA standard for legend braille
+
+
+def _pt_to_px(pt, dpi=300):
+    """Convert typographic points to pixels.  1 pt = 1/72 inch."""
+    return max(1, int(round(pt * dpi / 72.0)))
+
 
 # ---------------------------------------------------------------------------
 # Coordinate helpers
@@ -586,8 +610,8 @@ class StateRenderer:
 
             if label:
                 px, py = self._w2p(label_world[0], label_world[1])
-                # Use default font at appropriate size
-                font_h = max(8, self._ft_to_px(style.get("label_text_height", 0.3)))
+                # Paper-absolute 12pt English text (PIAF standard)
+                font_h = _pt_to_px(TEXT_FONT_PT, self.dpi)
                 try:
                     font = ImageFont.truetype("arial.ttf", font_h)
                 except (IOError, OSError):
@@ -598,13 +622,17 @@ class StateRenderer:
                 # If braille is empty, auto-generate from label
                 if not braille_text.strip() and label:
                     braille_text = _braille.to_braille(label)
-                brl_off = style.get("braille_text_height", 0.5) * 1.5
+                # Offset braille below English label by BANA line spacing
+                # (0.400 in = 10 mm) converted to model feet via inverse scale
+                brl_offset_px = _pt_to_px(BRAILLE_FONT_PT, self.dpi)
+                brl_off_ft = brl_offset_px / self.scale if self.scale > 0 else 1.0
                 brl_world = _local_to_world(
                     mid_x if gt == "rectangular" else 0,
-                    (top_y + brl_off) if gt == "rectangular" else (oy + outer + label_off + brl_off) - oy,
+                    (top_y + brl_off_ft) if gt == "rectangular" else (oy + outer + label_off + brl_off_ft) - oy,
                     (ox, oy), rot)
                 px, py = self._w2p(brl_world[0], brl_world[1])
-                brl_h = max(10, self._ft_to_px(style.get("braille_text_height", 0.5)))
+                # Paper-absolute 30pt braille (BANA standard ~10 mm line height)
+                brl_h = _pt_to_px(BRAILLE_FONT_PT, self.dpi)
                 try:
                     font = ImageFont.truetype("DejaVuSans.ttf", brl_h)
                 except (IOError, OSError):
@@ -664,15 +692,22 @@ class StateRenderer:
         self._rect_outline((lx, ly), (lx + width_ft, ly + legend_h),
                            _mm_to_px(legend.get("border_weight_mm", 0.5), self.dpi))
 
-        # Title
+        # Title — paper-absolute 16pt
         title = legend.get("title", "Legend")
         px, py = self._w2p(lx + padding, ly + legend_h - padding)
         try:
-            font = ImageFont.truetype("arial.ttf",
-                                      max(8, self._ft_to_px(legend.get("text_height", 2.0))))
+            title_font = ImageFont.truetype("arial.ttf",
+                                            _pt_to_px(LEGEND_TITLE_FONT_PT, self.dpi))
         except (IOError, OSError):
-            font = ImageFont.load_default()
-        self.draw.text((px, py), title, fill=0, font=font)
+            title_font = ImageFont.load_default()
+        self.draw.text((px, py), title, fill=0, font=title_font)
+
+        # Label font — paper-absolute 12pt
+        try:
+            label_font = ImageFont.truetype("arial.ttf",
+                                            _pt_to_px(LEGEND_TEXT_FONT_PT, self.dpi))
+        except (IOError, OSError):
+            label_font = ImageFont.load_default()
 
         # Room rows with hatch swatches
         for idx, (rname, rdata) in enumerate(hatched):
@@ -688,10 +723,10 @@ class StateRenderer:
             if hatch_pat != "none":
                 self._draw_hatch_region(corners, hatch_pat, spacing_ft=1.0)
             self._rect_outline(corners[0], corners[2], 1)
-            # Label
+            # Label — paper-absolute 12pt
             label_text = rdata.get("label", rname)
             lbl_px, lbl_py = self._w2p(lx + padding + swatch + padding, ry + swatch / 2)
-            self.draw.text((lbl_px, lbl_py), label_text, fill=0, font=font)
+            self.draw.text((lbl_px, lbl_py), label_text, fill=0, font=label_font)
 
     # -- Main render --
 
