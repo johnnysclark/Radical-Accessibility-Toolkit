@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — MCP Server  v3.2
+PLAN LAYOUT JIG — MCP Server  v3.3
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Auditor: spatial validation, ADA checks, rich descriptions
@@ -11,6 +11,12 @@ Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Bay management: create, remove, and clone bays
   - Controller introspection: list commands, read handler source code
   - State comparison: diff snapshots, validate JSON structure
+  - Swell-print: render state.json and convert images to PIAF tactile graphics
+
+v3.3 changes (from v3.2):
+  - 4 swell-print tools: render_tactile, convert_to_tactile,
+    check_tactile_density, list_tactile_presets
+  Total: 53 tools (was 49)
 
 v3.2 changes (from v3.1):
   - 3 script generation tools: generate_script, list_scripts, show_script
@@ -81,11 +87,24 @@ if _tools_rhino not in sys.path:
     sys.path.insert(0, _tools_rhino)
 
 import controller_cli as cli
+import braille
 
 # ── Import engines (lazy-safe: all stdlib-only) ────────
 import auditor
 import skill_manager
 import rhino_client
+
+# ── Import swell-print tools (optional: requires Pillow, reportlab) ──
+_tools_swell = os.path.join(_root, "tools", "swell-print")
+if os.path.isdir(_tools_swell) and _tools_swell not in sys.path:
+    sys.path.insert(0, _tools_swell)
+
+try:
+    import state_renderer
+    import image_converter
+    _swell_available = True
+except ImportError:
+    _swell_available = False
 
 # ── MCP dependency ─────────────────────────────────────
 try:
@@ -1931,13 +1950,179 @@ def show_script(name: str) -> str:
     return f"OK: Contents of scripts/{safe}.py:\n\n{content}\nREADY:"
 
 
+# ══════════════════════════════════════════════════════
+# MODE 4: SWELL-PRINT — PIAF TACTILE GRAPHICS
+# ══════════════════════════════════════════════════════
+
+_SWELL_MISSING_MSG = (
+    "ERROR: Swell-print dependencies not installed. "
+    "Run: pip install -r tools/swell-print/requirements.txt"
+)
+
+
+@mcp.tool()
+def render_tactile(paper_size: str = "letter",
+                   output_format: str = "pdf") -> str:
+    """Render state.json to a PIAF-ready tactile graphic. No Rhino needed.
+
+    Produces a 300 DPI black-and-white image suitable for swell-paper
+    printing. Draws columns, walls, corridors, apertures, room hatches,
+    labels (English + Braille), legend, and section cuts.
+
+    Args:
+        paper_size: "letter" (8.5x11) or "tabloid" (11x17)
+        output_format: "pdf" or "png"
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+
+    state = _load_state()
+    dpi = 300
+
+    try:
+        img = state_renderer.render(state, dpi=dpi, paper_size=paper_size)
+    except Exception as e:
+        return f"ERROR: Render failed: {e}"
+
+    # Determine output path
+    base = os.path.splitext(os.path.basename(STATE_PATH))[0]
+    fmt = output_format.lower()
+    if fmt not in ("pdf", "png"):
+        fmt = "pdf"
+    out_name = f"{base}_tactile.{fmt}"
+    out_path = os.path.join(os.path.dirname(STATE_PATH), out_name)
+
+    try:
+        if fmt == "pdf":
+            try:
+                import pdf_generator
+                pdf_generator.generate_pdf(
+                    img, out_path, paper_size=paper_size,
+                    metadata={"source": os.path.basename(STATE_PATH)})
+            except ImportError:
+                # reportlab not available — fall back to PNG
+                out_path = os.path.splitext(out_path)[0] + ".png"
+                img.save(out_path, dpi=(dpi, dpi))
+        else:
+            img.save(out_path, dpi=(dpi, dpi))
+    except Exception as e:
+        return f"ERROR: Could not save output: {e}"
+
+    d = state_renderer.density(img)
+    return (f"OK: Rendered {out_name} "
+            f"({paper_size.title()}, {dpi} DPI, density {d:.1f}%)\n"
+            f"  Path: {out_path}\nREADY:")
+
+
+@mcp.tool()
+def convert_to_tactile(image_path: str,
+                       preset: str = "floor_plan",
+                       threshold: int = None,
+                       paper_size: str = "letter") -> str:
+    """Convert any image to a PIAF-ready tactile graphic.
+
+    Takes a photograph, sketch, CAD export, or any image and converts
+    it to high-contrast black-and-white output suitable for swell-paper
+    printing.
+
+    Args:
+        image_path: Path to the input image (JPG, PNG, TIFF, BMP)
+        preset: Conversion preset (floor_plan, sketch, photograph, etc.)
+        threshold: Optional B&W threshold 0-255 (overrides preset)
+        paper_size: "letter" or "tabloid"
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+
+    if not os.path.isfile(image_path):
+        return f"ERROR: Image not found: {image_path}"
+
+    dpi = 300
+
+    try:
+        result = image_converter.convert(
+            image_path,
+            output_path=None,
+            preset=preset,
+            threshold=threshold,
+            paper_size=paper_size,
+            dpi=dpi,
+        )
+    except (FileNotFoundError, ValueError) as e:
+        return f"ERROR: {e}"
+    except Exception as e:
+        return f"ERROR: Conversion failed: {e}"
+
+    out_path = result["output_path"]
+    density = result["density"]
+    message = result["message"]
+
+    return (f"OK: Converted {os.path.basename(image_path)} -> "
+            f"{os.path.basename(out_path)} "
+            f"(density {density:.1f}%, {message})\n"
+            f"  Path: {out_path}\nREADY:")
+
+
+@mcp.tool()
+def check_tactile_density(image_path: str) -> str:
+    """Check if an image's black pixel density is suitable for PIAF printing.
+
+    PIAF swell paper works best with 25-40% black pixel density.
+    Above 45% causes excessive swelling and loss of detail.
+
+    Args:
+        image_path: Path to a B&W image file
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+
+    if not os.path.isfile(image_path):
+        return f"ERROR: Image not found: {image_path}"
+
+    try:
+        from PIL import Image
+        img = Image.open(image_path)
+        if img.mode != '1':
+            img = img.convert('1')
+        ok, density, msg = image_converter.check_density(img)
+        status = "OK" if ok else "WARNING"
+        return f"{status}: {msg}\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def list_tactile_presets() -> str:
+    """List available image conversion presets with their settings.
+
+    Each preset is optimised for a specific type of architectural
+    image (floor plan, sketch, photograph, etc.).
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+
+    try:
+        presets = image_converter.list_presets()
+        lines = [f"OK: {len(presets)} presets available:"]
+        for i, (name, desc) in enumerate(presets, 1):
+            p = image_converter.PRESETS[name]
+            lines.append(f"  {i}. {name} — {desc} "
+                         f"(threshold {p['threshold']}, "
+                         f"max density {p['max_density']}%)")
+        lines.append("READY:")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
 # ── Entry point ────────────────────────────────────────
 
 if __name__ == "__main__":
-    _real_print(f"Layout Jig MCP Server v3.2 starting...", file=sys.stderr)
+    _real_print(f"Layout Jig MCP Server v3.3 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
-    _real_print(f"Tools: 49 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2)", file=sys.stderr)
+    _real_print(f"Tools: 53 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 4 v3.3)", file=sys.stderr)
     _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
+    _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
     _real_print(f"Scripts dir: {SCRIPTS_DIR}", file=sys.stderr)
     mcp.run()

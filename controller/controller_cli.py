@@ -273,9 +273,15 @@ def _default_bay(name, origin,
     if apertures is None:  apertures = []
     if void_center is None: void_center = list(origin)
     if label is None:       label = "Bay " + name
-    braille_map = {"A": "\u2803\u2801\u283d \u2801",
-                   "B": "\u2803\u2801\u283d \u2803",
-                   "C": "\u2803\u2801\u283d \u2809"}
+    try:
+        import braille as _braille_mod
+        braille_text = _braille_mod.to_braille(label)
+    except ImportError:
+        # Fallback: hard-coded for A/B/C if braille module unavailable
+        _braille_fallback = {"A": "\u2803\u2801\u283d \u2801",
+                             "B": "\u2803\u2801\u283d \u2803",
+                             "C": "\u2803\u2801\u283d \u2809"}
+        braille_text = _braille_fallback.get(name, "")
     return {
         "grid_type": grid_type, "z_order": z_order,
         "origin": list(origin), "rotation_deg": rotation,
@@ -286,7 +292,7 @@ def _default_bay(name, origin,
         "corridor": corridor, "walls": walls, "apertures": apertures,
         "void_center": list(void_center), "void_size": list(void_size),
         "void_shape": void_shape,
-        "label": label, "braille": braille_map.get(name, ""),
+        "label": label, "braille": braille_text,
     }
 
 def _auto_rooms(bays_dict):

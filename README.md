@@ -100,9 +100,21 @@ Feed through PIAF heater -> raised tactile graphic readable by touch
 
 Generates watertight triangle meshes from the parametric model (pure Python, no Rhino dependency), validates solidity, and exports binary STL scaled for a Bambu Lab P1S printer. Daniel holds the printed model during design review — walls, corridors, openings physically present at 1:200 scale.
 
-### AI Integration — MCP Server v3.2
+### Swell-Print — Automated Tactile Graphics Pipeline
 
-An [MCP server](docs/MCP_GUIDE.md) (49 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, reads or writes individual state fields directly, and generates editable IronPython scripts for learning.
+Converts state.json directly to PIAF-ready output (no Rhino needed) or converts any image (photo, sketch, CAD export) to tactile-ready black-and-white. 300 DPI, letter or tabloid paper, density-managed for optimal swell. Ten presets for different image types. Grade 1/2 braille labels via the stdlib-only `controller/braille.py` module.
+
+```
+>> render
+OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+
+>> convert farnsworth.jpg --preset floor_plan
+OK: Converted farnsworth.jpg -> farnsworth_tactile.png (density 31.2%)
+```
+
+### AI Integration — MCP Server v3.3
+
+An [MCP server](docs/MCP_GUIDE.md) (53 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, reads or writes individual state fields directly, generates editable IronPython scripts for learning, and renders tactile graphics.
 
 The system supports three interaction modes:
 1. **Mode 1: Claude Code + MCP** — natural language, AI translates to commands
@@ -116,7 +128,7 @@ User (natural language)
         |
         | "make the corridor wider"
         v
-    Claude Code + MCP Server (49 functions)
+    Claude Code + MCP Server (53 functions)
         |
         | validated: CLI command dispatch
         | direct: JSON field read/write
@@ -135,6 +147,7 @@ The MCP server has eight functional layers:
 - **State introspection** (7) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
 - **State comparison** (3) — diff against snapshots, validate JSON structure
 - **Script generation** (3) — create, list, and view editable IronPython 2.7 scripts for learning
+- **Swell-print** (4) — render state.json and convert images to PIAF tactile graphics
 
 See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full tool reference. See [DESIGN_SESSION.md](DESIGN_SESSION.md) for a complete design session walkthrough.
 

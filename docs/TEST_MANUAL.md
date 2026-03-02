@@ -1,4 +1,4 @@
-# Layout Jig v3.2 Test Manual
+# Layout Jig v3.3 Test Manual
 
 Last updated: 2026-03-01
 
@@ -48,7 +48,7 @@ mcp_server.py: The MCP server. This wraps the controller so Claude
 can call commands as typed function calls. It also has the audit
 engine, skill engine, rhino bridge, controller extension tools,
 state introspection tools, bay management tools, controller
-introspection tools, and state comparison tools. 49 tools total.
+introspection tools, and state comparison tools. 53 tools total.
 
 auditor.py: Spatial analysis. Validates the model for
 overlapping bays, ADA compliance, aperture placement, and missing
@@ -554,7 +554,7 @@ with this content:
 Step 2: Open Claude Code in the CLI JIG TEST folder.
 
 Claude Code reads .mcp.json on startup. It launches the MCP server
-as a background process. Claude now has access to all 49 tools.
+as a background process. Claude now has access to all 53 tools.
 
 ### Querying the model through MCP
 

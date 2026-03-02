@@ -169,7 +169,7 @@ Instead of passing `--state`, you can set the environment variable:
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 
-    Layout Jig MCP Server v3.2 starting...
+    Layout Jig MCP Server v3.3 starting...
     State file: /path/to/state.json
     Tools: 49 registered
 
@@ -316,6 +316,18 @@ Mode 3: Learning Rhino Python. These tools generate editable IronPython 2.7 scri
 `list_scripts()` -- List all .py files in scripts/ with name, description, and size.
 
 `show_script(name: str)` -- Return the full contents of a script. Supports fuzzy name matching if the exact name is not found.
+
+### Swell-print (4 functions)
+
+PIAF tactile graphics generation. Render state.json directly to B&W output (no Rhino needed) or convert any image to tactile-ready format. Requires Pillow and reportlab (`pip install -r tools/swell-print/requirements.txt`). Tools degrade gracefully if dependencies are not installed.
+
+`render_tactile(paper_size: str, output_format: str)` -- Render state.json to a PIAF-ready tactile graphic. Draws columns, walls, corridors, apertures, room hatches, labels (English + Braille), legend, and section cuts. Output is 300 DPI B&W in PDF or PNG format. No Rhino needed.
+
+`convert_to_tactile(image_path: str, preset: str, threshold: int, paper_size: str)` -- Convert any image (photo, sketch, CAD export) to PIAF-ready B&W output. Ten presets available for different image types.
+
+`check_tactile_density(image_path: str)` -- Check if an image's black pixel density is suitable for PIAF printing. Optimal range is 25-40%, maximum 45%.
+
+`list_tactile_presets()` -- List all available conversion presets with threshold and density settings.
 
 
 ## 5. Resources and Prompts

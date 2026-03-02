@@ -66,7 +66,8 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - `--verbose` / `-v` flags where appropriate.
 - `--json` flag for machine-readable output (supplements, never replaces, human output).
 - Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
-- **Zero external dependencies.** Python stdlib only. No pip installs, no conda environments.
+- **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
+- **Exception:** `tools/swell-print/` and `mcp/` are allowed pip dependencies (Pillow, reportlab, mcp). The controller itself stays stdlib-only.
 
 ### Watcher Side (IronPython 2.7)
 - Use `rhinoscriptsyntax as rs` for all geometry.

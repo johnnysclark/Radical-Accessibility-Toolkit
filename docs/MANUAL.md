@@ -56,8 +56,8 @@ mcp/mcp_server.py: The MCP server. This wraps the controller so
 Claude can call commands as typed function calls. It also has the
 auditor, skill manager, rhino client, controller extension tools,
 state introspection tools, bay management tools, controller
-introspection tools, state comparison tools, and script generation
-tools. 49 tools total (v3.2).
+introspection tools, state comparison tools, script generation
+tools, and swell-print tactile graphics tools. 53 tools total (v3.3).
 
 controller/auditor.py: Spatial analysis. Validates the model for
 overlapping bays, ADA compliance, aperture placement, and missing
@@ -1109,7 +1109,81 @@ See DESIGN_SESSION.md for a complete walkthrough showing all three
 modes in action during a school building design project.
 
 
-## 24. Editing state.json by Hand
+## 24. Swell-Print: PIAF Tactile Graphics
+
+The swell-print tool converts designs into physical tactile graphics
+readable by touch on PIAF swell paper. Two modes of operation:
+
+1. Render state.json directly to PIAF-ready output (no Rhino needed)
+2. Convert any image (photo, sketch, CAD export) to PIAF-ready B&W
+
+### Setup
+
+Install the swell-print dependencies (the controller CLI itself
+does not need these, only the swell-print tool does):
+
+    pip install -r tools/swell-print/requirements.txt
+
+### CLI usage
+
+Interactive mode:
+
+    python tools/swell-print/swell_print.py
+    >> render
+    OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+    >> convert photo.jpg --preset floor_plan
+    OK: Converted photo.jpg -> photo_tactile.png (density 31.2%)
+    >> presets
+    OK: 10 presets available: ...
+    >> density output.png
+    OK: Density 31.2% (good for PIAF)
+
+Single-shot mode:
+
+    python tools/swell-print/swell_print.py render state.json -o plan.pdf
+    python tools/swell-print/swell_print.py convert photo.jpg --preset sketch
+
+### MCP usage
+
+Four MCP tools are available (v3.3):
+
+render_tactile: Renders state.json to B&W tactile output.
+convert_to_tactile: Converts any image to PIAF-ready B&W.
+check_tactile_density: Checks black pixel density of an output image.
+list_tactile_presets: Lists all conversion presets.
+
+### Conversion presets
+
+floor_plan: threshold 140, max 40% density. CAD or hand-drawn plans.
+elevation: threshold 135, max 35%. Building elevations.
+section: threshold 145, max 35%. Section cuts with material hatching.
+photograph: threshold 120, max 30%. Photos with varying light.
+sketch: threshold 130, max 35%. Pencil and pen sketches.
+technical_drawing: threshold 150, max 45%. CAD with crisp lines.
+diagram: threshold 135, max 35%. Diagrams with mixed content.
+site_plan: threshold 130, max 40%. Site plans with landscape.
+detail_drawing: threshold 145, max 40%. Construction details.
+presentation: threshold 125, max 35%. Presentation boards.
+
+### Density management
+
+PIAF swell paper works best with 25-40% black pixel density.
+Above 45%, excessive swelling reduces tactile clarity. The tool
+warns when density exceeds 40% and rejects output above 45%.
+
+### Braille module
+
+The braille translation module (controller/braille.py) is stdlib-only
+and available to all tools. Grade 1 (uncontracted) is built-in.
+Grade 2 (contracted) is available when liblouis is installed.
+
+    import braille
+    braille.to_braille("Bay A")       # Grade 1
+    braille.to_braille("Bay A", 2)    # Grade 2 (requires liblouis)
+    braille.from_braille(text)        # Reverse: braille -> ASCII
+
+
+## 25. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -1227,7 +1301,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 25. How Things Work Under the Hood
+## 26. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1281,7 +1355,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 26. MCP Resources and Prompts
+## 27. MCP Resources and Prompts
 
 ### Resources
 
@@ -1299,7 +1373,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 27. Troubleshooting
+## 28. Troubleshooting
 
 ### "mcp package not found"
 

@@ -147,10 +147,10 @@ Then create .mcp.json at the project root:
 Claude Code, Claude Desktop, or Cursor will start the MCP server
 automatically when they connect. You do not need to run it manually.
 
-The MCP server gives Claude access to 49 functions (v3.2): everything
+The MCP server gives Claude access to 53 functions (v3.3): everything
 the CLI can do, plus auditing, skills, Rhino queries, direct state
-editing, and script generation. See docs/MCP_GUIDE.md for the full
-reference.
+editing, script generation, and swell-print tactile graphics. See
+docs/MCP_GUIDE.md for the full reference.
 
 ## Step 4: Verify
 
@@ -172,11 +172,32 @@ you build fluency in Python and rhinoscriptsyntax.
 See DESIGN_SESSION.md for a complete walkthrough showing all three
 modes during a school building design project.
 
+## Step 6: Enable Swell-Print (Optional)
+
+To generate PIAF-ready tactile graphics from state.json or images:
+
+```
+pip install -r tools/swell-print/requirements.txt
+```
+
+Then use the swell-print CLI:
+```
+python tools/swell-print/swell_print.py
+>> render
+OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+>> convert photo.jpg
+OK: Converted photo.jpg -> photo_tactile.png (density 31.2%)
+```
+
+Or through Claude Code via MCP tools: render_tactile,
+convert_to_tactile, check_tactile_density, list_tactile_presets.
+
 ## Requirements
 
 Python 3.8 or later (stdlib only — no pip install needed for the CLI).
 Rhino 7 or 8 with IronPython 2.7 (only if you want the visual viewer).
 For the MCP server: pip install mcp (see mcp/requirements.txt).
+For swell-print: pip install -r tools/swell-print/requirements.txt.
 For image description: a Claude API key.
 
 ## Full Documentation
@@ -184,7 +205,7 @@ For image description: a Claude API key.
 Complete manual with all commands, tools, and extension guide:
   docs/MANUAL.md
 
-AI layer — MCP architecture, setup, and 49-function reference:
+AI layer — MCP architecture, setup, and 53-function reference:
   docs/MCP_GUIDE.md
 
 Design session walkthrough (all 3 interaction modes):

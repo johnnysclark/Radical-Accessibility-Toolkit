@@ -14,10 +14,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 JIG = os.path.join(ROOT, "controller")
 TOOLS_RHINO = os.path.join(ROOT, "tools", "rhino")
+TOOLS_SWELL = os.path.join(ROOT, "tools", "swell-print")
 STATE = os.path.join(JIG, "state.json")
 os.environ["LAYOUT_JIG_STATE"] = STATE
 sys.path.insert(0, JIG)
 sys.path.insert(0, TOOLS_RHINO)
+if os.path.isdir(TOOLS_SWELL):
+    sys.path.insert(0, TOOLS_SWELL)
 
 import controller_cli as cli
 import auditor
@@ -699,6 +702,107 @@ test("atomic write preserves data",
      lambda: None if reloaded["meta"]["notes"] == "atomic write test" else reloaded["meta"]["notes"])
 test("atomic write no .tmp left",
      lambda: None if not os.path.exists(STATE + ".tmp") else ".tmp exists")
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 15a: Braille Module (stdlib)")
+print("=" * 60)
+
+import braille
+
+test("braille: import succeeds", lambda: None)
+
+b1 = braille.to_braille("hello")
+test("braille: 'hello' converts",
+     lambda: None if len(b1) == 5 else "wrong length: {}".format(len(b1)))
+
+b2 = braille.to_braille("Bay A")
+test("braille: 'Bay A' has capital indicator",
+     lambda: None if braille.CAPITAL in b2 else "missing capital indicator")
+
+b3 = braille.to_braille("Room 101")
+test("braille: 'Room 101' has number indicator",
+     lambda: None if braille.NUMBER in b3 else "missing number indicator")
+
+b4 = braille.to_braille("")
+test("braille: empty string returns empty",
+     lambda: None if b4 == "" else "got: " + repr(b4))
+
+b5 = braille.to_braille("A")
+test("braille: single capital 'A'",
+     lambda: None if b5 == braille.CAPITAL + "\u2801" else "got: " + repr(b5))
+
+# Round-trip
+rt = braille.from_braille(braille.to_braille("hello"))
+test("braille: round-trip 'hello'",
+     lambda: None if rt == "hello" else "got: " + repr(rt))
+
+# Grade 2 (falls back to grade 1 if liblouis not installed)
+b6 = braille.to_braille("hello", grade=2)
+test("braille: grade 2 does not crash",
+     lambda: None if len(b6) > 0 else "empty result")
+
+# braille_len
+test("braille: braille_len",
+     lambda: None if braille.braille_len(b1) == 5 else "wrong: {}".format(braille.braille_len(b1)))
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 15b: Swell-Print (requires Pillow)")
+print("=" * 60)
+
+_swell_ok = False
+try:
+    from PIL import Image
+    import state_renderer
+    import image_converter
+    _swell_ok = True
+    test("swell-print: imports succeed", lambda: None)
+except ImportError as _ie:
+    print("SKIP: Swell-print dependencies not installed ({})".format(_ie))
+    print("  Install: pip install -r tools/swell-print/requirements.txt")
+
+if _swell_ok:
+    reset_state()
+    _sw_state = cli.load_state(STATE)
+
+    # Render state.json
+    try:
+        _sw_img = state_renderer.render(_sw_state, dpi=72, paper_size="letter")
+        test("swell-print: render returns Image",
+             lambda: None if hasattr(_sw_img, "mode") else "not an image")
+        test("swell-print: render is mode '1' (B&W)",
+             lambda: None if _sw_img.mode == '1' else "mode: " + _sw_img.mode)
+        _sw_d = state_renderer.density(_sw_img)
+        test("swell-print: density is numeric",
+             lambda: None if isinstance(_sw_d, (int, float)) else "type: " + type(_sw_d).__name__)
+        test("swell-print: density < 80%",
+             lambda: None if _sw_d < 80 else "too dense: {}".format(_sw_d))
+    except Exception as _e:
+        test("swell-print: render state.json", lambda: "ERROR: {}".format(_e))
+
+    # Image converter presets
+    _presets = image_converter.list_presets()
+    test("swell-print: presets exist",
+         lambda: None if len(_presets) >= 5 else "only {} presets".format(len(_presets)))
+    test("swell-print: floor_plan preset exists",
+         lambda: None if "floor_plan" in image_converter.PRESETS else "missing")
+
+    # Density check with a test image
+    try:
+        _test_img = Image.new('1', (100, 100), 1)  # all white
+        _ok, _density, _msg = image_converter.check_density(_test_img)
+        test("swell-print: density check on white image",
+             lambda: None if _ok and _density < 1.0 else _msg)
+
+        _test_img2 = Image.new('1', (100, 100), 0)  # all black
+        _ok2, _d2, _msg2 = image_converter.check_density(_test_img2)
+        test("swell-print: density check on black image warns",
+             lambda: None if not _ok2 else "should warn on 100% black")
+    except Exception as _e:
+        test("swell-print: density checks", lambda: "ERROR: {}".format(_e))
 
 # ══════════════════════════════════════════════════
 # FINAL RESET AND SUMMARY
