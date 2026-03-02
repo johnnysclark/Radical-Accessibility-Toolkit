@@ -474,6 +474,62 @@ def _draw_plan_layout(state):
                     _add_line(_local_to_world(x_val-half_t, y_pos, (ox,oy), rot),
                               _local_to_world(x_val+half_t, y_pos, (ox,oy), rot))
 
+    # ── Radial bay walls ──
+    for name, bay in state["bays"].items():
+        if bay.get("grid_type","rectangular") != "radial": continue
+        w = bay.get("walls",{})
+        if not w.get("enabled"): continue
+        t = w.get("thickness",0.5); half_t = t/2.0
+        ox, oy = bay["origin"]
+        nr = bay.get("rings",4); ring_sp = bay.get("ring_spacing",20)
+        na = bay.get("arms",8); arc = bay.get("arc_deg",360)
+        arc_start = bay.get("arc_start_deg",0)
+        arc_n = int(_s(state, "arc_segments", 16))
+        outer = nr * ring_sp
+        # Ring walls
+        for ring_idx in range(1, nr+1):
+            r = ring_idx * ring_sp
+            if arc >= 360:
+                _add_circle(ox, oy, r - half_t)
+                _add_circle(ox, oy, r + half_t)
+            else:
+                _add_polyline(_arc_points(ox, oy, r - half_t, arc_start, arc_start+arc, arc_n*2))
+                _add_polyline(_arc_points(ox, oy, r + half_t, arc_start, arc_start+arc, arc_n*2))
+                # End caps at arc endpoints
+                for ang in [arc_start, arc_start+arc]:
+                    a_rad = math.radians(ang)
+                    _add_line((ox+(r-half_t)*math.cos(a_rad), oy+(r-half_t)*math.sin(a_rad), 0),
+                              (ox+(r+half_t)*math.cos(a_rad), oy+(r+half_t)*math.sin(a_rad), 0))
+        # Arm walls
+        for arm in range(na):
+            angle = arc_start + arc * arm / na
+            a_rad = math.radians(angle)
+            perp_rad = math.radians(angle + 90)
+            dx = half_t * math.cos(perp_rad)
+            dy = half_t * math.sin(perp_rad)
+            # Inner end at first ring (or center if no inner ring offset)
+            r_inner = ring_sp  # start from first ring
+            for sign in [-1, 1]:
+                sx = ox + r_inner * math.cos(a_rad) + sign * dx
+                sy = oy + r_inner * math.sin(a_rad) + sign * dy
+                ex = ox + outer * math.cos(a_rad) + sign * dx
+                ey = oy + outer * math.sin(a_rad) + sign * dy
+                _add_line((sx, sy, 0), (ex, ey, 0))
+        # Closing arm for partial arcs
+        if arc < 360:
+            angle = arc_start + arc
+            a_rad = math.radians(angle)
+            perp_rad = math.radians(angle + 90)
+            dx = half_t * math.cos(perp_rad)
+            dy = half_t * math.sin(perp_rad)
+            r_inner = ring_sp
+            for sign in [-1, 1]:
+                sx = ox + r_inner * math.cos(a_rad) + sign * dx
+                sy = oy + r_inner * math.sin(a_rad) + sign * dy
+                ex = ox + outer * math.cos(a_rad) + sign * dx
+                ey = oy + outer * math.sin(a_rad) + sign * dy
+                _add_line((sx, sy, 0), (ex, ey, 0))
+
 # ══════════════════════════════════════════════════════════
 # APERTURE SYMBOL DRAWING
 # ══════════════════════════════════════════════════════════
@@ -919,6 +975,82 @@ def _draw_tactile3d(state):
                                         half_t, ox, oy, rot, extrude_h)
                 if obj: created_ids.append(obj)
 
+    # ── Radial bay 3D walls ──
+    for name, bay in state["bays"].items():
+        if bay.get("grid_type","rectangular") != "radial": continue
+        w = bay.get("walls",{})
+        if not w.get("enabled"): continue
+        t = w.get("thickness",0.5); half_t = t / 2.0
+        ox, oy = bay["origin"]
+        nr = bay.get("rings",4); ring_sp = bay.get("ring_spacing",20)
+        na = bay.get("arms",8); arc = bay.get("arc_deg",360)
+        arc_start = bay.get("arc_start_deg",0)
+        outer = nr * ring_sp
+        n_seg = 48  # segments per full circle for smooth curves
+        # Ring walls as extruded arc profiles
+        for ring_idx in range(1, nr+1):
+            r = ring_idx * ring_sp
+            # Create closed profile: inner arc, outer arc (reversed), close
+            inner_pts = _arc_points(ox, oy, r - half_t, arc_start, arc_start + arc, n_seg)
+            outer_pts = _arc_points(ox, oy, r + half_t, arc_start, arc_start + arc, n_seg)
+            outer_pts.reverse()
+            profile_pts = inner_pts + outer_pts
+            profile_pts.append(profile_pts[0])  # close
+            if IN_RHINO:
+                profile = rs.AddPolyline(profile_pts)
+                if profile:
+                    brep = rs.ExtrudeCurveStraight(profile, (0,0,0), (0,0,extrude_h))
+                    rs.DeleteObject(profile)
+                    if brep:
+                        rs.CapPlanarHoles(brep)
+                        created_ids.append(brep)
+        # Arm walls as extruded boxes
+        for arm in range(na):
+            angle = arc_start + arc * arm / na
+            a_rad = math.radians(angle)
+            perp_rad = math.radians(angle + 90)
+            dx = half_t * math.cos(perp_rad)
+            dy = half_t * math.sin(perp_rad)
+            r_inner = ring_sp
+            corners = [
+                (ox + r_inner*math.cos(a_rad) - dx, oy + r_inner*math.sin(a_rad) - dy, 0),
+                (ox + outer*math.cos(a_rad) - dx, oy + outer*math.sin(a_rad) - dy, 0),
+                (ox + outer*math.cos(a_rad) + dx, oy + outer*math.sin(a_rad) + dy, 0),
+                (ox + r_inner*math.cos(a_rad) + dx, oy + r_inner*math.sin(a_rad) + dy, 0),
+            ]
+            corners.append(corners[0])
+            if IN_RHINO:
+                profile = rs.AddPolyline(corners)
+                if profile:
+                    brep = rs.ExtrudeCurveStraight(profile, (0,0,0), (0,0,extrude_h))
+                    rs.DeleteObject(profile)
+                    if brep:
+                        rs.CapPlanarHoles(brep)
+                        created_ids.append(brep)
+        # Closing arm for partial arcs
+        if arc < 360:
+            angle = arc_start + arc
+            a_rad = math.radians(angle)
+            perp_rad = math.radians(angle + 90)
+            dx = half_t * math.cos(perp_rad)
+            dy = half_t * math.sin(perp_rad)
+            r_inner = ring_sp
+            corners = [
+                (ox + r_inner*math.cos(a_rad) - dx, oy + r_inner*math.sin(a_rad) - dy, 0),
+                (ox + outer*math.cos(a_rad) - dx, oy + outer*math.sin(a_rad) - dy, 0),
+                (ox + outer*math.cos(a_rad) + dx, oy + outer*math.sin(a_rad) + dy, 0),
+                (ox + r_inner*math.cos(a_rad) + dx, oy + r_inner*math.sin(a_rad) + dy, 0),
+            ]
+            corners.append(corners[0])
+            if IN_RHINO:
+                profile = rs.AddPolyline(corners)
+                if profile:
+                    brep = rs.ExtrudeCurveStraight(profile, (0,0,0), (0,0,extrude_h))
+                    rs.DeleteObject(profile)
+                    if brep:
+                        rs.CapPlanarHoles(brep)
+                        created_ids.append(brep)
+
     # ── Floor slab ──
     if floor_on:
         slab = _create_floor_slab(state, floor_thick)
@@ -1046,19 +1178,26 @@ def redraw(state):
     try:
         _ensure_layers()
         _clear_all()
-        _draw_site(state)
-        _draw_background_masks(state)
-        _draw_room_hatches(state)
-        _draw_bays(state)
-        _draw_columns(state)
-        _draw_plan_layout(state)
-        _draw_block_insertions(state)
-        _draw_corridors(state)
-        _draw_voids(state)
-        _draw_labels(state)
-        _draw_cell_rooms(state)
-        _draw_legend(state)
-        _draw_tactile3d(state)
+        steps = [
+            ("site", _draw_site),
+            ("backgrounds", _draw_background_masks),
+            ("hatches", _draw_room_hatches),
+            ("bays", _draw_bays),
+            ("columns", _draw_columns),
+            ("walls", _draw_plan_layout),
+            ("blocks", _draw_block_insertions),
+            ("corridors", _draw_corridors),
+            ("voids", _draw_voids),
+            ("labels", _draw_labels),
+            ("rooms", _draw_cell_rooms),
+            ("legend", _draw_legend),
+            ("tactile3d", _draw_tactile3d),
+        ]
+        for step_name, step_fn in steps:
+            try:
+                step_fn(state)
+            except Exception as e:
+                print("[PLJ] WARNING: {0} failed: {1}".format(step_name, e))
         rs.ZoomExtents()
     finally:
         rs.EnableRedraw(True)
