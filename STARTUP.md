@@ -132,14 +132,19 @@ and the CLI works without any visual output. But if you or a
 sighted collaborator wants to see the drawing update live:
 
 Open Rhino, then open the Python editor (EditPythonScript or F2).
-Paste this ONE line and press F5 to run it:
+Paste these TWO lines and press F5 to run them:
 
 ```
-exec(open(r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py").read())
+__file__ = r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py"
+exec(open(__file__).read())
 ```
 
 Replace the path with wherever your CONTROLLER folder is. The
-watcher will print status to the Rhino command line. It reads
+first line tells the watcher where it lives so it can find
+state.json automatically (at controller/state.json, two folders
+up from the watcher).
+
+The watcher will print status to the Rhino command line. It reads
 state.json and rebuilds geometry automatically.
 
 IMPORTANT: Only rhino_watcher.py runs inside Rhino. Do NOT open

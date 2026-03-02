@@ -43,7 +43,21 @@ except ImportError:
 # ── Configuration ──────────────────────────────────────────
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
-STATE_FILE = os.path.join(SCRIPT_DIR, "state.json")
+# Allow STATE_FILE to be pre-set before exec(), e.g.:
+#   STATE_FILE = r"C:\path\to\controller\state.json"
+#   exec(open(r"C:\path\to\rhino_watcher.py").read())
+if 'STATE_FILE' not in dir() or not globals().get('STATE_FILE'):
+    # Try next to the script first (flat layout)
+    _candidate = os.path.join(SCRIPT_DIR, "state.json")
+    # Then try the CONTROLLER project structure (tools/rhino/ -> ../../controller/)
+    _project = os.path.join(SCRIPT_DIR, "..", "..", "controller", "state.json")
+    if os.path.exists(_candidate):
+        STATE_FILE = _candidate
+    elif os.path.exists(_project):
+        STATE_FILE = os.path.abspath(_project)
+    else:
+        # Default: next to script (will show helpful error later)
+        STATE_FILE = _candidate
 POLL_SEC = 0.5
 
 LAYERS = [

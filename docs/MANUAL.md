@@ -169,12 +169,15 @@ To start the watcher:
 2. In the Rhino command line, type EditPythonScript and press Enter.
    This opens the Rhino Python editor.
 
-3. In the editor, paste this one line and press F5 to run it:
+3. In the editor, paste these two lines and press F5 to run them:
 
-    exec(open(r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py").read())
+    __file__ = r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py"
+    exec(open(__file__).read())
 
    Replace the path with wherever your CONTROLLER folder is.
-   This is the ONLY file you should ever open in Rhino.
+   The first line tells the watcher where it lives so it can
+   find state.json automatically. This is the ONLY file you
+   should ever open in Rhino.
 
 4. The watcher prints a startup message to the Rhino command line:
 
