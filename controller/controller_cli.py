@@ -32,6 +32,12 @@ SCHEMA = "plan_layout_jig_v2.3"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
+# ── Ensure tools/rhino is importable (for tactile_print) ──
+_controller_dir = os.path.dirname(os.path.abspath(__file__))
+_tools_rhino = os.path.join(os.path.dirname(_controller_dir), "tools", "rhino")
+if os.path.isdir(_tools_rhino) and _tools_rhino not in sys.path:
+    sys.path.insert(0, _tools_rhino)
+
 # ── utilities ─────────────────────────────────────────────
 
 def _now():
@@ -267,9 +273,15 @@ def _default_bay(name, origin,
     if apertures is None:  apertures = []
     if void_center is None: void_center = list(origin)
     if label is None:       label = "Bay " + name
-    braille_map = {"A": "\u2803\u2801\u283d \u2801",
-                   "B": "\u2803\u2801\u283d \u2803",
-                   "C": "\u2803\u2801\u283d \u2809"}
+    try:
+        import braille as _braille_mod
+        braille_text = _braille_mod.to_braille(label)
+    except ImportError:
+        # Fallback: hard-coded for A/B/C if braille module unavailable
+        _braille_fallback = {"A": "\u2803\u2801\u283d \u2801",
+                             "B": "\u2803\u2801\u283d \u2803",
+                             "C": "\u2803\u2801\u283d \u2809"}
+        braille_text = _braille_fallback.get(name, "")
     return {
         "grid_type": grid_type, "z_order": z_order,
         "origin": list(origin), "rotation_deg": rotation,
@@ -280,7 +292,7 @@ def _default_bay(name, origin,
         "corridor": corridor, "walls": walls, "apertures": apertures,
         "void_center": list(void_center), "void_size": list(void_size),
         "void_shape": void_shape,
-        "label": label, "braille": braille_map.get(name, ""),
+        "label": label, "braille": braille_text,
     }
 
 def _auto_rooms(bays_dict):
@@ -1748,6 +1760,125 @@ def cmd_tts(state, tokens):
     raise ValueError("TTS subcommands: on, off, rate <-10..10>")
 
 # ══════════════════════════════════════════════════════════
+# SETUP (Rhino auto-launch)
+# ══════════════════════════════════════════════════════════
+
+# Default Rhino install locations (Windows)
+_RHINO_SEARCH_PATHS = [
+    r"C:\Program Files\Rhino 8\System\Rhino.exe",
+    r"C:\Program Files\Rhino 7\System\Rhino.exe",
+    r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
+]
+
+def _find_rhino():
+    """Return the Rhino executable path if found, else None."""
+    for p in _RHINO_SEARCH_PATHS:
+        if os.path.isfile(p):
+            return p
+    return None
+
+def _rhino_is_connected():
+    """Quick TCP check: is the watcher listening on port 1998?"""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect(("127.0.0.1", 1998))
+        s.sendall(b'{"type":"ping"}\n')
+        buf = b""
+        while True:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+            if b"\n" in buf:
+                break
+        s.close()
+        import json as _json
+        resp = _json.loads(buf.strip())
+        return resp.get("status") == "ok"
+    except Exception:
+        return False
+
+def cmd_setup(state, tokens, state_file):
+    """Handle the 'setup' command family.
+
+    setup rhino            — launch Rhino with the watcher auto-loaded
+    setup rhino --path <p> — specify Rhino executable path and launch
+    setup status           — check if the watcher is reachable
+    """
+    if len(tokens) < 2:
+        raise ValueError(
+            "Usage: setup rhino [--path <exe>]  |  setup status")
+    sub = tokens[1].lower()
+
+    if sub == "status":
+        if _rhino_is_connected():
+            return state, "OK: Rhino watcher is connected on 127.0.0.1:1998."
+        return state, "OFFLINE: Rhino watcher is not responding on 127.0.0.1:1998."
+
+    if sub != "rhino":
+        raise ValueError(
+            "Unknown setup target: '{}'. Options: rhino, status".format(sub))
+
+    # Determine Rhino path
+    rhino_path = None
+    for i, t in enumerate(tokens):
+        if t == "--path" and i + 1 < len(tokens):
+            rhino_path = tokens[i + 1]
+            break
+    if rhino_path is None:
+        rhino_path = _find_rhino()
+    if rhino_path is None or not os.path.isfile(rhino_path):
+        return state, (
+            "ERROR: Rhino not found. Use: setup rhino --path "
+            "\"C:\\Program Files\\Rhino 8\\System\\Rhino.exe\"")
+
+    # Build watcher path
+    watcher_path = os.path.join(_script_dir(), "rhino", "rhino_watcher.py")
+    if not os.path.isfile(watcher_path):
+        return state, (
+            "ERROR: Watcher not found at {}.".format(watcher_path))
+
+    # Build command: launch Rhino, auto-run the watcher script,
+    # and set units to Feet.
+    run_cmds = (
+        '_-RunPythonScript "{}"'
+        " _-DocumentProperties _Units _ModelUnits _Feet _Enter _Enter"
+    ).format(watcher_path.replace("\\", "/"))
+
+    try:
+        subprocess.Popen(
+            [rhino_path, "/nosplash",
+             "/runscript={}".format(run_cmds)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+    except Exception as e:
+        return state, "ERROR: Failed to launch Rhino: {}".format(e)
+
+    # Poll for connection (up to 30 seconds)
+    lines = [
+        "OK: Launching Rhino with watcher...",
+        "  Rhino: {}".format(rhino_path),
+        "  Watcher: {}".format(watcher_path),
+        "  Waiting for connection on 127.0.0.1:1998...",
+    ]
+    import time as _time
+    connected = False
+    for _ in range(15):
+        _time.sleep(2)
+        if _rhino_is_connected():
+            connected = True
+            break
+    if connected:
+        lines.append("OK: Connected. Rhino is ready. Units: Feet.")
+    else:
+        lines.append(
+            "WAITING: Rhino launched but watcher not yet responding. "
+            "Check Rhino is open and try 'setup status' in a moment.")
+    return state, "\n".join(lines)
+
+# ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
 # ══════════════════════════════════════════════════════════
 
@@ -1778,6 +1909,7 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "section":  return cmd_section(state, tokens)
     if cmd == "history":  return cmd_history(state, tokens, state_file)
     if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
+    if cmd == "setup":    return cmd_setup(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -1803,6 +1935,34 @@ def do_print(state, state_file):
              f"  Model area: {mw:.0f} x {mh:.0f} ft."]
     if site["width"] > mw or site["height"] > mh:
         lines.append("  WARNING: Site exceeds paper at this scale.")
+    # --- Render tactile output via swell-print if available ---
+    try:
+        _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "..", "tools", "swell-print")
+        if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+            sys.path.insert(0, _swell_dir)
+        import state_renderer as _sr
+        import pdf_generator as _pg
+        paper = "tabloid" if pw > 12 else "letter"
+        img = _sr.render(state, dpi=dpi, paper_size=paper)
+        out_dir = os.path.dirname(os.path.abspath(state_file))
+        fmt = pr.get("format", "pdf").lower()
+        if fmt == "pdf":
+            out_path = os.path.join(out_dir, "state_tactile.pdf")
+            _pg.generate_pdf(img, out_path, paper_size=paper)
+        else:
+            out_path = os.path.join(out_dir, "state_tactile.png")
+            img.save(out_path, dpi=(dpi, dpi))
+        dens = _sr.density(img)
+        lines.append(f"  Output: {out_path}")
+        lines.append(f"  Density: {dens:.1f}%")
+        if dens > 40:
+            lines.append("  WARNING: Density above 40% may reduce PIAF clarity.")
+    except ImportError:
+        lines.append("  (swell-print not installed; no image generated)")
+        lines.append("  Run: pip install -r tools/swell-print/requirements.txt")
+    except Exception as e:
+        lines.append(f"  (render failed: {e})")
     return "\n".join(lines)
 
 HELP_TEXT = """
@@ -1927,6 +2087,11 @@ TEXT-TO-SPEECH:
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>
   print
+
+SETUP (Rhino auto-launch):
+  setup rhino ............. launch Rhino with watcher + set units to Feet
+  setup rhino --path <exe>  specify Rhino executable path
+  setup status ............ check if Rhino watcher is connected
 """
 
 def main():
@@ -1989,8 +2154,8 @@ def main():
             except: pass
             print(f"History: {history_seq} entries")
             continue
-        if msg == "__DESCRIBE__": print(describe(state)); continue
-        if msg == "__LIST_BAYS__": print(list_bays(state)); continue
+        if msg == "__DESCRIBE__": _out(describe(state)); continue
+        if msg == "__LIST_BAYS__": _out(list_bays(state)); continue
         if msg == "__UNDO__":
             if undo_stack:
                 state = undo_stack.pop()
@@ -2011,6 +2176,17 @@ def main():
             t3 = state.get("tactile3d")
             if t3 and t3.get("_export_once"):
                 t3["_export_once"] = False
+            # Auto-export STL if tactile3d is enabled and auto_export is on
+            if t3 and t3.get("auto_export") and t3.get("enabled"):
+                _export_path = t3.get("export_path", "./tactile3d_export.stl")
+                try:
+                    import tactile_print as _tp
+                    _export_msg = _tp.do_export(state, _export_path)
+                    _out("AUTO-EXPORT: " + _export_msg)
+                except ImportError:
+                    pass  # tactile_print not available; silent skip
+                except Exception as _e:
+                    _out(f"[WARNING] Auto-export failed: {_e}")
         except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")
     try: save_state(state_file, state)
     except: pass

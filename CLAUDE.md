@@ -1,5 +1,16 @@
 # CLAUDE.md — Radical Accessibility Project
 
+## Taxonomy (use these terms consistently)
+
+- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, Rhino Viewer.
+- **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
+- **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
+- **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
+
+When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module.
+
+---
+
 ## Core Principles (do not violate)
 
 ### Accessibility-First IO
@@ -55,7 +66,8 @@
 - `--verbose` / `-v` flags where appropriate.
 - `--json` flag for machine-readable output (supplements, never replaces, human output).
 - Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
-- **Zero external dependencies.** Python stdlib only. No pip installs, no conda environments.
+- **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
+- **Exception:** `tools/swell-print/` and `mcp/` are allowed pip dependencies (Pillow, reportlab, mcp). The controller itself stays stdlib-only.
 
 ### Watcher Side (IronPython 2.7)
 - Use `rhinoscriptsyntax as rs` for all geometry.

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Audit Engine  v1.0
-======================================
+PLAN LAYOUT JIG — Auditor  v1.0
+================================
 Spatial analysis, validation, and rich description of layout jig models.
 
 All functions take a state dict (the CMA) and return plain-text strings
