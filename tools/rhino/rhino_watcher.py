@@ -1514,7 +1514,11 @@ if state:
             except Exception:
                 pass
     start_watcher()
-    start_listener()
+    # TCP listener disabled — it runs on a background thread and
+    # IronPython's rhinoscriptsyntax is not thread-safe.  The MCP
+    # rhino_query tool will report OFFLINE, but the watcher itself
+    # is unaffected.  Uncomment to re-enable if needed:
+    # start_listener()
     print("[PLJ] Ready. Edit state.json and the viewport updates automatically.")
 else:
     print("[PLJ] No state file at {0}".format(STATE_FILE))
