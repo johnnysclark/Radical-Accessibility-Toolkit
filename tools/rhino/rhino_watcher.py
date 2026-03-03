@@ -1201,6 +1201,37 @@ def redraw(state):
         rs.ZoomExtents()
     finally:
         rs.EnableRedraw(True)
+    # Cache stats on the main thread so the TCP listener never calls rs.*
+    try:
+        obj_total = 0
+        layer_stats = {}
+        for lname in LAYERS:
+            if rs.IsLayer(lname):
+                objs = rs.ObjectsByLayer(lname)
+                n = len(objs) if objs else 0
+            else:
+                n = 0
+            layer_stats[lname] = n
+            obj_total += n
+        all_objs = []
+        for lname in LAYERS:
+            if rs.IsLayer(lname):
+                objs = rs.ObjectsByLayer(lname)
+                if objs:
+                    all_objs.extend(objs)
+        bb = {}
+        if all_objs:
+            bx = rs.BoundingBox(all_objs)
+            if bx and len(bx) >= 8:
+                bb = {"min_x": bx[0][0], "min_y": bx[0][1], "min_z": bx[0][2],
+                      "max_x": bx[6][0], "max_y": bx[6][1], "max_z": bx[6][2]}
+        _cached_stats["layer_count"] = len([l for l in LAYERS if rs.IsLayer(l)])
+        _cached_stats["object_count"] = obj_total
+        _cached_stats["layer_stats"] = layer_stats
+        _cached_stats["bounding_box"] = bb
+        _cached_stats["last_rebuild"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
     t3 = state.get("tactile3d", {})
     t3_s = "  tactile3D ON (cut {0}ft)".format(t3.get("cut_height", 4.0)) if t3.get("enabled") else ""
     leg_s = "  legend ON" if state.get("legend",{}).get("enabled") else ""
@@ -1244,8 +1275,9 @@ _BLOCKED_PREFIXES = (
 def _handle_query(request):
     """Process a single query dict and return a response dict.
 
-    Runs in the listener thread.  Must be safe to call from a
-    background thread -- only reads Rhino state, never modifies.
+    Runs in the listener thread.  NEVER calls rhinoscriptsyntax --
+    all Rhino data is served from _cached_stats, which is populated
+    on the main thread during redraw().
     """
     qtype = request.get("type", "")
     params = request.get("params", {})
@@ -1254,75 +1286,24 @@ def _handle_query(request):
         return {"status": "ok"}
 
     if qtype == "status":
-        layer_count = 0
-        object_count = 0
-        if IN_RHINO:
-            try:
-                layer_count = len([l for l in LAYERS if rs.IsLayer(l)])
-                for lname in LAYERS:
-                    if rs.IsLayer(lname):
-                        objs = rs.ObjectsByLayer(lname)
-                        if objs:
-                            object_count += len(objs)
-            except Exception:
-                pass
         return {"status": "ok", "result": {
-            "layer_count": layer_count,
-            "object_count": object_count,
-            "last_rebuild": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "layer_count": _cached_stats.get("layer_count", 0),
+            "object_count": _cached_stats.get("object_count", 0),
+            "last_rebuild": _cached_stats.get("last_rebuild", ""),
         }}
 
     if qtype == "layer_stats":
-        stats = {}
-        if IN_RHINO:
-            try:
-                for lname in LAYERS:
-                    if rs.IsLayer(lname):
-                        objs = rs.ObjectsByLayer(lname)
-                        stats[lname] = len(objs) if objs else 0
-                    else:
-                        stats[lname] = 0
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
-        return {"status": "ok", "result": stats}
+        return {"status": "ok", "result": _cached_stats.get("layer_stats", {})}
 
     if qtype == "bounding_box":
-        if IN_RHINO:
-            try:
-                all_objs = []
-                for lname in LAYERS:
-                    if rs.IsLayer(lname):
-                        objs = rs.ObjectsByLayer(lname)
-                        if objs:
-                            all_objs.extend(objs)
-                if not all_objs:
-                    return {"status": "ok", "result": {}}
-                bb = rs.BoundingBox(all_objs)
-                if bb and len(bb) >= 8:
-                    return {"status": "ok", "result": {
-                        "min_x": bb[0][0], "min_y": bb[0][1], "min_z": bb[0][2],
-                        "max_x": bb[6][0], "max_y": bb[6][1], "max_z": bb[6][2],
-                    }}
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
-        return {"status": "ok", "result": {}}
+        return {"status": "ok", "result": _cached_stats.get("bounding_box", {})}
 
     if qtype == "object_count":
         layer = params.get("layer", "")
-        count = 0
-        if IN_RHINO:
-            try:
-                if layer and rs.IsLayer(layer):
-                    objs = rs.ObjectsByLayer(layer)
-                    count = len(objs) if objs else 0
-                elif not layer:
-                    for lname in LAYERS:
-                        if rs.IsLayer(lname):
-                            objs = rs.ObjectsByLayer(lname)
-                            if objs:
-                                count += len(objs)
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
+        if layer:
+            count = _cached_stats.get("layer_stats", {}).get(layer, 0)
+        else:
+            count = _cached_stats.get("object_count", 0)
         return {"status": "ok", "result": {"count": count, "layer": layer or "all"}}
 
     if qtype == "run_script":
@@ -1430,6 +1411,16 @@ _watcher_state = {
     "running": False,
 }
 
+# Cached stats from the last redraw (main thread).
+# The TCP listener reads these instead of calling rhinoscriptsyntax.
+_cached_stats = {
+    "layer_count": 0,
+    "object_count": 0,
+    "layer_stats": {},
+    "bounding_box": {},
+    "last_rebuild": "",
+}
+
 
 def _on_idle(sender, args):
     """Called on Rhino's main thread during idle moments.
@@ -1453,11 +1444,22 @@ def _on_idle(sender, args):
 
 
 def start_watcher():
-    """Hook the Rhino Idle event to watch for file changes."""
+    """Hook the Rhino Idle event to watch for file changes.
+
+    Safe to call multiple times (from repeated exec() calls).
+    Unhooks any previous handler first to prevent accumulation.
+    """
     if not IN_RHINO:
         print("[PLJ] Not in Rhino. Using fallback thread watcher.")
         _start_thread_watcher()
         return
+    # Remove previous handler if exec() was called again
+    if _watcher_state["running"]:
+        try:
+            Rhino.RhinoApp.Idle -= _on_idle
+        except Exception:
+            pass
+        print("[PLJ] Stopped previous watcher.")
     Rhino.RhinoApp.Idle += _on_idle
     _watcher_state["running"] = True
     print("[PLJ] Watching: {0}".format(STATE_FILE))
