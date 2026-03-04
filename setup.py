@@ -172,7 +172,7 @@ def check_state_json(project_root):
         _warn("Start the CLI once to create it: python controller/controller_cli.py")
         return False
     try:
-        with open(state_path, "r") as f:
+        with open(state_path, "r", encoding="utf-8") as f:
             state = json.load(f)
         schema = state.get("schema", "unknown")
         bay_count = len(state.get("bays", {}))
