@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "layout-jig": {
+      "command": "python",
+      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+    },
+    "tactile": {
+      "command": "python",
+      "args": ["tools/tact/mcp_entry.py"]
+    },
+    "rhinomcp": {
+      "command": "./venv/bin/rhinomcp",
+      "env": {
+        "RHINO_MCP_HOST": "127.0.0.1",
+        "RHINO_MCP_PORT": "1999"
+      }
+    }
+  }
+}

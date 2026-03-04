@@ -95,3 +95,45 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - JSON keys: `snake_case`
 - Tool folders: `kebab-case`
 - Rhino layers: `JIG::<Category>` (PascalCase category)
+
+---
+
+## Student Extensions (Ethan Anderson)
+
+The following tools extend the project with advanced tactile conversion, accessible Rhino design, and screen reader integration.
+
+### TACT -- Tactile Conversion CLI (tools/tact/)
+
+Converts architectural images to PIAF-ready tactile PDFs. More advanced than tools/swell-print/ with EasyOCR text detection, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys.
+
+Key commands:
+- `tact convert IMAGE --preset NAME --verbose` -- convert one image
+- `tact convert IMAGE --detect-text --braille-grade 2 --verbose` -- with Braille
+- `tact presets` -- show available presets
+
+Install: `pip install -e tools/tact`
+
+MCP server: `python tools/tact/mcp_entry.py` (6 tools: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality)
+
+### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
+
+Accessible programmatic Rhino design via text commands. Complementary to the Layout Jig -- TASC focuses on site planning (zones, bays, corridors) with live MCP socket connection to Rhino.
+
+Key commands:
+- `tasc site W D` -- site boundary
+- `tasc zone NAME W D --at X,Y` -- program zone
+- `tasc bay NAME NxN --spacing SX SY --at X,Y` -- structural bay
+- `tasc describe` -- full text description
+- `tasc export piaf|3dm|text` -- export
+
+Install: `pip install -e tools/tact && pip install -e tools/tasc` (tasc depends on tact)
+
+### acclaude -- Accessible Claude Client (tools/accessible-client/)
+
+JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations.
+
+Requires: Node.js, npx tsx
+
+### Screen Reader Hooks (tools/screen-reader-hooks/)
+
+Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API.

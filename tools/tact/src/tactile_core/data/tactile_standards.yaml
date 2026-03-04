@@ -1,0 +1,173 @@
+# Tactile Graphics Standards Configuration
+# Version 1.0 - Phase 1 MVP
+#
+# This configuration file defines the standards for converting
+# images to tactile-ready formats for PIAF printing
+
+version: "1.0"
+
+# Basic processing defaults
+processing:
+  # Default threshold for B&W conversion (0-255)
+  # Higher values = more black, lower values = more white
+  default_threshold: 128
+
+  # Output resolution in dots per inch
+  output_dpi: 300
+
+  # Color mode for output ('1' = 1-bit B&W)
+  color_mode: "1"
+
+# Paper sizes in inches
+paper_sizes:
+  letter:
+    width: 8.5
+    height: 11.0
+    description: "Standard US Letter size"
+
+  tabloid:
+    width: 11.0
+    height: 17.0
+    description: "Tabloid/Ledger size (11x17)"
+
+# Density management settings
+density:
+  # Maximum black pixel percentage before error
+  max_black_percentage: 45
+
+  # Warning threshold for high density
+  warning_threshold: 40
+
+  # Target optimal density for best tactile output
+  target_optimal: 30
+
+  # Method for reducing density if needed (Phase 2)
+  reduction_method: "morphological_erosion"
+
+  # Automatic density reduction settings
+  auto_reduce:
+    # Default target density for automatic reduction (0.0-1.0, representing percentage/100)
+    target_density: 0.30
+
+    # Maximum number of erosion iterations to attempt
+    max_iterations: 10
+
+    # Kernel size for morphological erosion (1 or 2 pixels)
+    erosion_kernel_size: 1
+
+    # Density threshold to trigger automatic reduction (0.0-1.0)
+    trigger_threshold: 0.45
+
+# Line thickness standards (in pixels at 300 DPI)
+# Phase 1: For reference only, used in Phase 2
+line_standards:
+  minimum_thickness: 1.5  # ~0.5mm
+  wall_thickness: 3       # ~1mm (architectural walls)
+  detail_thickness: 2     # ~0.7mm (details and annotations)
+
+# Hatching pattern library
+# Phase 1: Placeholder definitions for future implementation
+hatching_patterns:
+  example_brick:
+    name: "Brick Pattern"
+    description: "Horizontal lines representing brick or masonry"
+    detection: "horizontal_lines"
+    conversion: "simplified_horizontal"
+    enabled: false
+    notes: "Phase 2 feature - pattern detection and simplification"
+
+  example_concrete:
+    name: "Concrete/Stipple"
+    description: "Dots representing concrete or porous materials"
+    detection: "stipple"
+    conversion: "reduce_dots"
+    enabled: false
+    notes: "Phase 2 feature - pattern detection and simplification"
+
+# File format support
+supported_formats:
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".tiff"
+  - ".tif"
+  - ".bmp"
+  - ".gif"
+  - ".pdf"
+
+# Image tiling settings for oversized images
+# Phase 2 feature: Split large images into multiple pages
+tiling:
+  # Default overlap between tiles (0.0-1.0, where 0.1 = 10%)
+  default_overlap: 0.1
+
+  # Whether to add registration marks by default
+  add_registration_marks: true
+
+  # Size of registration marks in pixels at 300 DPI
+  registration_mark_size: 30
+
+  # Registration mark style
+  registration_mark_style: "crosshair"
+
+  # Tile label format options
+  tile_label_format: "numeric"  # "numeric" or "grid"
+
+  # Whether to include assembly instructions on first page
+  include_assembly_instructions: true
+
+# Text detection (OCR settings) - Phase 3
+text_detection:
+  enabled: false  # Opt-in feature
+
+  # Tesseract OCR settings
+  language: 'eng'  # Language code
+  page_segmentation_mode: 3  # PSM 3 = Fully automatic page segmentation
+  min_confidence: 60  # Minimum confidence threshold (0-100)
+
+  # Dimension detection
+  filter_dimensions: true  # Identify dimension text separately
+  dimension_patterns:
+    - "\\d+['\"]"              # Feet and inches (10', 6")
+    - "\\d+\\.\\d+['\"]"       # Decimal feet/inches (3.5')
+    - "\\d+-\\d+['\"]"         # Range format (10'-6")
+    - "\\d+m"                  # Meters (3m)
+    - "\\d+mm"                 # Millimeters (120mm)
+    - "\\d+cm"                 # Centimeters (50cm)
+
+# Braille conversion settings - Phase 3
+braille:
+  # Enable/disable Braille labels (opt-in feature)
+  enabled: false
+
+  # Braille grade
+  grade: 1  # 1 = Grade 1 (uncontracted), 2 = Grade 2 (contracted)
+
+  # Font settings for rendering Braille
+  font_name: "DejaVu Sans"  # Font that supports Unicode Braille (U+2800-U+28FF)
+  font_size: 24             # BANA standard: 6.2mm cell-to-cell spacing
+  font_color: "black"       # Color for Braille labels
+
+  # Label placement
+  placement: "overlay"      # 'overlay' = on image, 'margin' = in margins (future feature)
+  offset_x: 5               # Horizontal offset from original text position (pixels)
+  offset_y: -24             # Vertical offset from original text (pixels, negative = above text)
+
+  # Label constraints
+  max_label_length: 30      # Maximum Braille characters per label
+  truncate_suffix: "..."    # Suffix to append to truncated labels
+
+  # Overlap handling
+  detect_overlaps: true     # Check for overlapping labels
+  min_label_spacing: 6      # Minimum spacing between labels (pixels)
+
+  # Text region whiteout (prevents original text from obscuring Braille during PIAF printing)
+  whiteout_original_text: true  # Remove original text from image before adding Braille
+  whiteout_padding: 5           # Pixels of padding around text regions for clean removal
+
+# Processing notes for screen reader users
+accessibility_notes:
+  - "All processing steps are announced via screen reader"
+  - "Use --verbose flag for detailed progress updates"
+  - "Interactive mode provides step-by-step guidance"
+  - "Error messages include suggested solutions"

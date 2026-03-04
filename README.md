@@ -570,6 +570,12 @@ radical-accessibility/
       image_converter.py .... Convert any image to PIAF-ready B&W
       pdf_generator.py ...... Wrap B&W images in PIAF-ready PDF
       requirements.txt ...... Python dependencies (Pillow, reportlab)
+    tact/ ................... Advanced tactile conversion (Ethan)
+      src/tactile_core/ ..... EasyOCR, RainbowTact, presets, Braille, MCP
+    tasc/ ................... Accessible Rhino design CLI (Ethan)
+      src/tasc_core/ ........ Zones, bays, corridors, Rhino connector
+    accessible-client/ ...... JAWS/NVDA Claude Code wrapper (Ethan)
+    screen-reader-hooks/ .... Screen reader lifecycle hooks (Ethan)
   tests/
     run_tests.py ............ End-to-end test suite (149 tests)
   docs/
@@ -578,6 +584,34 @@ radical-accessibility/
     TEST_MANUAL.md .......... Test walkthrough
     archive/ ................ Older reference docs
 ```
+
+## Student Extensions (Ethan Anderson)
+
+Additional tools for advanced tactile conversion, accessible Rhino design, and screen reader integration.
+
+### TACT -- Tactile Conversion (tools/tact/)
+
+Advanced image-to-PIAF conversion with EasyOCR text detection, Grade 2 Braille labels, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys. Extends tools/swell-print/ with additional features.
+
+Install: `pip install -e tools/tact`
+
+### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
+
+Accessible site-scale design via text commands. Zones, structural bays, corridors, voids, and grids with live Rhino viewport updates via MCP socket. Complementary to the Layout Jig.
+
+Install: `pip install -e tools/tact && pip install -e tools/tasc`
+
+### acclaude -- Accessible Claude Client (tools/accessible-client/)
+
+JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Multi-turn sessions with text cleaning and screen reader announcements.
+
+### Screen Reader Hooks (tools/screen-reader-hooks/)
+
+Claude Code lifecycle hooks for JAWS/NVDA announcements via WSL2-to-PowerShell bridge.
+
+See each tool's README for full documentation.
+
+---
 
 ## License
 
