@@ -10,3 +10,49 @@ skills/test-skill.json
 .env
 .mcp.json
 arch_alt_text_history.json
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TACT/TASC artifacts
+outputs/
+batch-output/
+test_output/
+*.pdf
+!docs/**/*.pdf
+!patterns/**/*.pdf
+.tasc_state.json
+.tasc_undo.json
+*.3dm
+*.3dmbak
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Claude Code local config
+.claude/settings.json
+.claude/settings.local.json
+.claude/development-journal.md
+
+# Logs
+*.log
