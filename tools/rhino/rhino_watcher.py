@@ -1070,11 +1070,25 @@ def _draw_tactile3d(state):
     should_export = (auto_export or export_once) and export_path and created_ids
     if should_export:
         _export_stl(created_ids, export_path)
-    # Clear the one-shot flag (watcher doesn't write JSON, but
-    # we clear it from the in-memory state so it doesn't re-fire
-    # on the next poll cycle if the file hasn't changed)
+    # Clear the one-shot flag in memory AND in the JSON file.
+    # This is the ONE exception to the "watcher never writes" rule —
+    # without clearing it, the flag stays True and re-triggers on
+    # every watcher restart.
     if export_once:
         t3["_export_once"] = False
+        try:
+            with open(STATE_FILE, "rb") as _f:
+                _disk = json.loads(_f.read().decode("utf-8"))
+            if "_export_once" in _disk.get("tactile3d", {}):
+                _disk["tactile3d"]["_export_once"] = False
+                _tmp = STATE_FILE + ".tmp"
+                with open(_tmp, "wb") as _fw:
+                    _fw.write(json.dumps(_disk, indent=2).encode("utf-8"))
+                os.replace(_tmp, STATE_FILE)
+                # Update mtime so we don't re-trigger a redraw
+                _watcher_state["last_mtime"] = os.stat(STATE_FILE).st_mtime
+        except Exception as _e:
+            print("[PLJ] Could not clear _export_once: {0}".format(_e))
 
 
 def _extrude_wall_box(seg_start, seg_end, fixed_val, axis, half_t,
