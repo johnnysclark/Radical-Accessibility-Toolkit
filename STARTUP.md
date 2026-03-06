@@ -14,12 +14,8 @@ No screen required.
 
 Layout Jig (controller/controller_cli.py)
   The primary design tool. Structural grids, walls, doors,
-  corridors, rooms, legends, section cuts, and all output modes.
-
-Swell-Print (tools/swell-print/swell_print.py)
-  Converts designs and images to PIAF-ready tactile graphics.
-  Renders state.json directly (no Rhino) or converts any image.
-  Ten presets, density management, braille labels.
+  corridors, rooms, legends, section cuts, zones, grids,
+  export, and all output modes.
 
 Image Describer (tools/image-describer/arch_alt_text.py)
   Structured text descriptions of architectural images
@@ -31,6 +27,17 @@ Braille Module (controller/braille.py)
 Rhino Viewer (tools/rhino/rhino_watcher.py)
   Watches the state file and renders geometry in Rhino.
   Read-only viewer — Rhino is never the source of truth.
+
+TACT -- Tactile Conversion (tools/tact/)
+  All tactile output in one tool. Renders state.json to PIAF-ready
+  tactile PDFs (replaces swell-print) and converts images to tactile
+  graphics. Ten presets, density management, braille labels, OCR text
+  detection, color-to-tactile pattern mapping, Grade 2 Braille, and
+  6 MCP functions. Optional.
+
+acclaude -- Accessible Claude Client (tools/accessible-client/)
+  Screen-reader-friendly Claude Code wrapper. Bypasses the
+  Ink TUI for JAWS/NVDA compatibility. Optional.
 
 ## Three Output Modes
 
@@ -58,7 +65,7 @@ model once, all outputs update.
 The system has TWO separate Python environments. Do not mix them.
 
 1. cmd.exe terminal (Python 3) — runs the controller, MCP server,
-   swell-print, and all design tools. Open a Windows Command
+   TACT, and all design tools. Open a Windows Command
    Prompt (cmd.exe) and type commands there.
 
 2. Rhino Python editor (IronPython 2.7) — runs ONLY the watcher
@@ -76,7 +83,7 @@ You can use either one or both at the same time.
 1. Interactive CLI — you type commands directly in a cmd.exe
    terminal. This is the controller. It gives you a >> prompt
    and you type commands like "set bay A rotation 30". Requires
-   Python 3.8 or later. No setup needed beyond Python.
+   Python 3.10 or later. No setup needed beyond Python.
 
 2. AI assistant via MCP — Claude types the commands for you.
    You talk to Claude in natural language ("rotate bay A by 30
@@ -156,27 +163,19 @@ again, and everything rebuilds from state.json.
 
 ## Step 3: Enable AI Assistant via MCP (Optional)
 
-To let Claude drive the system conversationally, run the automated
-setup script:
+To let Claude drive the system conversationally, run the setup
+script from the repo root:
 
 ```
 python setup.py
 ```
 
-This does everything: checks Python version, installs pip dependencies
-(mcp, Pillow, reportlab), creates .mcp.json with correct paths,
-validates state.json, and tests MCP server readiness. Output uses
-OK:/ERROR: prefixes for screen readers.
+This does everything: checks Python 3.10+, installs dependencies
+(mcp, tact with easyocr), creates .mcp.json with correct paths,
+initializes state.json if missing, and tests MCP server readiness.
+Output uses OK:/ERROR: prefixes for screen readers.
 
-If you prefer manual setup:
-
-```
-pip install mcp
-```
-
-Then create .mcp.json in the PARENT folder of CONTROLLER (the
-folder where Claude Code opens the project). The paths must
-include CONTROLLER/ because the file is one level above it:
+If you prefer manual setup, create .mcp.json in the repo root:
 
 ```json
 {
@@ -184,31 +183,28 @@ include CONTROLLER/ because the file is one level above it:
     "layout-jig": {
       "command": "python",
       "args": [
-        "CONTROLLER/mcp/mcp_server.py",
+        "mcp/mcp_server.py",
         "--state",
-        "CONTROLLER/controller/state.json"
+        "controller/state.json"
       ]
+    },
+    "tactile": {
+      "command": "python",
+      "args": ["tools/tact/mcp_entry.py"]
     }
   }
 }
 ```
 
-IMPORTANT: Do not copy-paste this into a terminal. Create the
-file with a text editor or use "python setup.py" which does it
-automatically. The paths above assume the folder structure is:
+Claude Code, Claude Desktop, or Cursor will start the MCP servers
+automatically when they connect. You do not need to run them manually.
+No API keys needed — MCP servers run through the Claude Code subscription.
 
-  CLI/                    (project root, where .mcp.json goes)
-    CONTROLLER/           (this toolkit folder)
-      mcp/mcp_server.py
-      controller/state.json
-
-Claude Code, Claude Desktop, or Cursor will start the MCP server
-automatically when they connect. You do not need to run it manually.
-
-The MCP server gives Claude access to 53 functions (v3.3): everything
-the CLI can do, plus auditing, skills, Rhino queries, direct state
-editing, script generation, and swell-print tactile graphics. See
-docs/MCP_GUIDE.md for the full reference.
+The MCP server gives Claude access to 58 functions: everything
+the CLI can do, plus zone/grid/export, auditing, skills, Rhino
+queries, direct state editing, and script generation. TACT adds
+7 more tactile-specific MCP functions via its own server.
+See docs/MCP_GUIDE.md for the full reference.
 
 ## Step 4: Verify
 
@@ -230,25 +226,77 @@ you build fluency in Python and rhinoscriptsyntax.
 See DESIGN_SESSION.md for a complete walkthrough showing all three
 modes during a school building design project.
 
-## Step 6: Enable Swell-Print (Optional)
+## Step 6: Install Tactile Tools (Optional)
 
-To generate PIAF-ready tactile graphics from state.json or images:
+TACT handles all tactile conversion. It renders state.json to
+PIAF-ready tactile PDFs and converts images to tactile graphics.
+It also provides OCR text detection, color-to-tactile pattern
+mapping, and Grade 2 Braille output.
+
+Install TACT:
 
 ```
-pip install -r tools/swell-print/requirements.txt
+pip install -e tools/tact
 ```
 
-Then use the swell-print CLI:
+System dependencies (for text detection -- Tesseract is the
+fallback OCR engine; EasyOCR is primary and installs via pip):
+
 ```
-python tools/swell-print/swell_print.py
->> render
-OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
->> convert photo.jpg
-OK: Converted photo.jpg -> photo_tactile.png (density 31.2%)
+apt install tesseract-ocr poppler-utils    # Ubuntu/Debian
+brew install tesseract poppler              # macOS
 ```
 
-Or through Claude Code via MCP tools: render_tactile,
-convert_to_tactile, check_tactile_density, list_tactile_presets.
+LibLouis for Grade 2 Braille (optional):
+
+```
+apt install liblouis-dev python3-louis      # Ubuntu/Debian
+brew install liblouis                        # macOS
+```
+
+Key commands:
+
+```
+tact render                          # render state.json to tactile PDF
+tact render --state /path/state.json # render a specific state file
+tact convert photo.jpg               # convert image to tactile
+tact convert photo.jpg --preset high_contrast --verbose
+tact presets                         # list all 10 presets
+```
+
+To add TACT's MCP server to Claude Code, add a "tactile" entry to
+your .mcp.json. See .mcp.json.example for the correct format. This
+gives Claude 6 MCP functions for tactile conversion (image_to_piaf,
+list_presets, analyze_image, describe_image, extract_text_with_vision,
+assess_tactile_quality). All tactile MCP functions live in TACT's
+server, not in the main layout-jig server.
+
+## Step 7: Set Up Accessible Client (Optional)
+
+If you use JAWS or NVDA and find Claude Code's Ink TUI difficult
+to read, use acclaude instead. It wraps Claude Code in headless
+mode with plain text output.
+
+Requirements: Node.js 18 or later, Claude Code CLI installed.
+
+Windows:
+
+```
+tools\accessible-client\acclaude.bat
+```
+
+WSL2 or Linux:
+
+```
+./tools/accessible-client/acclaude
+```
+
+Type /help at the prompt for available commands. Sessions persist
+across restarts at ~/.radical-accessibility/memory/.
+
+For screen reader event hooks (automatic image detection, conversion
+tracking), see tools/screen-reader-hooks/README.md for installation
+into your Claude Code settings.
 
 ## Quick Start Workflow: Design to Tactile Print
 
@@ -284,6 +332,7 @@ python controller/controller_cli.py
 >> describe
 
 # 6. Generate a tactile print directly from the CLI
+#    (the print command calls tact render internally)
 >> print
 OK: Print requested (id=1).
   Output: /path/to/controller/state_tactile.pdf
@@ -306,18 +355,18 @@ drawing (via Rhino). Change the model once, all outputs update.
 
 ## Requirements
 
-Python 3.8 or later (stdlib only — no pip install needed for the CLI).
+Python 3.10 or later (stdlib only — no pip install needed for the CLI).
 Rhino 7 or 8 with IronPython 2.7 (only if you want the visual viewer).
-For the MCP server: pip install mcp (see mcp/requirements.txt).
-For swell-print: pip install -r tools/swell-print/requirements.txt.
-For image description: a Claude API key.
+For MCP + TACT: python setup.py (installs everything).
+No API keys needed — MCP servers run through the Claude Code subscription.
+For acclaude: Node.js 18+ and Claude Code CLI.
 
 ## Full Documentation
 
 Complete manual with all commands, tools, and extension guide:
   docs/MANUAL.md
 
-AI layer — MCP architecture, setup, and 53-function reference:
+AI layer — MCP architecture, setup, and function reference:
   docs/MCP_GUIDE.md
 
 Design session walkthrough (all 3 interaction modes):
@@ -325,3 +374,9 @@ Design session walkthrough (all 3 interaction modes):
 
 Test walkthrough — how to verify everything works:
   docs/TEST_MANUAL.md
+
+Tactile conversion (TACT):
+  tools/tact/README.md
+
+Accessible client (acclaude):
+  tools/accessible-client/README.md

@@ -2,12 +2,26 @@
 
 ## Taxonomy (use these terms consistently)
 
-- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, Rhino Viewer.
+- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
 - **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
 - **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
 
 When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module.
+
+---
+
+## First-Time Setup
+
+If `controller/state.json` does not exist, this is a fresh clone. Run:
+
+    python setup.py
+
+This installs all dependencies (mcp, tact, easyocr), creates `.mcp.json`,
+and initializes `state.json`. The MCP servers will be available immediately
+after setup completes.
+
+No API keys needed — MCP servers run through the Claude Code subscription.
 
 ---
 
@@ -67,7 +81,7 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - `--json` flag for machine-readable output (supplements, never replaces, human output).
 - Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
 - **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
-- **Exception:** `tools/swell-print/` and `mcp/` are allowed pip dependencies (Pillow, reportlab, mcp). The controller itself stays stdlib-only.
+- **Exception:** `tools/tact/` and `mcp/` are allowed pip dependencies. The controller itself stays stdlib-only.
 
 ### Watcher Side (IronPython 2.7)
 - Use `rhinoscriptsyntax as rs` for all geometry.
@@ -95,3 +109,37 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - JSON keys: `snake_case`
 - Tool folders: `kebab-case`
 - Rhino layers: `JIG::<Category>` (PascalCase category)
+
+---
+
+## Controller Extensions
+
+The Layout Jig controller (`controller/controller_cli.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
+
+## Advanced Tactile Tools
+
+### TACT -- Tactile Conversion CLI (tools/tact/)
+
+Converts architectural images to PIAF-ready tactile PDFs with EasyOCR text detection, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys. Grade 2 Braille output via liblouis. Also renders state.json directly to tactile PDF via `tact render`.
+
+Key commands:
+- `tact convert IMAGE --preset NAME --verbose` -- convert one image
+- `tact convert IMAGE --detect-text --braille-grade 2 --verbose` -- with Braille
+- `tact render STATE.json --output OUTPUT.pdf` -- render state.json to tactile PDF
+- `tact presets` -- show available presets
+
+Install: `pip install -e tools/tact`
+
+MCP server: `python tools/tact/mcp_entry.py` (7 MCP functions: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality, state_to_piaf)
+
+## Screen Reader Integration
+
+### acclaude -- Accessible Claude Client (tools/accessible-client/)
+
+JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations.
+
+Requires: Node.js 18+, npx tsx
+
+### Screen Reader Hooks (tools/screen-reader-hooks/)
+
+Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: ImageDetector (auto-detect architectural images), ConversionTracker (record conversion settings), FeedbackCapture (capture student ratings).

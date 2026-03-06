@@ -54,6 +54,26 @@ def _distance(p1, p2):
     return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
 
+def _zone_area(corners):
+    """Shoelace formula for polygon area."""
+    n = len(corners)
+    if n < 3:
+        return 0.0
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += corners[i][0] * corners[j][1]
+        area -= corners[j][0] * corners[i][1]
+    return abs(area) / 2.0
+
+
+def _zone_bounds(corners):
+    """Return (min_x, max_x, min_y, max_y) matching existing box convention."""
+    xs = [c[0] for c in corners]
+    ys = [c[1] for c in corners]
+    return (min(xs), max(xs), min(ys), max(ys))
+
+
 # ══════════════════════════════════════════════════════════
 # AUDIT: FULL MODEL
 # ══════════════════════════════════════════════════════════
@@ -184,6 +204,45 @@ def audit_model(state):
         if not bay.get("label", "").strip():
             issues.append(
                 f"WARNING: Bay {name} has no label (accessibility issue).")
+
+    # ── 8. Zone validation ──
+    zones = state.get("zones", {})
+    site_ox, site_oy = site.get("origin", [0, 0])
+
+    for zname, zdata in sorted(zones.items()):
+        corners = zdata.get("corners", [])
+        if len(corners) < 3:
+            issues.append(
+                f"WARNING: Zone {zname} has fewer than 3 corners.")
+            continue
+
+        area = _zone_area(corners)
+        if area <= 0:
+            issues.append(
+                f"WARNING: Zone {zname} has zero or negative area.")
+
+        # Check all corners within site
+        zb = _zone_bounds(corners)
+        if (zb[0] < site_ox or zb[1] > site_ox + sw
+                or zb[2] < site_oy or zb[3] > site_oy + sh):
+            issues.append(
+                f"WARNING: Zone {zname} extends outside site boundary.")
+
+    # ── 9. Zone overlaps ──
+    zone_names = sorted(zones.keys())
+    for i, name_a in enumerate(zone_names):
+        corners_a = zones[name_a].get("corners", [])
+        if len(corners_a) < 3:
+            continue
+        box_a = _zone_bounds(corners_a)
+        for name_b in zone_names[i + 1:]:
+            corners_b = zones[name_b].get("corners", [])
+            if len(corners_b) < 3:
+                continue
+            box_b = _zone_bounds(corners_b)
+            if _boxes_overlap(box_a, box_b):
+                issues.append(
+                    f"WARNING: Zones {name_a} and {name_b} overlap.")
 
     return issues
 

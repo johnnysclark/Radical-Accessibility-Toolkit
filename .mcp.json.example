@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "layout-jig": {
+      "command": "python",
+      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+    },
+    "tactile": {
+      "command": "python",
+      "args": ["tools/tact/mcp_entry.py"]
+    }
+  }
+}

@@ -7,20 +7,17 @@ and rhino client call against the test state.json.
 
 Run:  python tests/run_tests.py
 """
-import sys, os, json, copy
+import sys, os, json, copy, builtins
 
 # ── Setup ──
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 JIG = os.path.join(ROOT, "controller")
 TOOLS_RHINO = os.path.join(ROOT, "tools", "rhino")
-TOOLS_SWELL = os.path.join(ROOT, "tools", "swell-print")
 STATE = os.path.join(JIG, "state.json")
 os.environ["LAYOUT_JIG_STATE"] = STATE
 sys.path.insert(0, JIG)
 sys.path.insert(0, TOOLS_RHINO)
-if os.path.isdir(TOOLS_SWELL):
-    sys.path.insert(0, TOOLS_SWELL)
 
 import controller_cli as cli
 import auditor
@@ -29,22 +26,24 @@ import rhino_client
 
 passed = 0
 failed = 0
+skipped = 0
 errors = []
 
 def test(name, fn):
-    global passed, failed
+    global passed, failed, skipped
     try:
         result = fn()
         if result is None:
             print("PASS: {}".format(name))
             passed += 1
-        elif isinstance(result, str) and result.startswith("ERROR"):
-            print("FAIL: {} -> {}".format(name, result[:120]))
+        elif isinstance(result, str) and result.startswith("SKIP"):
+            print("SKIP: {}".format(name))
+            skipped += 1
+        else:
+            detail = str(result)[:120] if result else "(non-None)"
+            print("FAIL: {} -> {}".format(name, detail))
             failed += 1
             errors.append(name)
-        else:
-            print("PASS: {}".format(name))
-            passed += 1
         return result
     except Exception as e:
         print("FAIL: {} -> {}".format(name, str(e)[:120]))
@@ -65,9 +64,10 @@ print("=" * 60)
 print("PHASE 1: State Loading and Structure")
 print("=" * 60)
 
-state = test("load_state", lambda: cli.load_state(STATE))
-test("schema is v2.3",
-     lambda: None if state["schema"] == "plan_layout_jig_v2.3" else "wrong schema")
+state = cli.load_state(STATE)
+test("load_state", lambda: None if isinstance(state, dict) and "schema" in state else "bad state")
+test("schema is v3.0",
+     lambda: None if state["schema"] == "plan_layout_jig_v3.0" else "ERROR: wrong schema: " + state["schema"])
 test("2 bays exist",
      lambda: None if len(state["bays"]) == 2 else "wrong bay count")
 test("bay A is rectangular",
@@ -93,7 +93,8 @@ print("=" * 60)
 print("PHASE 2: Describe and List")
 print("=" * 60)
 
-desc = test("describe()", lambda: cli.describe(state))
+desc = cli.describe(state)
+test("describe()", lambda: None if isinstance(desc, str) and len(desc) > 0 else "empty describe")
 test("describe mentions Bay A",
      lambda: None if "Bay A" in desc else "missing")
 test("describe mentions Bay B",
@@ -101,7 +102,8 @@ test("describe mentions Bay B",
 test("describe mentions corridor",
      lambda: None if "corridor" in desc.lower() else "missing")
 
-lb = test("list_bays()", lambda: cli.list_bays(state))
+lb = cli.list_bays(state)
+test("list_bays()", lambda: None if isinstance(lb, str) and len(lb) > 0 else "empty list_bays")
 test("list_bays has A and B",
      lambda: None if "A" in lb and "B" in lb else "missing")
 
@@ -589,7 +591,7 @@ else:
                   "watcher has state.json file watch",
                   "watcher has Idle event hook",
                   "watcher has JIG_ layer names"]:
-        test(label, lambda: "SKIPPED: file not found")
+        test(label, lambda: "SKIP: rhino_watcher.py not found")
 
 # ══════════════════════════════════════════════════
 print("")
@@ -602,12 +604,20 @@ _mcp_dir = os.path.join(ROOT, "mcp")
 if _mcp_dir not in sys.path:
     sys.path.insert(0, _mcp_dir)
 
+_saved_print = builtins.print if hasattr(builtins, 'print') else print
 try:
     import mcp_server as _mcp_mod
     _mcp_available = True
-except ImportError:
+except (ImportError, SystemExit):
     _mcp_available = False
-    print("SKIP: mcp package not installed, skipping script generation tests")
+finally:
+    builtins.print = _saved_print  # mcp_server redirects print to stderr
+if not _mcp_available:
+    for label in ["generate_script creates file", "generated script file exists",
+                  "show_script returns contents", "show_script has teaching header",
+                  "list_scripts shows generated file", "generate_script rejects f-strings",
+                  "generate_script rejects pathlib", "show_script missing file returns ERROR"]:
+        test(label, lambda: "SKIP: mcp not installed")
 
 if _mcp_available:
     # generate_script — valid script
@@ -750,59 +760,224 @@ test("braille: braille_len",
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 15b: Swell-Print (requires Pillow)")
+print("PHASE 15b: Zones and Grid (v3.0)")
 print("=" * 60)
 
-_swell_ok = False
-try:
-    from PIL import Image
-    import state_renderer
-    import image_converter
-    _swell_ok = True
-    test("swell-print: imports succeed", lambda: None)
-except ImportError as _ie:
-    print("SKIP: Swell-print dependencies not installed ({})".format(_ie))
-    print("  Install: pip install -r tools/swell-print/requirements.txt")
+reset_state()
+sz = cli.load_state(STATE)
 
-if _swell_ok:
-    reset_state()
-    _sw_state = cli.load_state(STATE)
+# Zone commands
+sz, msg = cli.apply_command(sz, cli.tokenize("zone add Residential 60 40 20 20"), STATE)
+test("zone add Residential",
+     lambda: None if "Residential" in state.get("zones", {}) or "Residential" in sz.get("zones", {}) else msg)
 
-    # Render state.json
-    try:
-        _sw_img = state_renderer.render(_sw_state, dpi=72, paper_size="letter")
-        test("swell-print: render returns Image",
-             lambda: None if hasattr(_sw_img, "mode") else "not an image")
-        test("swell-print: render is mode '1' (B&W)",
-             lambda: None if _sw_img.mode == '1' else "mode: " + _sw_img.mode)
-        _sw_d = state_renderer.density(_sw_img)
-        test("swell-print: density is numeric",
-             lambda: None if isinstance(_sw_d, (int, float)) else "type: " + type(_sw_d).__name__)
-        test("swell-print: density < 80%",
-             lambda: None if _sw_d < 80 else "too dense: {}".format(_sw_d))
-    except Exception as _e:
-        test("swell-print: render state.json", lambda: "ERROR: {}".format(_e))
+sz, msg = cli.apply_command(sz, cli.tokenize("zone add Service 30 20 80 20 service"), STATE)
+test("zone add Service",
+     lambda: None if "Service" in sz.get("zones", {}) else msg)
 
-    # Image converter presets
-    _presets = image_converter.list_presets()
-    test("swell-print: presets exist",
-         lambda: None if len(_presets) >= 5 else "only {} presets".format(len(_presets)))
-    test("swell-print: floor_plan preset exists",
-         lambda: None if "floor_plan" in image_converter.PRESETS else "missing")
+sz, msg = cli.apply_command(sz, cli.tokenize("zone list"), STATE)
+test("zone list shows zones",
+     lambda: None if "Residential" in msg and "Service" in msg else msg)
 
-    # Density check with a test image
-    try:
-        _test_img = Image.new('1', (100, 100), 1)  # all white
-        _ok, _density, _msg = image_converter.check_density(_test_img)
-        test("swell-print: density check on white image",
-             lambda: None if _ok and _density < 1.0 else _msg)
+sz, msg = cli.apply_command(sz, cli.tokenize("zone Residential label Living"), STATE)
+test("zone label set",
+     lambda: None if sz["zones"]["Residential"].get("label") == "Living" else msg)
 
-        _test_img2 = Image.new('1', (100, 100), 0)  # all black
-        _ok2, _d2, _msg2 = image_converter.check_density(_test_img2)
-        test("swell-print: density check on black image warns",
-             lambda: None if not _ok2 else "should warn on 100% black")
-    except Exception as _e:
-        test("swell-print: density checks", lambda: "ERROR: {}".format(_e))
+sz, msg = cli.apply_command(sz, cli.tokenize("zone Residential type residential"), STATE)
+test("zone type set",
+     lambda: None if sz["zones"]["Residential"].get("program_type") == "residential" else msg)
+
+sz, msg = cli.apply_command(sz, cli.tokenize("zone remove Service"), STATE)
+test("zone remove Service",
+     lambda: None if "Service" not in sz.get("zones", {}) else msg)
+
+# Grid commands
+sz, msg = cli.apply_command(sz, cli.tokenize("grid set 24"), STATE)
+test("grid set 24",
+     lambda: None if sz.get("grid", {}).get("spacing") == 24.0 else msg)
+
+sz, msg = cli.apply_command(sz, cli.tokenize("grid origin 10 10"), STATE)
+test("grid origin 10 10",
+     lambda: None if sz["grid"]["origin"] == [10.0, 10.0] else msg)
+
+sz, msg = cli.apply_command(sz, cli.tokenize("grid clear"), STATE)
+test("grid clear",
+     lambda: None if sz.get("grid") is None else msg)
+
+# Describe includes zones/grid after adding them
+sz, msg = cli.apply_command(sz, cli.tokenize("grid set 12"), STATE)
+desc_z = cli.describe(sz)
+test("describe includes GRID section",
+     lambda: None if "GRID" in desc_z else "ERROR: missing GRID in describe")
+test("describe includes ZONES section",
+     lambda: None if "ZONES" in desc_z else "ERROR: missing ZONES in describe")
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 15c: PR 2/3 Feature Coverage")
+print("=" * 60)
+
+reset_state()
+sf = cli.load_state(STATE)
+
+# Polygon zone creation
+sf, msg = cli.apply_command(sf, cli.tokenize("zone add Triangle corners 0,0 100,0 50,86"), STATE)
+test("zone add Triangle (polygon)",
+     lambda: None if "Triangle" in sf.get("zones", {}) else msg)
+tri = sf.get("zones", {}).get("Triangle", {})
+test("triangle has 3 corners",
+     lambda: None if len(tri.get("corners", [])) == 3 else str(tri.get("corners")))
+
+# Zone braille field
+sf, msg = cli.apply_command(sf, cli.tokenize("zone Triangle braille test-braille"), STATE)
+test("zone Triangle braille set",
+     lambda: None if sf["zones"]["Triangle"].get("braille") == "test-braille" else msg)
+
+# Polygonal site boundary
+sf, msg = cli.apply_command(sf, cli.tokenize("set site corners 0,0 200,0 200,300 100,350 0,300"), STATE)
+test("set site corners (polygon)",
+     lambda: None if len(sf["site"].get("corners", [])) == 5 else msg)
+
+# Site width/height auto-recomputed from polygon bounding box
+test("site width from polygon bounding box",
+     lambda: None if sf["site"]["width"] == 200.0 else str(sf["site"]["width"]))
+test("site height from polygon bounding box",
+     lambda: None if sf["site"]["height"] == 350.0 else str(sf["site"]["height"]))
+
+# Grid with rotation
+sf, msg = cli.apply_command(sf, cli.tokenize("grid set 30 45"), STATE)
+test("grid set 30 with rotation 45",
+     lambda: None if sf["grid"]["spacing"] == 30.0 and sf["grid"]["rotation"] == 45.0 else msg)
+
+# Text export
+import tempfile as _tempfile
+_txt_fd, _txt_path = _tempfile.mkstemp(suffix=".txt")
+os.close(_txt_fd)
+sf, msg = cli.apply_command(sf, cli.tokenize("export text {}".format(_txt_path)), STATE)
+test("export text creates file",
+     lambda: None if os.path.exists(_txt_path) and os.path.getsize(_txt_path) > 0 else msg)
+if os.path.exists(_txt_path):
+    os.remove(_txt_path)
+
+# export 3dm without rhino3dm -> ERROR
+sf2 = copy.deepcopy(sf)
+sf2, msg3dm = cli.apply_command(sf2, cli.tokenize("export 3dm"), STATE)
+test("export 3dm without rhino3dm returns ERROR",
+     lambda: None if "ERROR" in msg3dm else msg3dm)
+
+# State migration: write v2.3 JSON, load, check zones/grid/corners added
+_mig_fd, _mig_path = _tempfile.mkstemp(suffix=".json")
+os.close(_mig_fd)
+_mig_state = {
+    "schema": "plan_layout_jig_v2.3",
+    "meta": {"notes": "migration test"},
+    "site": {"width": 180.0, "height": 260.0, "origin": [0.0, 0.0]},
+    "bays": {},
+    "style": {},
+    "snapshots": {}
+}
+with open(_mig_path, "w", encoding="utf-8") as _mf:
+    json.dump(_mig_state, _mf, indent=2)
+_mig_loaded = cli.load_state(_mig_path)
+test("migration adds zones",
+     lambda: None if "zones" in _mig_loaded else "missing zones")
+test("migration adds grid",
+     lambda: None if "grid" in _mig_loaded else "missing grid")
+test("migration adds corners",
+     lambda: None if "corners" in _mig_loaded.get("site", {}) else "missing corners")
+if os.path.exists(_mig_path):
+    os.remove(_mig_path)
+
+# ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 15d: Untested Existing Commands")
+print("=" * 60)
+
+reset_state()
+sd = cli.load_state(STATE)
+
+# --- cell ---
+sd, msg = cli.apply_command(sd, cli.tokenize("cell A list"), STATE)
+test("cell A list has content",
+     lambda: None if len(msg) > 5 else msg)
+
+sd, msg = cli.apply_command(sd, cli.tokenize('cell A 0,0 name "Office"'), STATE)
+bay_a_cells = sd["bays"]["A"].get("cells", {})
+test("cell A 0,0 name Office stored",
+     lambda: None if bay_a_cells.get("0,0", {}).get("name") == "Office" else str(bay_a_cells.get("0,0")))
+
+# --- block ---
+sd, msg = cli.apply_command(sd, cli.tokenize("block list"), STATE)
+test("block list contains door",
+     lambda: None if "door" in msg.lower() else msg)
+
+sd, msg = cli.apply_command(sd, cli.tokenize("block door symbol arc_swing"), STATE)
+test("block door symbol arc_swing stored",
+     lambda: None if sd.get("blocks", {}).get("door", {}).get("symbol") == "arc_swing" else msg)
+
+# --- hatch ---
+sd, msg = cli.apply_command(sd, cli.tokenize("hatch path ./test_hatches/"), STATE)
+test("hatch path stored",
+     lambda: None if sd.get("hatch_library_path") == "./test_hatches/" else msg)
+
+# --- legend ---
+sd, msg = cli.apply_command(sd, cli.tokenize("legend off"), STATE)
+test("legend off",
+     lambda: None if not sd["legend"]["enabled"] else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("legend on"), STATE)
+test("legend on",
+     lambda: None if sd["legend"]["enabled"] else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("legend position top-left"), STATE)
+test("legend position top-left",
+     lambda: None if sd["legend"]["position"] == "top-left" else msg)
+
+# --- tactile3d ---
+sd, msg = cli.apply_command(sd, cli.tokenize("tactile3d on"), STATE)
+test("tactile3d on",
+     lambda: None if sd["tactile3d"]["enabled"] else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("tactile3d wall_height 12"), STATE)
+test("tactile3d wall_height 12",
+     lambda: None if sd["tactile3d"]["wall_height"] == 12.0 else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("tactile3d off"), STATE)
+test("tactile3d off",
+     lambda: None if not sd["tactile3d"]["enabled"] else msg)
+
+# --- bambu ---
+sd, msg = cli.apply_command(sd, cli.tokenize("bambu config ip 192.168.1.100"), STATE)
+test("bambu config ip stored",
+     lambda: None if sd["bambu"]["printer_ip"] == "192.168.1.100" else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("bambu config print_scale 150"), STATE)
+test("bambu config print_scale 150",
+     lambda: None if sd["bambu"]["print_scale"] == 150 else msg)
+
+# --- section ---
+sd, msg = cli.apply_command(sd, cli.tokenize("section x 36"), STATE)
+test("section x 36 stored",
+     lambda: None if sd["section"]["axis"] == "x" and sd["section"]["offset"] == 36.0 else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("section list"), STATE)
+test("section list contains X=36",
+     lambda: None if "X" in msg and "36" in msg else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("section clear"), STATE)
+test("section clear resets axis",
+     lambda: None if sd["section"]["axis"] is None else msg)
+
+# --- tts ---
+sd, msg = cli.apply_command(sd, cli.tokenize("tts on"), STATE)
+test("tts on",
+     lambda: None if sd["tts"]["enabled"] else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("tts rate 5"), STATE)
+test("tts rate 5",
+     lambda: None if sd["tts"]["rate"] == 5 else msg)
+sd, msg = cli.apply_command(sd, cli.tokenize("tts off"), STATE)
+test("tts off",
+     lambda: None if not sd["tts"]["enabled"] else msg)
+
+# --- setup ---
+sd, msg = cli.apply_command(sd, cli.tokenize("setup status"), STATE)
+test("setup status returns OFFLINE",
+     lambda: None if "OFFLINE" in msg else msg)
 
 # ══════════════════════════════════════════════════
 # FINAL RESET AND SUMMARY
@@ -815,9 +990,10 @@ print("=" * 60)
 print("RESULTS")
 print("=" * 60)
 print("")
-print("  Passed: {}".format(passed))
-print("  Failed: {}".format(failed))
-print("  Total:  {}".format(passed + failed))
+print("  Passed:  {}".format(passed))
+print("  Failed:  {}".format(failed))
+print("  Skipped: {}".format(skipped))
+print("  Total:   {}".format(passed + failed + skipped))
 print("")
 if errors:
     print("  Failed tests:")

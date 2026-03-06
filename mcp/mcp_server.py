@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — MCP Server  v3.3
+PLAN LAYOUT JIG — MCP Server  v4.0
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Auditor: spatial validation, ADA checks, rich descriptions
@@ -11,12 +11,14 @@ Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Bay management: create, remove, and clone bays
   - Controller introspection: list commands, read handler source code
   - State comparison: diff snapshots, validate JSON structure
-  - Swell-print: render state.json and convert images to PIAF tactile graphics
+  - Zones, grid, site polygon, and export
 
-v3.3 changes (from v3.2):
-  - 4 swell-print tools: render_tactile, convert_to_tactile,
-    check_tactile_density, list_tactile_presets
-  Total: 53 tools (was 49)
+v4.0 changes (from v3.2):
+  - 5 zone tools: add_zone, add_zone_polygon, remove_zone, list_zones, set_zone_label
+  - 2 grid tools: set_grid, clear_grid
+  - 1 site polygon tool: set_site_polygon
+  - 1 export tool: export_model
+  Total: 58 tools (was 49)
 
 v3.2 changes (from v3.1):
   - 3 script generation tools: generate_script, list_scripts, show_script
@@ -93,18 +95,6 @@ import braille
 import auditor
 import skill_manager
 import rhino_client
-
-# ── Import swell-print tools (optional: requires Pillow, reportlab) ──
-_tools_swell = os.path.join(_root, "tools", "swell-print")
-if os.path.isdir(_tools_swell) and _tools_swell not in sys.path:
-    sys.path.insert(0, _tools_swell)
-
-try:
-    import state_renderer
-    import image_converter
-    _swell_available = True
-except ImportError:
-    _swell_available = False
 
 # ── MCP dependency ─────────────────────────────────────
 try:
@@ -1951,178 +1941,209 @@ def show_script(name: str) -> str:
 
 
 # ══════════════════════════════════════════════════════
-# MODE 4: SWELL-PRINT — PIAF TACTILE GRAPHICS
+# ZONES, GRID, AND EXPORT
 # ══════════════════════════════════════════════════════
 
-_SWELL_MISSING_MSG = (
-    "ERROR: Swell-print dependencies not installed. "
-    "Run: pip install -r tools/swell-print/requirements.txt"
-)
-
 
 @mcp.tool()
-def render_tactile(paper_size: str = "letter",
-                   output_format: str = "pdf") -> str:
-    """Render state.json to a PIAF-ready tactile graphic. No Rhino needed.
+def add_zone(name: str, width: float, depth: float,
+             x: float = 0.0, y: float = 0.0,
+             program_type: str = "") -> str:
+    """Add a rectangular program zone to the site plan.
 
-    Produces a 300 DPI black-and-white image suitable for swell-paper
-    printing. Draws columns, walls, corridors, apertures, room hatches,
-    labels (English + Braille), legend, and section cuts.
+    Zones define functional areas (residential, service, circulation).
+    They are separate from rooms (which are hatch-filled structural regions).
 
     Args:
-        paper_size: "letter" (8.5x11) or "tabloid" (11x17)
-        output_format: "pdf" or "png"
+        name: Zone name (unique identifier)
+        width: Zone width in feet
+        depth: Zone depth in feet
+        x: X position of zone origin
+        y: Y position of zone origin
+        program_type: Optional program label (e.g. "residential", "service")
     """
-    if not _swell_available:
-        return _SWELL_MISSING_MSG
-
     state = _load_state()
-    dpi = 300
-
+    tokens = ["zone", "add", name, str(width), str(depth), str(x), str(y)]
+    if program_type:
+        tokens.append(program_type)
     try:
-        img = state_renderer.render(state, dpi=dpi, paper_size=paper_size)
-    except Exception as e:
-        return f"ERROR: Render failed: {e}"
-
-    # Determine output path
-    base = os.path.splitext(os.path.basename(STATE_PATH))[0]
-    fmt = output_format.lower()
-    if fmt not in ("pdf", "png"):
-        fmt = "pdf"
-    out_name = f"{base}_tactile.{fmt}"
-    out_path = os.path.join(os.path.dirname(STATE_PATH), out_name)
-
-    try:
-        if fmt == "pdf":
-            try:
-                import pdf_generator
-                pdf_generator.generate_pdf(
-                    img, out_path, paper_size=paper_size,
-                    metadata={"source": os.path.basename(STATE_PATH)})
-            except ImportError:
-                # reportlab not available — fall back to PNG
-                out_path = os.path.splitext(out_path)[0] + ".png"
-                img.save(out_path, dpi=(dpi, dpi))
-        else:
-            img.save(out_path, dpi=(dpi, dpi))
-    except Exception as e:
-        return f"ERROR: Could not save output: {e}"
-
-    d = state_renderer.density(img)
-    return (f"OK: Rendered {out_name} "
-            f"({paper_size.title()}, {dpi} DPI, density {d:.1f}%)\n"
-            f"  Path: {out_path}\nREADY:")
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
 
 
 @mcp.tool()
-def convert_to_tactile(image_path: str,
-                       preset: str = "floor_plan",
-                       threshold: int = None,
-                       paper_size: str = "letter") -> str:
-    """Convert any image to a PIAF-ready tactile graphic.
-
-    Takes a photograph, sketch, CAD export, or any image and converts
-    it to high-contrast black-and-white output suitable for swell-paper
-    printing.
+def add_zone_polygon(name: str, corners: str,
+                     program_type: str = "") -> str:
+    """Add a polygon zone defined by corner points.
 
     Args:
-        image_path: Path to the input image (JPG, PNG, TIFF, BMP)
-        preset: Conversion preset (floor_plan, sketch, photograph, etc.)
-        threshold: Optional B&W threshold 0-255 (overrides preset)
-        paper_size: "letter" or "tabloid"
+        name: Zone name (unique identifier)
+        corners: Corner points as space-separated "X1,Y1 X2,Y2 X3,Y3 ..."
+        program_type: Optional program label
     """
-    if not _swell_available:
-        return _SWELL_MISSING_MSG
-
-    if not os.path.isfile(image_path):
-        return f"ERROR: Image not found: {image_path}"
-
-    dpi = 300
-
+    state = _load_state()
+    tokens = ["zone", "add", name, "corners"] + corners.split()
     try:
-        result = image_converter.convert(
-            image_path,
-            output_path=None,
-            preset=preset,
-            threshold=threshold,
-            paper_size=paper_size,
-            dpi=dpi,
-        )
-    except (FileNotFoundError, ValueError) as e:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
         return f"ERROR: {e}"
-    except Exception as e:
-        return f"ERROR: Conversion failed: {e}"
-
-    out_path = result["output_path"]
-    density = result["density"]
-    message = result["message"]
-
-    return (f"OK: Converted {os.path.basename(image_path)} -> "
-            f"{os.path.basename(out_path)} "
-            f"(density {density:.1f}%, {message})\n"
-            f"  Path: {out_path}\nREADY:")
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
 
 
 @mcp.tool()
-def check_tactile_density(image_path: str) -> str:
-    """Check if an image's black pixel density is suitable for PIAF printing.
-
-    PIAF swell paper works best with 25-40% black pixel density.
-    Above 45% causes excessive swelling and loss of detail.
+def remove_zone(name: str) -> str:
+    """Remove a zone from the site plan.
 
     Args:
-        image_path: Path to a B&W image file
+        name: Name of the zone to remove
     """
-    if not _swell_available:
-        return _SWELL_MISSING_MSG
-
-    if not os.path.isfile(image_path):
-        return f"ERROR: Image not found: {image_path}"
-
+    state = _load_state()
+    tokens = ["zone", "remove", name]
     try:
-        from PIL import Image
-        img = Image.open(image_path)
-        if img.mode != '1':
-            img = img.convert('1')
-        ok, density, msg = image_converter.check_density(img)
-        status = "OK" if ok else "WARNING"
-        return f"{status}: {msg}\nREADY:"
-    except Exception as e:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
         return f"ERROR: {e}"
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
 
 
 @mcp.tool()
-def list_tactile_presets() -> str:
-    """List available image conversion presets with their settings.
-
-    Each preset is optimised for a specific type of architectural
-    image (floor plan, sketch, photograph, etc.).
-    """
-    if not _swell_available:
-        return _SWELL_MISSING_MSG
-
+def list_zones() -> str:
+    """List all program zones with dimensions and area."""
+    state = _load_state()
+    tokens = ["zone", "list"]
     try:
-        presets = image_converter.list_presets()
-        lines = [f"OK: {len(presets)} presets available:"]
-        for i, (name, desc) in enumerate(presets, 1):
-            p = image_converter.PRESETS[name]
-            lines.append(f"  {i}. {name} — {desc} "
-                         f"(threshold {p['threshold']}, "
-                         f"max density {p['max_density']}%)")
-        lines.append("READY:")
-        return "\n".join(lines)
-    except Exception as e:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
         return f"ERROR: {e}"
+    return f"OK: {msg}\nREADY:"
+
+
+@mcp.tool()
+def set_zone_label(name: str, label: str,
+                   braille: str = "") -> str:
+    """Set the display label and optional braille text for a zone.
+
+    Args:
+        name: Zone name
+        label: Display label text
+        braille: Optional braille text
+    """
+    state = _load_state()
+    tokens = ["zone", name, "label", label]
+    try:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    if braille:
+        tokens2 = ["zone", name, "braille", braille]
+        try:
+            state, msg2 = cli.apply_command(state, tokens2)
+        except ValueError:
+            pass
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
+
+
+@mcp.tool()
+def set_grid(spacing: float, rotation: float = 0.0,
+             origin_x: float = 0.0, origin_y: float = 0.0) -> str:
+    """Set a global structural grid overlay.
+
+    The grid provides a regular spacing reference across the entire site.
+    Bays can be aligned to this grid.
+
+    Args:
+        spacing: Grid line spacing in feet
+        rotation: Grid rotation in degrees (default 0)
+        origin_x: Grid origin X coordinate
+        origin_y: Grid origin Y coordinate
+    """
+    state = _load_state()
+    tokens = ["grid", "set", str(spacing)]
+    if rotation != 0:
+        tokens.append(str(rotation))
+    try:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    if origin_x != 0 or origin_y != 0:
+        tokens2 = ["grid", "origin", str(origin_x), str(origin_y)]
+        try:
+            state, _ = cli.apply_command(state, tokens2)
+        except ValueError:
+            pass
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
+
+
+@mcp.tool()
+def clear_grid() -> str:
+    """Remove the global structural grid."""
+    state = _load_state()
+    tokens = ["grid", "clear"]
+    try:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
+
+
+@mcp.tool()
+def set_site_polygon(corners: str) -> str:
+    """Set the site boundary as a polygon.
+
+    Replaces the rectangular site with a polygon boundary.
+    Width/height are updated to the bounding box.
+
+    Args:
+        corners: Corner points as "X1,Y1 X2,Y2 X3,Y3 ..."
+    """
+    state = _load_state()
+    tokens = ["set", "site", "corners"] + corners.split()
+    try:
+        state, msg = cli.apply_command(state, tokens)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    cli.save_state(STATE_PATH, state)
+    return f"OK: {msg}\nREADY:"
+
+
+@mcp.tool()
+def export_model(format: str = "3dm",
+                 output_path: str = "") -> str:
+    """Export the model to a file.
+
+    Supports .3dm (Rhino file, requires pip install rhino3dm)
+    and text (full description dump).
+
+    Args:
+        format: Export format -- "3dm" or "text"
+        output_path: Optional output path (auto-generated if empty)
+    """
+    state = _load_state()
+    tokens = ["export", format]
+    if output_path:
+        tokens.append(output_path)
+    try:
+        state, msg = cli.apply_command(state, tokens, STATE_PATH)
+    except ValueError as e:
+        return f"ERROR: {e}"
+    return f"OK: {msg}\nREADY:"
 
 
 # ── Entry point ────────────────────────────────────────
 
 if __name__ == "__main__":
-    _real_print(f"Layout Jig MCP Server v3.3 starting...", file=sys.stderr)
+    _real_print(f"Layout Jig MCP Server v4.0 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
-    _real_print(f"Tools: 53 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 4 v3.3)", file=sys.stderr)
+    _real_print(f"Tools: 58 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 9 v4.0)", file=sys.stderr)
     _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
-    _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
     _real_print(f"Scripts dir: {SCRIPTS_DIR}", file=sys.stderr)
     mcp.run()

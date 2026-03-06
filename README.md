@@ -12,6 +12,27 @@ Based at the UIUC School of Architecture, the project is co-designed with Daniel
 
 ---
 
+## Getting Started
+
+1. Clone the repo:
+
+    git clone https://github.com/johnnysclark/Radical-Accessibility-Toolkit.git
+    cd Radical-Accessibility-Toolkit
+
+2. Run setup (installs all dependencies, creates config files):
+
+    python setup.py
+
+3. Start designing:
+
+    python controller/controller_cli.py
+
+For Claude Code / AI agent use, the MCP servers start automatically
+via .mcp.json (created by setup). No API keys needed — runs through
+the Claude Code subscription. See docs/MCP_GUIDE.md for details.
+
+---
+
 ## The System
 
 One platform with a shared command shell, undo stack, state management, and screen-reader-native output protocol. Tools plug into this shell. Each tool adds commands and capabilities without touching the others. The system is designed to grow — adding a new tool means writing a new module, not rebuilding the platform. All tools share a common pattern: typed or spoken input, text confirmation output, and a JSON state file as the canonical record of the design. Every tool follows one rule: if it can't be heard, felt, or read by a screen reader, it doesn't ship.
@@ -41,9 +62,23 @@ Terminal (controller/controller_cli.py)    Claude Code (mcp/mcp_server.py)
 
 ## Tools
 
+Tools are organized by how you access them:
+
+**Design tools (CLI + MCP).** Layout Jig for building-scale and site-scale design (walls, rooms, corridors, zones, grids, export). Image Describer for converting images to structured text.
+
+**Output tools (CLI + MCP).** TACT for PIAF swell paper tactile graphics. 3D Print for Bambu Lab tactile models.
+
+**AI integration (MCP).** The MCP server bridges Claude Code to all design and output tools. TACT runs a separate MCP server for its 7 tactile conversion functions.
+
+**Accessibility layer.** acclaude wraps Claude Code for JAWS/NVDA screen readers. Screen Reader Hooks announce events via the JAWS TTS API.
+
+---
+
+### Design Tools
+
 ### Layout Jig — Architectural Modeler
 
-The primary design tool. Commands like `set bay A rotation 30`, `wall A on`, `corridor A width 8` express design intent through text. A separate Rhino watcher reads the state file and rebuilds geometry. Supports rectangular and radial grids, walls with doors/windows/portals, corridors, rooms, hatches, braille legends, section cuts, and snapshots.
+The primary design tool. Commands like `set bay A rotation 30`, `wall A on`, `corridor A width 8` express design intent through text. A separate Rhino watcher reads the state file and rebuilds geometry. Supports rectangular and radial grids, walls with doors/windows/portals, corridors, rooms, hatches, braille legends, section cuts, snapshots, zones, structural grids, and export to multiple formats.
 
 ```
 >> set bay A origin 20 10
@@ -75,22 +110,35 @@ Micro: Eight wide-flange steel columns support the roof plane, spaced
 in two rows of four along the long edges...
 ```
 
+---
+
+### Output Tools
+
 ### Tactile Graphics — PIAF Swell Paper Pipeline
 
 Converts designs into physical raised-line graphics readable by touch. The output is laser printed on PIAF microcapsule paper with carbon-based toner, then fed through a PIAF heater. Carbon absorbs heat, microcapsules in the paper swell, and black lines rise off the page as tactile ridges. Daniel reads his own floor plans this way.
 
-Two pipelines produce PIAF output:
+TACT is the single tactile pipeline for all PIAF output. It handles two workflows:
 
-**Automated (swell-print tool, no Rhino needed).** The `swell-print` tool reads state.json directly and renders a complete PIAF-ready plan drawing. It draws columns, walls with aperture gaps, corridors (dashed), door/window/portal symbols, room hatches, English and braille labels, legend, and section cuts. Output is 300 DPI black-and-white, letter or tabloid paper, with density management to keep black pixels in the 25-40% range where PIAF gives the best tactile clarity. The same tool converts any image (photograph, sketch, CAD export, precedent drawing) to PIAF-ready output using ten presets tuned for different image types.
+**Render from state.json (no Rhino needed).** The `tact render` command reads state.json directly and renders a complete PIAF-ready plan drawing. It draws columns, walls with aperture gaps, corridors (dashed), door/window/portal symbols, room hatches, English and braille labels, legend, and section cuts. Output is 300 DPI black-and-white, letter or tabloid paper, with density management to keep black pixels in the 25-40% range where PIAF gives the best tactile clarity.
 
 ```
->> render
+>> tact render
 OK: Rendered state_tactile.pdf (Letter, 300 DPI, density 28.3%)
+```
 
->> convert farnsworth.jpg --preset floor_plan
+**Convert any image to PIAF.** The `tact convert` command converts any image (photograph, sketch, CAD export, precedent drawing, Rhino export) to PIAF-ready output using ten presets tuned for different image types. The image converter applies contrast enhancement (S-curve, CLAHE, or auto-contrast depending on preset), thresholds to pure black and white, scales to fit the paper, and checks density before saving. For complex images, TACT provides OCR text detection (EasyOCR primary, Tesseract fallback), RainbowTact color-to-tactile pattern mapping, Grade 2 Braille via liblouis, auto-scaling for label clearance, and abbreviation key generation.
+
+```
+>> tact convert farnsworth.jpg --preset floor_plan
 OK: Converted farnsworth.jpg -> farnsworth_tactile.png (density 31.2%)
 
->> presets
+>> tact convert campus_photo.jpg --preset photograph --detect-text --braille-grade 2
+OK: Converted campus_photo.jpg -> campus_photo_tactile.pdf (density 29.1%)
+  Text detected: 4 labels. Braille annotations added.
+  Abbreviation key generated: campus_photo_key.pdf
+
+>> tact presets
 OK: 10 presets available:
   1. diagram — Conceptual and bubble diagrams (threshold 135, max density 35%)
   2. floor_plan — Architectural floor plans with walls and dimensions (threshold 140, max density 40%)
@@ -98,19 +146,21 @@ OK: 10 presets available:
   ...
 ```
 
-**Manual (Rhino export).** For drawings that include geometry beyond the state.json model — annotations, custom line work, overlaid analysis — export a high-contrast image from Rhino and run it through the `convert` command with the appropriate preset. The image converter applies contrast enhancement (S-curve, CLAHE, or auto-contrast depending on preset), thresholds to pure black and white, scales to fit the paper, and checks density before saving.
+All output laser prints on PIAF microcapsule paper and heats to a raised tactile graphic. Braille labels conform to BANA standards (Braille Authority of North America): 30pt font producing approximately 10mm line spacing, paper-absolute regardless of model scale. English text renders at 12pt. These sizes are fixed on the paper — the same braille is readable whether the site is 100 feet or 1000 feet wide. Density above 40% triggers a warning; above 45% the tool rejects the output because excessive swelling destroys tactile detail.
 
-Both pipelines produce output that laser prints on PIAF microcapsule paper and heats to a raised tactile graphic. Braille labels conform to BANA standards (Braille Authority of North America): 30pt font producing approximately 10mm line spacing, paper-absolute regardless of model scale. English text renders at 12pt. These sizes are fixed on the paper — the same braille is readable whether the site is 100 feet or 1000 feet wide. Density above 40% triggers a warning; above 45% the tool rejects the output because excessive swelling destroys tactile detail.
+Install TACT with `pip install -e tools/tact`. TACT has its own MCP server with 7 functions for AI-driven tactile conversion.
 
-The CLI `print` command generates PIAF output directly — type `print` at the `>>` prompt and it renders `state_tactile.pdf` in the controller directory. No need to switch to the swell-print tool separately.
+The CLI `print` command in the controller generates PIAF output directly — type `print` at the `>>` prompt and it calls TACT to render `state_tactile.pdf` in the controller directory.
 
 ### 3D Print — Tactile Scale Models
 
 Generates watertight triangle meshes from the parametric model (pure Python, no Rhino dependency), validates solidity, and exports binary STL scaled for a Bambu Lab P1S printer. Daniel holds the printed model during design review — walls, corridors, openings physically present at 1:200 scale. With `tactile3d auto_export on`, the STL regenerates automatically after every model change — the physical model stays in sync with the design without manual export commands.
 
-### AI Integration — MCP Server v3.3
+### AI Integration
 
-An [MCP server](docs/MCP_GUIDE.md) (53 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, reads or writes individual state fields directly, generates editable IronPython scripts for learning, and renders tactile graphics.
+### MCP Server v3.3
+
+An [MCP server](docs/MCP_GUIDE.md) (58 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, reads or writes individual state fields directly, generates editable IronPython scripts for learning, and renders tactile graphics.
 
 The system supports three interaction modes:
 1. **Mode 1: Claude Code + MCP** — natural language, AI translates to commands
@@ -124,7 +174,7 @@ User (natural language)
         |
         | "make the corridor wider"
         v
-    Claude Code + MCP Server (53 functions)
+    Claude Code + MCP Server (58 functions)
         |
         | validated: CLI command dispatch
         | direct: JSON field read/write
@@ -133,9 +183,10 @@ User (natural language)
     state.json mutation + confirmation readback
 ```
 
-The MCP server has eight functional layers:
+The MCP server has nine functional layers:
 
 - **Core pipeline** (21) — semantic wrappers around CLI commands
+- **Zone, grid, and export** (9) — site-scale zone management, structural grid layout, and multi-format export
 - **Auditor** (5) — spatial validation, ADA checks, bay descriptions, circulation analysis, distance measurement
 - **Skill manager** (4) — save, list, show, and replay skills
 - **Rhino client** (4) — TCP queries to the Rhino watcher + auto-launch (offline-safe)
@@ -143,9 +194,21 @@ The MCP server has eight functional layers:
 - **State introspection** (7) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
 - **State comparison** (3) — diff against snapshots, validate JSON structure
 - **Script generation** (3) — create, list, and view editable IronPython 2.7 scripts for learning
-- **Swell-print** (4) — render state.json and convert images to PIAF tactile graphics
+- **TACT tactile** (7, separate server) — state_to_piaf, image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality
 
 See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full tool reference. See [DESIGN_SESSION.md](DESIGN_SESSION.md) for a complete design session walkthrough.
+
+---
+
+### Accessibility Layer
+
+### Screen Reader Integration
+
+Two tools ensure the system works with JAWS and NVDA screen readers on Windows.
+
+**acclaude (tools/accessible-client/).** A JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI entirely. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations. All markdown, ANSI codes, and emoji are stripped before output. Requires Node.js 18+.
+
+**Screen Reader Hooks (tools/screen-reader-hooks/).** Claude Code lifecycle hooks that announce events through JAWS or NVDA. An ImageDetector hook offers tactile conversion when architectural images are detected. A ConversionTracker records conversion settings for learning. A FeedbackCapture hook captures student ratings. All hooks communicate via a WSL2-to-PowerShell bridge that calls the JAWS TTS API (JFWSayString).
 
 ---
 
@@ -529,14 +592,16 @@ The system's separation of input, logic, and output means different disabilities
 
 ## Requirements
 
-- **Python 3.8+** (stdlib only for controllers — no pip installs)
+- **Python 3.10+** (stdlib only for controllers — no pip installs)
 - **Rhino 8** (for layout-jig watcher; controllers run independently)
 - **Windows** (Rhino requirement; controllers work cross-platform)
-- **Claude Code + MCP** (`pip install mcp` — the only pip dependency, for the MCP server only)
-- **Anthropic API key** (for image-describer and AI assistant layer)
+- **Claude Code + MCP** (`python setup.py` installs everything — MCP servers run through the Claude Code subscription, no API keys needed)
 - **PIAF machine + laser printer with carbon-based toner** (for tactile paper output)
 - **Bambu Lab P1S 3D printer** (for tactile model output)
 - **META Ray-Ban glasses** (optional — for spoken/vision features)
+- **Node.js 18+** (optional — for acclaude accessible client)
+- **Tesseract** (optional — fallback OCR for TACT; EasyOCR is installed by default)
+- **liblouis** (optional — for Grade 2 Braille in TACT)
 
 ## Repository Structure
 
@@ -556,7 +621,7 @@ radical-accessibility/
     scripts/ ................ Generated IronPython scripts (Mode 3)
     state.json .............. Canonical Model Artifact (created on first run)
   mcp/ ...................... AI integration layer
-    mcp_server.py ........... MCP server v3.3 (53 functions)
+    mcp_server.py ........... MCP server v3.3 (49 functions)
     requirements.txt ........ Python dependencies (mcp only)
   tools/
     rhino/ .................. Rhino integration
@@ -564,12 +629,12 @@ radical-accessibility/
       tactile_print.py ...... STL mesh generation + Bambu printing
       rhino_client.py ....... TCP client for querying Rhino
     image-describer/ ........ Image description (Claude vision API)
-    swell-print/ ............ PIAF tactile graphics pipeline
-      swell_print.py ........ CLI entry point (REPL + single-shot)
-      state_renderer.py ..... Render state.json to B&W image (no Rhino)
-      image_converter.py .... Convert any image to PIAF-ready B&W
-      pdf_generator.py ...... Wrap B&W images in PIAF-ready PDF
-      requirements.txt ...... Python dependencies (Pillow, reportlab)
+    tact/ ................... Tactile graphics pipeline (render, convert, EasyOCR, Braille, MCP)
+      mcp_entry.py .......... MCP server entry point (7 functions)
+      src/tactile_core/ ..... Core library: processor, converter, presets
+    accessible-client/ ...... JAWS/NVDA-compatible Claude Code wrapper
+      acclaude.ts ........... Main entry point (headless multi-turn)
+    screen-reader-hooks/ .... Claude Code lifecycle hooks (image detect, feedback)
   tests/
     run_tests.py ............ End-to-end test suite (149 tests)
   docs/
@@ -578,6 +643,8 @@ radical-accessibility/
     TEST_MANUAL.md .......... Test walkthrough
     archive/ ................ Older reference docs
 ```
+
+---
 
 ## License
 

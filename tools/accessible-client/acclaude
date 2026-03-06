@@ -1,0 +1,13 @@
+#!/bin/bash
+# acclaude — Launch the accessible Claude client from WSL2
+# Usage: ./bin/acclaude
+#        or symlink to ~/bin/acclaude and run from anywhere
+
+# Load NVM if not already available (needed for non-login shells)
+if ! command -v claude &>/dev/null; then
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+fi
+
+cd /mnt/c/Users/ethan/fabric-accessible-graphics || exit 1
+exec npx tsx src/accessible-client/acclaude.ts "$@"

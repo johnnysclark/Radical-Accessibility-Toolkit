@@ -3,21 +3,28 @@
 """
 Radical Accessibility Toolkit — Setup Script
 =============================================
-One-command setup for the MCP server, swell-print dependencies,
-and project configuration.  Screen-reader-friendly output.
+One-command setup: installs all dependencies, creates config files,
+initializes state.json. Screen-reader-friendly output.
 
-Run from the CONTROLLER directory:
+Run from the repo root:
     python setup.py
 
-Checks:
-  1. Python version (3.8+ required)
-  2. Installs MCP package (pip install mcp)
-  3. Installs swell-print dependencies (Pillow, reportlab)
-  4. Creates or fixes .mcp.json for Claude Code
-  5. Validates controller/state.json
-  6. Tests that the MCP server can import successfully
+Optional:
+    python setup.py --minimal    Skip TACT install (CI or lightweight setups)
+
+Steps:
+  1. Check Python version (3.10+ required for TACT)
+  2. Install MCP package (pip install mcp)
+  3. Install TACT with extras (pip install -e tools/tact[ocr,mcp])
+  4. Create controller/state.json if missing
+  5. Write .mcp.json for Claude Code
+  6. Validate state.json
+  7. Test MCP server import
+  8. Check acclaude dependencies (optional, Node.js)
+  9. Print summary
 
 All output uses OK: / ERROR: / WARNING: prefixes for screen readers.
+No API keys needed — MCP servers run through the Claude Code subscription.
 """
 
 import json
@@ -37,26 +44,34 @@ def _warn(msg):
 
 
 def check_python():
-    """Check Python version >= 3.8."""
+    """Check Python version >= 3.10."""
     v = sys.version_info
     ver = "{}.{}.{}".format(v.major, v.minor, v.micro)
-    if v >= (3, 8):
-        _ok("Python {} (3.8+ required).".format(ver))
+    if v >= (3, 10):
+        _ok("Python {} (3.10+ required).".format(ver))
         return True
     else:
-        _err("Python {} found but 3.8+ required.".format(ver))
+        _err("Python {} found but 3.10+ required.".format(ver))
         return False
 
 
-def install_package(name, pip_arg=None):
-    """Install a pip package.  Returns True on success."""
-    arg = pip_arg or name
+def _pip_install(arg):
+    """Try pip install; retry with --break-system-packages on PEP 668 failure."""
+    cmd = [sys.executable, "-m", "pip", "install", "-q", arg]
     try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", arg],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        stderr_text = e.stderr.decode() if e.stderr else ""
+        if "externally-managed-environment" in stderr_text:
+            _warn("PEP 668 detected. Retrying with --break-system-packages.")
+            try:
+                subprocess.check_call(
+                    cmd + ["--break-system-packages"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except subprocess.CalledProcessError:
+                return False
         return False
 
 
@@ -70,11 +85,10 @@ def check_mcp():
     except ImportError:
         pass
     _warn("mcp package not found. Installing...")
-    if install_package("mcp"):
+    if _pip_install("mcp"):
         try:
             import importlib
             importlib.invalidate_caches()
-            # Re-check
             subprocess.check_output(
                 [sys.executable, "-c", "import mcp; print(mcp.__version__)"],
                 stderr=subprocess.DEVNULL).decode().strip()
@@ -86,57 +100,107 @@ def check_mcp():
     return False
 
 
-def check_swell_print(project_root):
-    """Install swell-print dependencies (optional)."""
-    req_file = os.path.join(project_root, "tools", "swell-print", "requirements.txt")
-    errors = 0
-    if not os.path.isfile(req_file):
-        _warn("tools/swell-print/requirements.txt not found. Skipping.")
+def install_tact(project_root):
+    """Install TACT with ocr and mcp extras."""
+    tact_dir = os.path.join(project_root, "tools", "tact")
+    if not os.path.isdir(tact_dir):
+        _err("tools/tact/ not found. Cannot install TACT.")
+        return False
+
+    # Check if already installed
+    try:
+        subprocess.check_output(
+            [sys.executable, "-c", "import tactile_core"],
+            stderr=subprocess.DEVNULL, timeout=10)
+        _ok("TACT (tactile-core) already installed.")
         return True
-    # Check Pillow
+    except Exception:
+        pass
+
+    _warn("TACT not installed. Installing with OCR and MCP extras...")
+    tact_spec = os.path.join(project_root, "tools", "tact") + "[ocr,mcp]"
+    install_arg = "-e " + tact_spec
+
+    # pip install -e requires the -e and path as separate args
+    cmd = [sys.executable, "-m", "pip", "install", "-q", "-e", tact_spec]
     try:
-        from PIL import Image  # noqa: F401
-        import PIL
-        _ok("Pillow installed (v{}).".format(PIL.__version__))
-    except ImportError:
-        _warn("Pillow not found. Installing...")
-        if install_package("Pillow"):
-            _ok("Pillow installed.")
-        else:
-            _err("Failed to install Pillow. Run: pip install Pillow")
-            errors += 1
-    # Check reportlab
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        _ok("TACT installed with OCR and MCP extras.")
+        return True
+    except subprocess.CalledProcessError as e:
+        stderr_text = e.stderr.decode() if e.stderr else ""
+        if "externally-managed-environment" in stderr_text:
+            _warn("PEP 668 detected. Retrying with --break-system-packages.")
+            try:
+                subprocess.check_call(
+                    cmd + ["--break-system-packages"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                _ok("TACT installed with OCR and MCP extras.")
+                return True
+            except subprocess.CalledProcessError:
+                pass
+        _err("Failed to install TACT. Run manually: pip install -e tools/tact[ocr,mcp]")
+        return False
+
+
+def create_state_json(project_root):
+    """Create controller/state.json if missing, using controller_cli defaults."""
+    state_path = os.path.join(project_root, "controller", "state.json")
+    if os.path.isfile(state_path):
+        return True  # Already exists, will be validated later
+
+    _warn("controller/state.json not found. Creating default state...")
     try:
-        import reportlab  # noqa: F401
-        _ok("reportlab installed (v{}).".format(reportlab.Version))
-    except ImportError:
-        _warn("reportlab not found. Installing...")
-        if install_package("reportlab"):
-            _ok("reportlab installed.")
-        else:
-            _err("Failed to install reportlab. Run: pip install reportlab")
-            errors += 1
-    return errors == 0
+        # Import controller_cli to get default state
+        cli_path = os.path.join(project_root, "controller")
+        if cli_path not in sys.path:
+            sys.path.insert(0, cli_path)
+        import controller_cli as cli
+        state = cli.load_state(state_path)  # Returns default_state() when file missing
+        cli.save_state(state_path, state)
+        _ok("controller/state.json created with default state.")
+        return True
+    except Exception as e:
+        _err("Could not create state.json: {}".format(e))
+        _warn("Start the CLI once to create it: python controller/controller_cli.py")
+        return False
+
+
+def check_acclaude(project_root):
+    """Check if acclaude dependencies are available (optional)."""
+    acclaude_dir = os.path.join(project_root, "tools", "accessible-client")
+    if not os.path.isdir(acclaude_dir):
+        _warn("tools/accessible-client/ not found. Skipping acclaude check.")
+        return False
+    try:
+        result = subprocess.check_output(
+            ["node", "--version"],
+            stderr=subprocess.DEVNULL, timeout=5).decode().strip()
+        _ok("Node.js {} found (acclaude ready).".format(result))
+        return True
+    except Exception:
+        _warn("Node.js not found. acclaude requires Node.js 18+.")
+        _warn("acclaude is optional. It provides a screen-reader-friendly Claude Code wrapper.")
+        return False
 
 
 def setup_mcp_json(project_root):
-    """Create or fix .mcp.json for Claude Code."""
-    # Claude Code looks for .mcp.json at the project root or parent
-    # The repo root is one level up from CONTROLLER/
-    repo_root = os.path.dirname(project_root)
-    mcp_path = os.path.join(repo_root, ".mcp.json")
+    """Create or fix .mcp.json for Claude Code. Always includes tactile server."""
+    mcp_path = os.path.join(project_root, ".mcp.json")
 
-    # Correct config — paths relative to the repo root
-    folder_name = os.path.basename(project_root)
     correct_config = {
         "mcpServers": {
             "layout-jig": {
                 "command": "python",
                 "args": [
-                    "{}/mcp/mcp_server.py".format(folder_name),
+                    "mcp/mcp_server.py",
                     "--state",
-                    "{}/controller/state.json".format(folder_name)
+                    "controller/state.json"
                 ]
+            },
+            "tactile": {
+                "command": "python",
+                "args": ["tools/tact/mcp_entry.py"]
             }
         }
     }
@@ -169,14 +233,13 @@ def check_state_json(project_root):
     state_path = os.path.join(project_root, "controller", "state.json")
     if not os.path.isfile(state_path):
         _err("controller/state.json not found at {}".format(state_path))
-        _warn("Start the CLI once to create it: python controller/controller_cli.py")
         return False
     try:
         with open(state_path, "r") as f:
             state = json.load(f)
         schema = state.get("schema", "unknown")
         bay_count = len(state.get("bays", {}))
-        _ok("controller/state.json found (schema {}, {} bays).".format(schema, bay_count))
+        _ok("controller/state.json valid (schema {}, {} bays).".format(schema, bay_count))
         return True
     except json.JSONDecodeError as e:
         _err("controller/state.json is not valid JSON: {}".format(e))
@@ -192,12 +255,10 @@ def test_mcp_server(project_root):
     if not os.path.isfile(mcp_server_path):
         _err("mcp/mcp_server.py not found at {}".format(mcp_server_path))
         return False
-    # Check that controller_cli.py exists (required by the server)
     cli_path = os.path.join(project_root, "controller", "controller_cli.py")
     if not os.path.isfile(cli_path):
         _err("controller/controller_cli.py not found (required by MCP server).")
         return False
-    # Check that mcp package is importable (already verified above, but confirm)
     try:
         subprocess.check_output(
             [sys.executable, "-c", "import mcp"],
@@ -205,7 +266,6 @@ def test_mcp_server(project_root):
     except Exception:
         _err("mcp package not importable. MCP server will not start.")
         return False
-    # Count tools by scanning the file for @mcp.tool() decorators
     try:
         with open(mcp_server_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -218,35 +278,62 @@ def test_mcp_server(project_root):
 
 
 def main():
-    """Run all setup checks."""
+    """Run all setup steps."""
     project_root = os.path.dirname(os.path.abspath(__file__))
+
+    minimal = "--minimal" in sys.argv
+
     print("Radical Accessibility Toolkit — Setup")
     print("Project: {}".format(project_root))
+    if minimal:
+        print("Mode: minimal (skipping TACT install)")
     print("")
 
     errors = 0
 
+    # 1. Python version
     if not check_python():
         errors += 1
 
+    # 2. Install mcp
     if not check_mcp():
         errors += 1
 
-    if not check_swell_print(project_root):
+    # 3. Install TACT (unless --minimal)
+    if not minimal:
+        if not install_tact(project_root):
+            errors += 1
+    else:
+        _warn("Skipping TACT install (--minimal mode).")
+
+    # 4. Create state.json if missing
+    if not create_state_json(project_root):
         errors += 1
 
+    # 5. Write .mcp.json
     if not setup_mcp_json(project_root):
         errors += 1
 
+    # 6. Validate state.json
     if not check_state_json(project_root):
         errors += 1
 
+    # 7. Test MCP server
     if not test_mcp_server(project_root):
         errors += 1
 
+    # 8. Check acclaude (optional, never an error)
+    check_acclaude(project_root)
+
+    # 9. Summary
     print("")
     if errors == 0:
         print("READY: Setup complete. 0 errors.")
+        print("")
+        print("Next steps:")
+        print("  1. Start designing: python controller/controller_cli.py")
+        print("  2. MCP servers start automatically via .mcp.json in Claude Code.")
+        print("  3. No API keys needed — runs through the Claude Code subscription.")
     else:
         print("DONE: Setup complete with {} error(s). Fix the issues above.".format(errors))
 

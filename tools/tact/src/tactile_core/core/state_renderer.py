@@ -26,7 +26,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 # Import braille from controller (stdlib)
 _here = os.path.dirname(os.path.abspath(__file__))
-_controller = os.path.join(os.path.dirname(os.path.dirname(_here)), "controller")
+# Navigate: core/ -> tactile_core/ -> src/ -> tact/ -> tools/ -> repo_root -> controller/
+_controller = os.path.join(_here, "..", "..", "..", "..", "..", "controller")
+_controller = os.path.normpath(_controller)
 if _controller not in sys.path:
     sys.path.insert(0, _controller)
 import braille as _braille

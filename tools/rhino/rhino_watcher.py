@@ -11,6 +11,8 @@ one-way: controller writes, watcher reads.
 
 2D Layers:
     JIG_SITE         Site boundary rectangle
+    JIG_ZONES        Zone boundary polygons
+    JIG_GRID         Global structural grid lines
     JIG_BACKGROUND   White masks for z-order overlaps
     JIG_HATCHES      Room fill patterns for PIAF tactile output
     JIG_BAYS         Structural gridlines
@@ -61,13 +63,15 @@ if 'STATE_FILE' not in dir() or not globals().get('STATE_FILE'):
 POLL_SEC = 0.5
 
 LAYERS = [
-    "JIG_SITE", "JIG_BACKGROUND", "JIG_HATCHES", "JIG_BAYS",
-    "JIG_COLUMNS", "JIG_PLAN", "JIG_BLOCKS", "JIG_CORRIDOR",
+    "JIG_SITE", "JIG_ZONES", "JIG_GRID", "JIG_BACKGROUND", "JIG_HATCHES",
+    "JIG_BAYS", "JIG_COLUMNS", "JIG_PLAN", "JIG_BLOCKS", "JIG_CORRIDOR",
     "JIG_VOIDS", "JIG_ROOMS", "JIG_LABELS", "JIG_LEGEND", "JIG_TACTILE3D",
 ]
 
 LAYER_COLORS = {
     "JIG_SITE":       (80, 80, 80),
+    "JIG_ZONES":      (60, 120, 60),
+    "JIG_GRID":       (180, 180, 180),
     "JIG_BACKGROUND": (255,255,255),
     "JIG_HATCHES":    (200,200,200),
     "JIG_BAYS":       (0, 0, 0),
@@ -279,6 +283,61 @@ def _draw_site(state):
     site = state["site"]
     ox, oy = site["origin"]
     _add_rect(ox, oy, ox + site["width"], oy + site["height"])
+
+# ══════════════════════════════════════════════════════════
+# DRAW: GLOBAL STRUCTURAL GRID
+# ══════════════════════════════════════════════════════════
+
+def _draw_global_grid(state):
+    """Draw global structural grid lines."""
+    _set_layer("JIG_GRID")
+    grid = state.get("grid")
+    if not grid:
+        return
+    spacing = grid.get("spacing", 0)
+    if spacing <= 0:
+        return
+    site = state.get("site", {})
+    ox, oy = site.get("origin", [0, 0])
+    w = site.get("width", 180)
+    h = site.get("height", 260)
+
+    x = ox
+    while x <= ox + w:
+        _add_line((x, oy, 0), (x, oy + h, 0))
+        x += spacing
+    y = oy
+    while y <= oy + h:
+        _add_line((ox, y, 0), (ox + w, y, 0))
+        y += spacing
+
+# ══════════════════════════════════════════════════════════
+# DRAW: ZONE BOUNDARIES
+# ══════════════════════════════════════════════════════════
+
+def _draw_zones(state):
+    """Draw zone boundary polygons."""
+    _set_layer("JIG_ZONES")
+    zones = state.get("zones", {})
+    for zname in sorted(zones.keys()):
+        zdata = zones[zname]
+        corners = zdata.get("corners", [])
+        if len(corners) < 3:
+            continue
+        pts = []
+        for c in corners:
+            pts.append(rs.CreatePoint(c[0], c[1], 0))
+        pts.append(rs.CreatePoint(corners[0][0], corners[0][1], 0))  # close
+        obj = rs.AddPolyline(pts)
+        if obj:
+            rs.SetUserText(obj, "JIG_OWNER", "PLJ")
+            rs.SetUserText(obj, "JIG_ID", "zone_{0}".format(zname))
+        # Label at centroid
+        label = zdata.get("label", zname)
+        if label:
+            cx = sum(c[0] for c in corners) / len(corners)
+            cy = sum(c[1] for c in corners) / len(corners)
+            dot = rs.AddTextDot(label, rs.CreatePoint(cx, cy, 0))
 
 # ══════════════════════════════════════════════════════════
 # DRAW: Z-ORDER BACKGROUND MASKS
@@ -1180,6 +1239,8 @@ def redraw(state):
         _clear_all()
         steps = [
             ("site", _draw_site),
+            ("grid", _draw_global_grid),
+            ("zones", _draw_zones),
             ("backgrounds", _draw_background_masks),
             ("hatches", _draw_room_hatches),
             ("bays", _draw_bays),

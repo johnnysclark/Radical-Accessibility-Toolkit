@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Terminal Controller  v2.3
+PLAN LAYOUT JIG — Terminal Controller  v3.0
 ============================================
 Python CLI that writes a JSON state file. A separate Rhino watcher
 script reads that file and rebuilds geometry on every save.
@@ -28,7 +28,7 @@ Usage
 import argparse, copy, json, math, os, subprocess, sys, time
 from datetime import datetime
 
-SCHEMA = "plan_layout_jig_v2.3"
+SCHEMA = "plan_layout_jig_v3.0"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
@@ -424,8 +424,11 @@ def default_state():
     return {
         "schema": SCHEMA,
         "meta": {"created": _now(), "last_saved": _now(),
-                 "notes": "Plan Layout Jig v2.3"},
-        "site": {"origin": [0.0, 0.0], "width": 180.0, "height": 260.0},
+                 "notes": "Plan Layout Jig v3.0"},
+        "site": {"origin": [0.0, 0.0], "width": 180.0, "height": 260.0,
+                 "corners": [[0.0, 0.0], [180.0, 0.0], [180.0, 260.0], [0.0, 260.0]]},
+        "zones": {},
+        "grid": None,
         "style": {
             "column_size": 1.5,
             "heavy_lineweight_mm": 1.40, "light_lineweight_mm": 0.08,
@@ -451,7 +454,17 @@ def default_state():
 
 def load_state(path):
     if not os.path.exists(path): return default_state()
-    with open(path, "r", encoding="utf-8") as f: return json.load(f)
+    with open(path, "r", encoding="utf-8") as f: state = json.load(f)
+    # Schema migration for v3.0
+    state.setdefault("zones", {})
+    state.setdefault("grid", None)
+    site = state.get("site", {})
+    if "corners" not in site:
+        ox, oy = site.get("origin", [0.0, 0.0])
+        w = site.get("width", 180.0)
+        h = site.get("height", 260.0)
+        site["corners"] = [[ox, oy], [ox + w, oy], [ox + w, oy + h], [ox, oy + h]]
+    return state
 
 def save_state(path, state):
     state["meta"]["last_saved"] = _now()
@@ -521,6 +534,31 @@ def _bay_area(bay):
     cx, cy = _get_spacing_arrays(bay)
     return cx[-1] * cy[-1]
 
+def _zone_area(corners):
+    """Shoelace formula for polygon area."""
+    n = len(corners)
+    if n < 3:
+        return 0.0
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += corners[i][0] * corners[j][1]
+        area -= corners[j][0] * corners[i][1]
+    return abs(area) / 2.0
+
+def _zone_bounds(corners):
+    """Return (min_x, min_y, max_x, max_y) bounding box."""
+    xs = [c[0] for c in corners]
+    ys = [c[1] for c in corners]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+def _zone_centroid(corners):
+    """Return (cx, cy) centroid of polygon."""
+    n = len(corners)
+    cx = sum(c[0] for c in corners) / n
+    cy = sum(c[1] for c in corners) / n
+    return (cx, cy)
+
 # ══════════════════════════════════════════════════════════
 # DESCRIBE / LIST
 # ══════════════════════════════════════════════════════════
@@ -561,7 +599,41 @@ def describe(state):
     lines.append(f"SITE: {s['width']:.0f} x {s['height']:.0f} ft  "
                  f"({site_area:,.0f} sq ft)")
     lines.append(f"  Origin: {_fmt(s['origin'])}")
+    corners = s.get("corners")
+    if corners and len(corners) != 4:
+        lines.append(f"  Polygon: {len(corners)} corners")
     lines.append("")
+
+    # ── Grid ──
+    grid = state.get("grid")
+    if grid:
+        rot_str = f"  Rotation: {grid.get('rotation', 0):.0f} deg" if grid.get("rotation", 0) != 0 else ""
+        origin = grid.get("origin", [0, 0])
+        orig_str = f"  Origin: ({origin[0]:.1f}, {origin[1]:.1f})" if origin != [0, 0] and origin != [0.0, 0.0] else ""
+        lines.append(f"GRID: {grid['spacing']:.1f} ft spacing")
+        if rot_str:
+            lines.append(rot_str)
+        if orig_str:
+            lines.append(orig_str)
+        lines.append("")
+
+    # ── Zones ──
+    zones = state.get("zones", {})
+    if zones:
+        lines.append(f"ZONES: {len(zones)} zone(s)")
+        for zname, zdata in sorted(zones.items()):
+            zcorners = zdata.get("corners", [])
+            zarea = _zone_area(zcorners)
+            zbounds = _zone_bounds(zcorners)
+            zw = zbounds[2] - zbounds[0]
+            zh = zbounds[3] - zbounds[1]
+            ptype = zdata.get("program_type", "")
+            ptype_str = f" [{ptype}]" if ptype else ""
+            label = zdata.get("label", zname)
+            lines.append(f"  {zname}: {zw:.0f} x {zh:.0f} ft, area {zarea:.0f} sq ft{ptype_str}")
+            if label != zname:
+                lines.append(f"    Label: {label}")
+        lines.append("")
 
     # ── Style ──
     lines.append("STYLE VARIABLES:")
@@ -1446,12 +1518,38 @@ def cmd_bambu(state, tokens):
 # ══════════════════════════════════════════════════════════
 
 def _cmd_set_site(state, tokens):
-    if len(tokens) != 4: raise ValueError("set site width|height <value>")
+    if len(tokens) < 4: raise ValueError("set site width|height|corners <value>")
     f = tokens[2].lower()
-    if f not in ("width","height"): raise ValueError("width or height.")
+    site = state["site"]
+
+    if f == "corners":
+        corner_strs = tokens[3:]
+        if len(corner_strs) < 3:
+            raise ValueError("Need at least 3 corner pairs (X,Y).")
+        corners = []
+        for cs in corner_strs:
+            parts = cs.split(",")
+            if len(parts) != 2:
+                raise ValueError(f"Invalid corner '{cs}'. Use X,Y format.")
+            corners.append([float(parts[0]), float(parts[1])])
+        site["corners"] = corners
+        # Update width/height as bounding box
+        xs = [c[0] for c in corners]
+        ys = [c[1] for c in corners]
+        site["width"] = max(xs) - min(xs)
+        site["height"] = max(ys) - min(ys)
+        site["origin"] = [min(xs), min(ys)]
+        return state, f"Site corners set ({len(corners)} corners, {site['width']:.0f} x {site['height']:.0f} ft)."
+
+    if f not in ("width","height"): raise ValueError("width, height, or corners.")
+    if len(tokens) != 4: raise ValueError("set site width|height <value>")
     v = _float(tokens[3],f)
     if v <= 0: raise ValueError("Must be > 0.")
-    old = state["site"][f]; state["site"][f] = v
+    old = site[f]; site[f] = v
+    # Sync corners with width/height
+    ox, oy = site.get("origin", [0.0, 0.0])
+    w, h = site.get("width", 180), site.get("height", 260)
+    site["corners"] = [[ox, oy], [ox + w, oy], [ox + w, oy + h], [ox, oy + h]]
     return state, f"Site {f} = {v} ft. Was {old} ft."
 
 def _cmd_set_column(state, tokens):
@@ -1763,16 +1861,47 @@ def cmd_tts(state, tokens):
 # SETUP (Rhino auto-launch)
 # ══════════════════════════════════════════════════════════
 
-# Default Rhino install locations (Windows)
-_RHINO_SEARCH_PATHS = [
+# Default Rhino install locations (Windows paths)
+_RHINO_WIN_PATHS = [
     r"C:\Program Files\Rhino 8\System\Rhino.exe",
     r"C:\Program Files\Rhino 7\System\Rhino.exe",
     r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
 ]
 
+def _is_wsl():
+    """Detect if running inside WSL."""
+    try:
+        with open("/proc/version", "r") as f:
+            return "microsoft" in f.read().lower()
+    except (IOError, OSError):
+        return False
+
+def _win_to_wsl(win_path):
+    """Convert a Windows path to WSL /mnt/ path."""
+    # C:\foo\bar -> /mnt/c/foo/bar
+    p = win_path.replace("\\", "/")
+    if len(p) >= 2 and p[1] == ":":
+        return "/mnt/{}/{}".format(p[0].lower(), p[2:].lstrip("/"))
+    return p
+
+def _wsl_to_win(wsl_path):
+    """Convert a WSL /mnt/ path to Windows path."""
+    # /mnt/c/foo/bar -> C:\foo\bar
+    if wsl_path.startswith("/mnt/") and len(wsl_path) > 6 and wsl_path[5] == "/":
+        drive = wsl_path[5].upper() if len(wsl_path) > 5 else wsl_path[4].upper()
+        return "{}:{}".format(drive, wsl_path[6:].replace("/", "\\"))
+    return wsl_path
+
 def _find_rhino():
-    """Return the Rhino executable path if found, else None."""
-    for p in _RHINO_SEARCH_PATHS:
+    """Return the Rhino executable path if found, else None.
+    In WSL, checks /mnt/c/ equivalents of Windows paths."""
+    if _is_wsl():
+        for wp in _RHINO_WIN_PATHS:
+            wsl_p = _win_to_wsl(wp)
+            if os.path.isfile(wsl_p):
+                return wp  # return Windows path for launching
+        return None
+    for p in _RHINO_WIN_PATHS:
         if os.path.isfile(p):
             return p
     return None
@@ -1821,7 +1950,7 @@ def cmd_setup(state, tokens, state_file):
         raise ValueError(
             "Unknown setup target: '{}'. Options: rhino, status".format(sub))
 
-    # Determine Rhino path
+    # Determine Rhino path (always a Windows-style path for launching)
     rhino_path = None
     for i, t in enumerate(tokens):
         if t == "--path" and i + 1 < len(tokens):
@@ -1829,30 +1958,50 @@ def cmd_setup(state, tokens, state_file):
             break
     if rhino_path is None:
         rhino_path = _find_rhino()
-    if rhino_path is None or not os.path.isfile(rhino_path):
+
+    # Validate: in WSL, check the /mnt/ equivalent; on Windows, check directly
+    in_wsl = _is_wsl()
+    if rhino_path is not None:
+        check_path = _win_to_wsl(rhino_path) if in_wsl else rhino_path
+        if not os.path.isfile(check_path):
+            rhino_path = None
+
+    if rhino_path is None:
         return state, (
             "ERROR: Rhino not found. Use: setup rhino --path "
             "\"C:\\Program Files\\Rhino 8\\System\\Rhino.exe\"")
 
-    # Build watcher path
+    # Build watcher path (WSL filesystem path)
     watcher_path = os.path.join(_script_dir(), "rhino", "rhino_watcher.py")
     if not os.path.isfile(watcher_path):
         return state, (
             "ERROR: Watcher not found at {}.".format(watcher_path))
+
+    # For Rhino's script runner, watcher path must be a Windows path
+    watcher_win = _wsl_to_win(watcher_path) if in_wsl else watcher_path
 
     # Build command: launch Rhino, auto-run the watcher script,
     # and set units to Feet.
     run_cmds = (
         '_-RunPythonScript "{}"'
         " _-DocumentProperties _Units _ModelUnits _Feet _Enter _Enter"
-    ).format(watcher_path.replace("\\", "/"))
+    ).format(watcher_win.replace("\\", "/"))
 
     try:
-        subprocess.Popen(
-            [rhino_path, "/nosplash",
-             "/runscript={}".format(run_cmds)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL)
+        if in_wsl:
+            # Launch Rhino on Windows side via PowerShell
+            ps_cmd = 'Start-Process "{}" -ArgumentList "/nosplash","/runscript={}"'.format(
+                rhino_path, run_cmds)
+            subprocess.Popen(
+                ["powershell.exe", "-Command", ps_cmd],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
+        else:
+            subprocess.Popen(
+                [rhino_path, "/nosplash",
+                 "/runscript={}".format(run_cmds)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
     except Exception as e:
         return state, "ERROR: Failed to launch Rhino: {}".format(e)
 
@@ -1877,6 +2026,205 @@ def cmd_setup(state, tokens, state_file):
             "WAITING: Rhino launched but watcher not yet responding. "
             "Check Rhino is open and try 'setup status' in a moment.")
     return state, "\n".join(lines)
+
+# ══════════════════════════════════════════════════════════
+# ZONE / GRID / EXPORT COMMANDS
+# ══════════════════════════════════════════════════════════
+
+def _cmd_zone(state, tokens):
+    """Handle zone commands.
+
+    zone add NAME W D [X Y] [TYPE]
+    zone add NAME corners X1,Y1 X2,Y2 ...
+    zone remove NAME
+    zone list
+    zone NAME label|braille|type VALUE
+    """
+    if len(tokens) < 2:
+        raise ValueError("Usage: zone add|remove|list|<name> ...")
+
+    sub = tokens[1].lower()
+    zones = state.setdefault("zones", {})
+
+    if sub == "add":
+        if len(tokens) < 3:
+            raise ValueError("Usage: zone add NAME W D [X Y] [TYPE]")
+        name = tokens[2]
+        if name.lower() == "corners":
+            raise ValueError("Zone name cannot be 'corners'. Use: zone add NAME corners X1,Y1 ...")
+
+        # Check for polygon mode: zone add NAME corners X1,Y1 X2,Y2 ...
+        if len(tokens) > 3 and tokens[3].lower() == "corners":
+            corner_strs = tokens[4:]
+            if len(corner_strs) < 3:
+                raise ValueError("Polygon zone needs at least 3 corner pairs (X,Y).")
+            corners = []
+            for cs in corner_strs:
+                parts = cs.split(",")
+                if len(parts) != 2:
+                    raise ValueError(f"Invalid corner '{cs}'. Use X,Y format.")
+                corners.append([float(parts[0]), float(parts[1])])
+            zone = {"corners": corners, "program_type": "", "label": name, "braille": ""}
+            zones[name] = zone
+            area = _zone_area(corners)
+            return state, f"Zone {name} added ({len(corners)} corners, {area:.0f} sq ft)."
+
+        # Rectangle mode: zone add NAME W D [X Y] [TYPE]
+        if len(tokens) < 5:
+            raise ValueError("Usage: zone add NAME W D [X Y] [TYPE]")
+        w = float(tokens[3])
+        d = float(tokens[4])
+        x = float(tokens[5]) if len(tokens) > 5 else 0.0
+        y = float(tokens[6]) if len(tokens) > 6 else 0.0
+        ptype = tokens[7] if len(tokens) > 7 else ""
+
+        corners = [[x, y], [x + w, y], [x + w, y + d], [x, y + d]]
+        zone = {"corners": corners, "program_type": ptype, "label": name, "braille": ""}
+        zones[name] = zone
+        return state, f"Zone {name} added ({w:.0f} x {d:.0f} ft at ({x:.0f}, {y:.0f}), area {w*d:.0f} sq ft)."
+
+    elif sub == "remove":
+        if len(tokens) < 3:
+            raise ValueError("Usage: zone remove NAME")
+        name = tokens[2]
+        if name not in zones:
+            raise ValueError(f"Zone '{name}' not found.")
+        del zones[name]
+        return state, f"Zone {name} removed."
+
+    elif sub == "list":
+        if not zones:
+            return state, "No zones defined."
+        lines = [f"{len(zones)} zone(s):"]
+        for name, z in sorted(zones.items()):
+            corners = z.get("corners", [])
+            area = _zone_area(corners)
+            bounds = _zone_bounds(corners)
+            w = bounds[2] - bounds[0]
+            h = bounds[3] - bounds[1]
+            ptype = z.get("program_type", "")
+            ptype_str = f" [{ptype}]" if ptype else ""
+            lines.append(f"  {name}: {w:.0f} x {h:.0f} ft, area {area:.0f} sq ft{ptype_str}")
+        return state, "\n".join(lines)
+
+    else:
+        # zone NAME label|braille|type VALUE
+        name = tokens[1]
+        if name not in zones:
+            raise ValueError(f"Zone '{name}' not found. Use 'zone add' first.")
+        if len(tokens) < 4:
+            raise ValueError(f"Usage: zone {name} label|braille|type VALUE")
+        field = tokens[2].lower()
+        value = " ".join(tokens[3:])
+
+        if field == "label":
+            old = zones[name].get("label", "")
+            zones[name]["label"] = value
+            return state, f"Zone {name} label = '{value}'. Was '{old}'."
+        elif field == "braille":
+            old = zones[name].get("braille", "")
+            zones[name]["braille"] = value
+            return state, f"Zone {name} braille set."
+        elif field in ("type", "program_type"):
+            old = zones[name].get("program_type", "")
+            zones[name]["program_type"] = value
+            return state, f"Zone {name} type = '{value}'. Was '{old}'."
+        else:
+            raise ValueError(f"Unknown zone field '{field}'. Use: label, braille, type")
+
+
+def _cmd_grid(state, tokens):
+    """Handle grid commands.
+
+    grid set SPACING [ROTATION]
+    grid origin X Y
+    grid clear
+    """
+    if len(tokens) < 2:
+        raise ValueError("Usage: grid set|origin|clear ...")
+
+    sub = tokens[1].lower()
+
+    if sub == "set":
+        if len(tokens) < 3:
+            raise ValueError("Usage: grid set SPACING [ROTATION]")
+        spacing = float(tokens[2])
+        if spacing <= 0:
+            raise ValueError("Grid spacing must be positive.")
+        rotation = float(tokens[3]) if len(tokens) > 3 else 0.0
+        old_grid = state.get("grid")
+        origin = old_grid.get("origin", [0.0, 0.0]) if old_grid else [0.0, 0.0]
+        state["grid"] = {"spacing": spacing, "rotation": rotation, "origin": origin}
+        rot_str = f", rotation {rotation:.0f} deg" if rotation != 0 else ""
+        return state, f"Grid set: {spacing:.1f} ft spacing{rot_str}."
+
+    elif sub == "origin":
+        if len(tokens) < 4:
+            raise ValueError("Usage: grid origin X Y")
+        x = float(tokens[2])
+        y = float(tokens[3])
+        if state.get("grid") is None:
+            raise ValueError("No grid defined. Use 'grid set SPACING' first.")
+        state["grid"]["origin"] = [x, y]
+        return state, f"Grid origin = ({x:.1f}, {y:.1f})."
+
+    elif sub == "clear":
+        state["grid"] = None
+        return state, "Grid cleared."
+
+    else:
+        raise ValueError(f"Unknown grid subcommand '{sub}'. Use: set, origin, clear")
+
+
+def _cmd_export(state, tokens, state_file=None):
+    """Handle export commands.
+
+    export 3dm [PATH]
+    export text [PATH]
+    """
+    if len(tokens) < 2:
+        raise ValueError("Usage: export 3dm|text [path]")
+
+    fmt = tokens[1].lower()
+
+    if fmt == "3dm":
+        try:
+            from exporter import export_3dm
+        except ImportError:
+            try:
+                import importlib
+                _exp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exporter.py")
+                if os.path.isfile(_exp_path):
+                    spec = importlib.util.spec_from_file_location("exporter", _exp_path)
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    export_3dm = mod.export_3dm
+                else:
+                    raise ImportError("exporter.py not found")
+            except ImportError:
+                return state, "ERROR: exporter module not found."
+
+        out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+        out_path = tokens[2] if len(tokens) > 2 else os.path.join(out_dir, "model.3dm")
+        try:
+            result = export_3dm(state, out_path)
+            return state, f"Exported to {result}."
+        except ImportError as e:
+            return state, f"ERROR: rhino3dm not installed. Run: pip install rhino3dm"
+        except Exception as e:
+            return state, f"ERROR: Export failed: {e}"
+
+    elif fmt == "text":
+        out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+        out_path = tokens[2] if len(tokens) > 2 else os.path.join(out_dir, "model_description.txt")
+        text = describe(state)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return state, f"Description exported to {out_path}."
+
+    else:
+        raise ValueError(f"Unknown export format '{fmt}'. Use: 3dm, text")
+
 
 # ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
@@ -1910,6 +2258,9 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "history":  return cmd_history(state, tokens, state_file)
     if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
     if cmd == "setup":    return cmd_setup(state, tokens, state_file)
+    if cmd == "zone":     return _cmd_zone(state, tokens)
+    if cmd == "grid":     return _cmd_grid(state, tokens)
+    if cmd == "export":   return _cmd_export(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -1935,38 +2286,49 @@ def do_print(state, state_file):
              f"  Model area: {mw:.0f} x {mh:.0f} ft."]
     if site["width"] > mw or site["height"] > mh:
         lines.append("  WARNING: Site exceeds paper at this scale.")
-    # --- Render tactile output via swell-print if available ---
+    # --- Render tactile output via tact if available ---
     try:
-        _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                   "..", "tools", "swell-print")
-        if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-            sys.path.insert(0, _swell_dir)
-        import state_renderer as _sr
-        import pdf_generator as _pg
+        import shutil
         paper = "tabloid" if pw > 12 else "letter"
-        img = _sr.render(state, dpi=dpi, paper_size=paper)
-        out_dir = os.path.dirname(os.path.abspath(state_file))
         fmt = pr.get("format", "pdf").lower()
-        if fmt == "pdf":
-            out_path = os.path.join(out_dir, "state_tactile.pdf")
-            _pg.generate_pdf(img, out_path, paper_size=paper)
+        if fmt not in ("pdf", "png"):
+            fmt = "pdf"
+        tact_cmd = shutil.which("tact")
+        if tact_cmd is None:
+            # Try python -m as fallback
+            tact_cmd = None
+        if tact_cmd:
+            result = subprocess.run(
+                [tact_cmd, "render", os.path.abspath(state_file),
+                 "--paper-size", paper, "--output-format", fmt,
+                 "--dpi", str(dpi)],
+                capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                for line in result.stdout.strip().splitlines():
+                    lines.append(f"  {line}")
+            else:
+                err = result.stderr.strip() or result.stdout.strip()
+                lines.append(f"  (tact render failed: {err})")
         else:
-            out_path = os.path.join(out_dir, "state_tactile.png")
-            img.save(out_path, dpi=(dpi, dpi))
-        dens = _sr.density(img)
-        lines.append(f"  Output: {out_path}")
-        lines.append(f"  Density: {dens:.1f}%")
-        if dens > 40:
-            lines.append("  WARNING: Density above 40% may reduce PIAF clarity.")
-    except ImportError:
-        lines.append("  (swell-print not installed; no image generated)")
-        lines.append("  Run: pip install -r tools/swell-print/requirements.txt")
+            # Try as Python module
+            result = subprocess.run(
+                [sys.executable, "-m", "tactile_core.cli", "render",
+                 os.path.abspath(state_file),
+                 "--paper-size", paper, "--output-format", fmt,
+                 "--dpi", str(dpi)],
+                capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                for line in result.stdout.strip().splitlines():
+                    lines.append(f"  {line}")
+            else:
+                lines.append("  (tact not installed; no image generated)")
+                lines.append("  Run: pip install -e tools/tact")
     except Exception as e:
         lines.append(f"  (render failed: {e})")
     return "\n".join(lines)
 
 HELP_TEXT = """
-PLAN LAYOUT JIG v2.3 — Commands
+PLAN LAYOUT JIG v3.0 — Commands
 ====================================
 describe / d ............. Full model description (all settings and geometry)
 list bays / l bays ....... Compact bay table
@@ -1977,6 +2339,7 @@ quit / q / exit .......... Save and exit
 
 SITE & STYLE:
   set site width|height <ft>
+  set site corners <x1,y1> <x2,y2> <x3,y3> ...
   set column size <ft>
   set style heavy|light|corridor|wall|text_height|braille_height|
            dash_len|gap_len|bg_pad|label_offset|arc_segments <value>
@@ -2084,6 +2447,22 @@ TEXT-TO-SPEECH:
   tts on|off ................. enable/disable speech
   tts rate <-10..10> ......... speech rate (-10=slowest, 10=fastest)
 
+ZONES:
+  zone add <name> <w> <d> [<x> <y>] [<type>]    Add rectangular zone
+  zone add <name> corners <x1,y1> <x2,y2> ...    Add polygon zone
+  zone remove <name>                                Remove zone
+  zone list                                         List all zones
+  zone <name> label|braille|type <value>           Set zone property
+
+GRID:
+  grid set <spacing> [<rotation>]    Set global structural grid
+  grid origin <x> <y>                Set grid origin
+  grid clear                         Remove global grid
+
+EXPORT:
+  export 3dm [path]                  Export model to .3dm file
+  export text [path]                 Export description to text file
+
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>
   print
@@ -2104,9 +2483,10 @@ def main():
     try: state = load_state(state_file)
     except Exception as e: print(f"[ERROR] {e}"); sys.exit(1)
     # Schema migration: accept old or new schema
-    if state.get("schema") not in (SCHEMA, "school_jig_2d_v2.2"):
+    _accepted_schemas = (SCHEMA, "plan_layout_jig_v2.3", "school_jig_2d_v2.2")
+    if state.get("schema") not in _accepted_schemas:
         state = default_state()
-    if state.get("schema") == "school_jig_2d_v2.2":
+    if state.get("schema") in ("school_jig_2d_v2.2", "plan_layout_jig_v2.3"):
         state["schema"] = SCHEMA
     if "legend" not in state: state["legend"] = _default_legend()
     if "tactile3d" not in state: state["tactile3d"] = _default_tactile3d()
@@ -2133,7 +2513,7 @@ def main():
 
     undo_stack = []
     history_seq = _history_count(state_file)
-    _out("PLAN LAYOUT JIG v2.3 — Terminal CLI")
+    _out("PLAN LAYOUT JIG v3.0 — Terminal CLI")
     print(f"State: {state_file}")
     if state.get("tts", {}).get("enabled"):
         print("TTS: ON")
