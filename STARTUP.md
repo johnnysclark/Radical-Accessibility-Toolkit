@@ -33,7 +33,7 @@ TACT -- Tactile Conversion (tools/tact/)
   tactile PDFs (replaces swell-print) and converts images to tactile
   graphics. Ten presets, density management, braille labels, OCR text
   detection, color-to-tactile pattern mapping, Grade 2 Braille, and
-  6 MCP functions. Optional.
+  7 MCP functions. Optional.
 
 acclaude -- Accessible Claude Client (tools/accessible-client/)
   Screen-reader-friendly Claude Code wrapper. Bypasses the
@@ -142,7 +142,7 @@ Open Rhino, then open the Python editor (EditPythonScript or F2).
 Paste these TWO lines and press F5 to run them:
 
 ```
-__file__ = r"C:\Users\su-jsclark2\Desktop\_CONTENT\Accessibility\CLI\CONTROLLER\tools\rhino\rhino_watcher.py"
+__file__ = r"C:\path\to\Radical-Accessibility-Toolkit\tools\rhino\rhino_watcher.py"
 exec(open(__file__).read())
 ```
 
@@ -266,9 +266,9 @@ tact presets                         # list all 10 presets
 
 To add TACT's MCP server to Claude Code, add a "tactile" entry to
 your .mcp.json. See .mcp.json.example for the correct format. This
-gives Claude 6 MCP functions for tactile conversion (image_to_piaf,
+gives Claude 7 MCP functions for tactile conversion (image_to_piaf,
 list_presets, analyze_image, describe_image, extract_text_with_vision,
-assess_tactile_quality). All tactile MCP functions live in TACT's
+assess_tactile_quality, state_to_piaf). All tactile MCP functions live in TACT's
 server, not in the main layout-jig server.
 
 ## Step 7: Set Up Accessible Client (Optional)

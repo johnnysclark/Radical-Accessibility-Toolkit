@@ -547,10 +547,13 @@ def _zone_area(corners):
     return abs(area) / 2.0
 
 def _zone_bounds(corners):
-    """Return (min_x, min_y, max_x, max_y) bounding box."""
+    """Return (min_x, max_x, min_y, max_y) bounding box.
+
+    Matches _bay_extents convention used throughout the codebase.
+    """
     xs = [c[0] for c in corners]
     ys = [c[1] for c in corners]
-    return (min(xs), min(ys), max(xs), max(ys))
+    return (min(xs), max(xs), min(ys), max(ys))
 
 def _zone_centroid(corners):
     """Return (cx, cy) centroid of polygon."""
@@ -625,8 +628,8 @@ def describe(state):
             zcorners = zdata.get("corners", [])
             zarea = _zone_area(zcorners)
             zbounds = _zone_bounds(zcorners)
-            zw = zbounds[2] - zbounds[0]
-            zh = zbounds[3] - zbounds[1]
+            zw = zbounds[1] - zbounds[0]
+            zh = zbounds[3] - zbounds[2]
             ptype = zdata.get("program_type", "")
             ptype_str = f" [{ptype}]" if ptype else ""
             label = zdata.get("label", zname)
@@ -2100,8 +2103,8 @@ def _cmd_zone(state, tokens):
             corners = z.get("corners", [])
             area = _zone_area(corners)
             bounds = _zone_bounds(corners)
-            w = bounds[2] - bounds[0]
-            h = bounds[3] - bounds[1]
+            w = bounds[1] - bounds[0]
+            h = bounds[3] - bounds[2]
             ptype = z.get("program_type", "")
             ptype_str = f" [{ptype}]" if ptype else ""
             lines.append(f"  {name}: {w:.0f} x {h:.0f} ft, area {area:.0f} sq ft{ptype_str}")

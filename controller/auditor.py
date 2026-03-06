@@ -55,23 +55,13 @@ def _distance(p1, p2):
 
 
 def _zone_area(corners):
-    """Shoelace formula for polygon area."""
-    n = len(corners)
-    if n < 3:
-        return 0.0
-    area = 0.0
-    for i in range(n):
-        j = (i + 1) % n
-        area += corners[i][0] * corners[j][1]
-        area -= corners[j][0] * corners[i][1]
-    return abs(area) / 2.0
+    """Shoelace formula for polygon area. Delegates to controller."""
+    return cli._zone_area(corners)
 
 
 def _zone_bounds(corners):
-    """Return (min_x, max_x, min_y, max_y) matching existing box convention."""
-    xs = [c[0] for c in corners]
-    ys = [c[1] for c in corners]
-    return (min(xs), max(xs), min(ys), max(ys))
+    """Return (min_x, max_x, min_y, max_y). Delegates to controller."""
+    return cli._zone_bounds(corners)
 
 
 # ══════════════════════════════════════════════════════════
