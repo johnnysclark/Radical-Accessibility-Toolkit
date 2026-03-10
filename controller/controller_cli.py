@@ -28,6 +28,26 @@ Usage
 import argparse, copy, json, math, os, subprocess, sys, time
 from datetime import datetime
 
+try:
+    import template_manager as _tmpl_mgr
+except ImportError:
+    _tmpl_mgr = None
+
+try:
+    import style_manager as _style_mod
+except ImportError:
+    _style_mod = None
+
+# Global style manager instance (initialized in main() or by MCP server)
+_style_mgr = None
+
+def get_style_manager():
+    """Return the global StyleManager, creating it if needed."""
+    global _style_mgr
+    if _style_mgr is None and _style_mod is not None:
+        _style_mgr = _style_mod.StyleManager()
+    return _style_mgr
+
 SCHEMA = "plan_layout_jig_v2.3"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
@@ -1583,9 +1603,15 @@ def _cmd_set_bay(state, tokens):
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = bay.get(f,""); bay[f] = raw
         return state, f"Bay {name} {f} = '{raw}'. Was '{old}'."
+    if f == "wall_height":
+        v = _float(tokens[4], "wall_height")
+        if v <= 0: raise ValueError("Wall height must be > 0.")
+        old = bay.get("wall_height", 10.0); bay["wall_height"] = v
+        return state, f"Bay {name} wall_height = {v} ft. Was {old} ft."
     raise ValueError("Bay fields: grid_type, z_order, origin, rotation, bays, spacing, "
                      "spacing_x, spacing_y, rings, ring_spacing, arms, arc_deg, "
-                     "arc_start_deg, void_center, void_size, void_shape, label, braille")
+                     "arc_start_deg, void_center, void_size, void_shape, label, braille, "
+                     "wall_height")
 
 # ══════════════════════════════════════════════════════════
 # SECTION CUT
@@ -1879,8 +1905,439 @@ def cmd_setup(state, tokens, state_file):
     return state, "\n".join(lines)
 
 # ══════════════════════════════════════════════════════════
+# STYLE COMMANDS
+# ══════════════════════════════════════════════════════════
+
+def cmd_style(state, tokens, state_file=None):
+    """Handle style commands: use, list, show, set, save, reset, test,
+    add-hatch, remove-hatch."""
+    sm = get_style_manager()
+    if sm is None:
+        raise ValueError("Style manager not available.")
+    if len(tokens) < 2:
+        raise ValueError(
+            "Usage: style use|list|show|set|save|reset|test|add-hatch|remove-hatch")
+
+    sub = tokens[1].lower()
+
+    if sub == "use":
+        if len(tokens) < 3:
+            raise ValueError("style use <name>")
+        name, desc = sm.use(tokens[2])
+        return state, "OK: Style \"{}\" active. {}".format(name, desc)
+
+    if sub == "list":
+        styles = sm.list_styles()
+        lines = ["OK: {} styles available:".format(len(styles))]
+        for i, (name, desc, active) in enumerate(styles, 1):
+            marker = " (active)" if active else ""
+            lines.append("  {}. {}{}".format(i, name, marker))
+        return state, "\n".join(lines)
+
+    if sub == "show":
+        category = tokens[2] if len(tokens) >= 3 else None
+        result = sm.show(category)
+        return state, "OK: {}".format(result)
+
+    if sub == "set":
+        if len(tokens) < 4:
+            raise ValueError("style set <key> <value>")
+        key_path = tokens[2]
+        raw_value = " ".join(tokens[3:])
+        new_val, old_val = sm.set(key_path, raw_value)
+        # Format a friendly label from the key
+        parts = key_path.split(".")
+        short_key = parts[-1] if parts else key_path
+        # Determine unit
+        unit = ""
+        if "lineweight" in key_path or key_path.startswith("lineweights."):
+            unit = " pt"
+        elif "spacing_mm" in key_path:
+            unit = " mm"
+        elif key_path.endswith("_pt"):
+            unit = " pt"
+        elif "margin_inches" in key_path:
+            unit = " in"
+        elif "percent" in key_path:
+            unit = "%"
+        return state, "OK: {} = {}{}. Was {}{}.".format(
+            short_key, new_val, unit, old_val, unit)
+
+    if sub == "save":
+        name = tokens[2] if len(tokens) >= 3 else None
+        fpath = sm.save(name)
+        saved_name = name or sm.active_name
+        return state, "OK: Saved style \"{}\" to {}.".format(
+            saved_name, os.path.basename(fpath))
+
+    if sub == "reset":
+        name = sm.reset()
+        return state, "OK: Style \"{}\" reset to saved state.".format(name)
+
+    if sub == "test":
+        out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+        out_path = os.path.join(out_dir, "style_test.png")
+        fmt = "png"
+        # Try PDF if reportlab available
+        try:
+            _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       "..", "tools", "swell-print")
+            if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+                sys.path.insert(0, _swell_dir)
+            import pdf_generator as _pg
+            png_path = os.path.join(out_dir, "style_test.png")
+            sm.generate_test_swatch(png_path)
+            pdf_path = os.path.join(out_dir, "style_test.pdf")
+            from PIL import Image as _Img
+            _img = _Img.open(png_path)
+            paper = sm.get("layout.paper", "letter")
+            _pg.generate_pdf(_img, pdf_path, paper_size=paper)
+            out_path = pdf_path
+            fmt = "pdf"
+        except ImportError:
+            sm.generate_test_swatch(out_path)
+        return state, "OK: Rendered {} ({}, all lineweights and hatches at current settings).".format(
+            os.path.basename(out_path), sm.get("layout.paper", "letter").title())
+
+    if sub == "add-hatch":
+        if len(tokens) < 5:
+            raise ValueError("style add-hatch <name> <spacing_mm> <angle_deg> [weight_pt]")
+        hname = tokens[2]
+        spacing = float(tokens[3])
+        angle = float(tokens[4])
+        weight = float(tokens[5]) if len(tokens) >= 6 else 0.4
+        sm.add_hatch(hname, spacing, angle, weight)
+        return state, "OK: Added hatch \"{}\" (spacing {} mm, angle {}, weight {} pt).".format(
+            hname, spacing, int(angle) if angle == int(angle) else angle, weight)
+
+    if sub == "remove-hatch":
+        if len(tokens) < 3:
+            raise ValueError("style remove-hatch <name>")
+        hname = tokens[2]
+        sm.remove_hatch(hname)
+        return state, "OK: Removed hatch \"{}\".".format(hname)
+
+    raise ValueError(
+        "Unknown style command: '{}'. "
+        "Options: use, list, show, set, save, reset, test, add-hatch, remove-hatch".format(sub))
+
+
+# ══════════════════════════════════════════════════════════
+# VIEW COMMANDS
+# ══════════════════════════════════════════════════════════
+
+def cmd_view(state, tokens, state_file=None):
+    """Handle view commands: plan, section, axon, elevation."""
+    if len(tokens) < 2:
+        raise ValueError("Usage: view plan|section|axon|elevation [options]")
+
+    sub = tokens[1].lower()
+
+    # Parse common options from tokens
+    style_name = None
+    paper_override = None
+    scale_override = None
+    for i, t in enumerate(tokens):
+        if t == "--style" and i + 1 < len(tokens):
+            style_name = tokens[i + 1]
+        elif t == "--paper" and i + 1 < len(tokens):
+            paper_override = tokens[i + 1]
+        elif t == "--scale" and i + 1 < len(tokens):
+            scale_override = tokens[i + 1]
+
+    sm = get_style_manager()
+    if sm is None:
+        raise ValueError("Style manager not available.")
+
+    # Temporarily switch style if --style given
+    original_style = sm.active_name
+    if style_name:
+        sm.use(style_name)
+
+    out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+
+    try:
+        if sub == "plan":
+            return _view_plan(state, sm, out_dir, paper_override)
+        elif sub == "section":
+            return _view_section(state, tokens, sm, out_dir)
+        elif sub == "axon":
+            return _view_axon(state, tokens, sm, out_dir)
+        elif sub == "elevation":
+            return _view_elevation(state, tokens, sm, out_dir)
+        else:
+            raise ValueError(
+                "Unknown view type: '{}'. Options: plan, section, axon, elevation".format(sub))
+    finally:
+        # Restore original style if we switched
+        if style_name and original_style:
+            sm.use(original_style)
+
+
+def _view_plan(state, sm, out_dir, paper_override=None):
+    """Render a plan view using swell-print with style profile."""
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+
+    try:
+        import state_renderer as _sr
+    except ImportError:
+        raise ValueError("swell-print not installed. Run: pip install Pillow")
+
+    paper = paper_override or sm.get("layout.paper", "letter")
+    dpi = 300
+    margin = sm.get("layout.margin_inches", 0.5)
+
+    img = _sr.render(state, dpi=dpi, paper_size=paper, margin_in=margin,
+                     style_manager=sm)
+
+    # Save as PNG
+    out_path = os.path.join(out_dir, "plan.png")
+    img.save(out_path, dpi=(dpi, dpi))
+
+    # Also save as PDF if reportlab available
+    try:
+        import pdf_generator as _pg
+        pdf_path = os.path.join(out_dir, "plan.pdf")
+        _pg.generate_pdf(img, pdf_path, paper_size=paper)
+        out_path = pdf_path
+    except ImportError:
+        pass
+
+    d = _sr.density(img)
+    return state, "OK: Rendered {} ({}, {} DPI, density {:.1f}%)".format(
+        os.path.basename(out_path), paper.title(), dpi, d)
+
+
+def _view_section(state, tokens, sm, out_dir):
+    """Render a section cut view."""
+    # Parse: view section <axis> <gridline> [--style ...]
+    axis = None
+    gridline = None
+    for i, t in enumerate(tokens):
+        if i >= 2 and t in ("x", "y") and axis is None:
+            axis = t
+        elif i >= 3 and axis and gridline is None:
+            try:
+                gridline = int(t)
+            except ValueError:
+                if not t.startswith("--"):
+                    raise ValueError("Gridline must be an integer, got: '{}'".format(t))
+
+    if not axis or gridline is None:
+        raise ValueError("Usage: view section <x|y> <gridline> [--style <name>]")
+
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+
+    try:
+        import state_renderer as _sr
+    except ImportError:
+        raise ValueError("swell-print not installed.")
+
+    paper = sm.get("layout.paper", "letter")
+    dpi = 300
+    overrides = sm.get("drawing_overrides.section", {})
+    poche = overrides.get("poche_fill", True)
+    beyond_factor = overrides.get("beyond_weight_factor", 0.5)
+
+    img = _sr.render_section(state, axis, gridline, dpi=dpi,
+                             paper_size=paper, style_manager=sm,
+                             poche_fill=poche, beyond_weight_factor=beyond_factor)
+
+    out_name = "section_{}_{}.png".format(axis, gridline)
+    out_path = os.path.join(out_dir, out_name)
+    img.save(out_path, dpi=(dpi, dpi))
+
+    try:
+        import pdf_generator as _pg
+        pdf_name = "section_{}_{}.pdf".format(axis, gridline)
+        pdf_path = os.path.join(out_dir, pdf_name)
+        _pg.generate_pdf(img, pdf_path, paper_size=paper)
+        out_path = pdf_path
+        out_name = pdf_name
+    except ImportError:
+        pass
+
+    d = _sr.density(img)
+    return state, "OK: Rendered {} (section cut at {}-gridline {}, density {:.1f}%)".format(
+        out_name, axis, gridline, d)
+
+
+def _view_axon(state, tokens, sm, out_dir):
+    """Render an axonometric projection."""
+    angle1 = 30.0
+    angle2 = 60.0
+    hidden = False
+
+    # Parse angles and --hidden flag
+    positional = []
+    for i, t in enumerate(tokens):
+        if i < 2:
+            continue
+        if t == "--hidden":
+            hidden = True
+        elif t.startswith("--"):
+            continue
+        else:
+            try:
+                positional.append(float(t))
+            except ValueError:
+                pass
+
+    if len(positional) >= 1:
+        angle1 = positional[0]
+    if len(positional) >= 2:
+        angle2 = positional[1]
+
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+
+    try:
+        import state_renderer as _sr
+    except ImportError:
+        raise ValueError("swell-print not installed.")
+
+    paper = sm.get("layout.paper", "letter")
+    dpi = 300
+    overrides = sm.get("drawing_overrides.axon", {})
+    depth_fade = overrides.get("depth_fade", True)
+    depth_min = overrides.get("depth_fade_min_factor", 0.3)
+
+    img = _sr.render_axon(state, angle1, angle2, dpi=dpi,
+                          paper_size=paper, style_manager=sm,
+                          hidden_line=hidden, depth_fade=depth_fade,
+                          depth_fade_min=depth_min)
+
+    suffix = "_hidden" if hidden else ""
+    out_name = "axon{}.png".format(suffix)
+    out_path = os.path.join(out_dir, out_name)
+    img.save(out_path, dpi=(dpi, dpi))
+
+    try:
+        import pdf_generator as _pg
+        pdf_name = "axon{}.pdf".format(suffix)
+        pdf_path = os.path.join(out_dir, pdf_name)
+        _pg.generate_pdf(img, pdf_path, paper_size=paper)
+        out_path = pdf_path
+        out_name = pdf_name
+    except ImportError:
+        pass
+
+    d = _sr.density(img)
+    a1 = int(angle1) if angle1 == int(angle1) else angle1
+    a2 = int(angle2) if angle2 == int(angle2) else angle2
+    mode = "hidden-line" if hidden else "wireframe"
+    return state, "OK: Rendered {} ({}/{} projection, {}, density {:.1f}%)".format(
+        out_name, a1, a2, mode, d)
+
+
+def _view_elevation(state, tokens, sm, out_dir):
+    """Render a building elevation."""
+    direction = None
+    for i, t in enumerate(tokens):
+        if i >= 2 and t.lower() in ("north", "south", "east", "west"):
+            direction = t.lower()
+
+    if not direction:
+        raise ValueError("Usage: view elevation <north|south|east|west> [--style <name>]")
+
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+
+    try:
+        import state_renderer as _sr
+    except ImportError:
+        raise ValueError("swell-print not installed.")
+
+    paper = sm.get("layout.paper", "letter")
+    dpi = 300
+
+    img = _sr.render_elevation(state, direction, dpi=dpi,
+                               paper_size=paper, style_manager=sm)
+
+    out_name = "elevation_{}.png".format(direction)
+    out_path = os.path.join(out_dir, out_name)
+    img.save(out_path, dpi=(dpi, dpi))
+
+    try:
+        import pdf_generator as _pg
+        pdf_name = "elevation_{}.pdf".format(direction)
+        pdf_path = os.path.join(out_dir, pdf_name)
+        _pg.generate_pdf(img, pdf_path, paper_size=paper)
+        out_path = pdf_path
+        out_name = pdf_name
+    except ImportError:
+        pass
+
+    d = _sr.density(img)
+    return state, "OK: Rendered {} (density {:.1f}%)".format(out_name, d)
+
+
+# ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
 # ══════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════
+# TEMPLATE COMMANDS
+# ══════════════════════════════════════════════════════════
+
+def cmd_template(state, tokens):
+    """Handle template list | show <name> | load <name> [key=val ...]."""
+    if _tmpl_mgr is None:
+        raise ValueError("Template manager not available.")
+    if len(tokens) < 2:
+        raise ValueError("Usage: template list | show <name> | load <name> [key=val ...]")
+    sub = tokens[1].lower()
+
+    if sub == "list":
+        templates = _tmpl_mgr.list_templates()
+        return state, _tmpl_mgr.format_template_list(templates)
+
+    if sub == "show":
+        if len(tokens) < 3:
+            raise ValueError("Usage: template show <name>")
+        return state, _tmpl_mgr.show_template(tokens[2])
+
+    if sub == "load":
+        if len(tokens) < 3:
+            raise ValueError("Usage: template load <name> [key=val ...]")
+        name = tokens[2]
+        overrides = {}
+        for t in tokens[3:]:
+            if "=" in t:
+                k, v = t.split("=", 1)
+                if v.startswith(("[", "{")):
+                    try:
+                        v = json.loads(v)
+                    except json.JSONDecodeError:
+                        raise ValueError(
+                            "Invalid JSON for parameter '{}': {}".format(k, v))
+                else:
+                    try:
+                        v = float(v)
+                        if v == int(v):
+                            v = int(v)
+                    except ValueError:
+                        pass
+                overrides[k] = v
+        new_state = _tmpl_mgr.generate(name, overrides)
+        bay_count = len(new_state.get("bays", {}))
+        bay_names = ", ".join(sorted(new_state.get("bays", {}).keys()))
+        return new_state, (
+            "OK: Loaded template '{}' with {} bay(s): {}. "
+            "Previous state on undo stack.\nREADY:".format(name, bay_count, bay_names))
+
+    raise ValueError("Unknown template command: '{}'. Use: list, show, load".format(sub))
+
 
 def apply_command(state, tokens, state_file=None):
     if not tokens: return state, ""
@@ -1910,6 +2367,9 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "history":  return cmd_history(state, tokens, state_file)
     if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
     if cmd == "setup":    return cmd_setup(state, tokens, state_file)
+    if cmd == "template": return cmd_template(state, tokens)
+    if cmd == "style":   return cmd_style(state, tokens, state_file)
+    if cmd == "view":    return cmd_view(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -2087,6 +2547,29 @@ TEXT-TO-SPEECH:
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>
   print
+
+TEMPLATES (startup configurations):
+  template list ............ list available jig templates
+  template show <name> ..... show template parameters
+  template load <name> ..... load a template (replaces state, undoable)
+  template load <name> key=val  load with parameter overrides
+
+STYLE PROFILES (PIAF tactile rendering):
+  style list .............. list available style profiles
+  style use <name> ........ switch active style
+  style show [category] ... show settings (lineweights, hatches, labels, layout, density)
+  style set <key> <value> . set a value (dot notation: lineweights.column 4.0)
+  style save [name] ....... save active style (name = save-as)
+  style reset ............. discard unsaved changes
+  style test .............. generate calibration test swatch
+  style add-hatch <name> <spacing_mm> <angle_deg> [weight_pt]
+  style remove-hatch <name>
+
+VIEW COMMANDS (tactile output types):
+  view plan [--style <name>] [--paper <size>]
+  view section <x|y> <gridline> [--style <name>]
+  view axon [angle1] [angle2] [--hidden] [--style <name>]
+  view elevation <north|south|east|west> [--style <name>]
 
 SETUP (Rhino auto-launch):
   setup rhino ............. launch Rhino with watcher + set units to Feet

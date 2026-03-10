@@ -5,9 +5,10 @@
 - **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, Rhino Viewer.
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
 - **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
+- **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a skill: templates replace state, skills replay commands on existing state.
 - **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
 
-When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module.
+When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module. "Template" never means a command sequence.
 
 ---
 

@@ -983,7 +983,113 @@ following the format above.
 2. enclose-bay-with-door: Turn on walls and add a single entry door
 
 
-## 20. Rhino Client
+## 20. Templates (Startup Configurations)
+
+### Templates vs. skills
+
+Templates and skills serve different purposes:
+
+Templates set up initial state. They answer: "What kind of jig am I
+starting?" A template replaces the current state with a generated
+configuration. Use templates when starting a new design from a known
+building type or architectural precedent.
+
+Skills automate command sequences within a jig. They answer: "Replay
+these steps for me." A skill runs on top of existing state. Use skills
+for repetitive operations like adding corridors or enclosing bays.
+
+Templates are Python modules that can compute layouts from parameters.
+Skills are JSON command macros that replay fixed sequences.
+
+### Using templates from the CLI
+
+List available templates:
+
+    >> template list
+    OK: 3 template(s) available.
+      1. aggregate-ranch
+      2. layout-jig
+      3. sonsbeek-pavilion
+
+Show a template's parameters:
+
+    >> template show sonsbeek-pavilion
+
+Load a template (replaces current state, undoable with undo):
+
+    >> template load sonsbeek-pavilion
+
+Load with parameter overrides:
+
+    >> template load sonsbeek-pavilion wall_thickness=1.5 site_width=120
+
+After loading, all standard commands work. The template produces
+standard bays, walls, and apertures. Refine with set bay, wall,
+aperture, corridor, etc.
+
+### Using templates from MCP
+
+Through Claude, use the same commands as text input to the controller.
+
+### Available templates
+
+1. layout-jig: The default 3-bay demo (rectangular, radial, linear).
+   Same as starting with no state file. No parameters.
+
+2. sonsbeek-pavilion: Aldo van Eyck's 1966 Sonsbeek Pavilion. A field
+   of parallel masonry walls with circular openings. The generator
+   accepts a wall/circle arrangement:
+   - wall_rows: list of wall row definitions, each with y position,
+     wall count, spacing, length, offset, and portal positions
+   - circles: list of circular elements with x, y, radius
+   - site_width, site_height, wall_thickness, column_size
+   Each wall row becomes a rectangular bay with walls and portals.
+   Each circle becomes a radial bay. Default: 3 staggered wall rows
+   with 2 circles, producing 5 bays total.
+
+3. aggregate-ranch: MOS Architects-style aggregate ranch house.
+   Discrete rectangular room-volumes clustered with slight rotations.
+   The generator accepts a room list:
+   - rooms: list of room definitions, each with name, width, depth,
+     position, rotation, doors, windows, portals, optional corridor
+   - site_width, site_height, wall_thickness, column_size
+   Each room becomes one bay with walls and apertures. Slight per-room
+   rotations create the non-hierarchical aggregate massing. Default:
+   7 rooms (living, kitchen, bedrooms, bath, garage, entry) producing
+   7 bays total.
+
+### Creating new templates
+
+Add a Python file to controller/templates/ with two exports:
+
+    TEMPLATE = {
+        "name": "my-template",
+        "description": "What this template creates.",
+        "params": {
+            "param_name": {
+                "description": "What this parameter controls",
+                "default": some_value,
+            },
+        },
+    }
+
+    def generate(params):
+        # Return a dict with at minimum: meta, site, style, bays.
+        # The template manager fills in blocks, rooms, legend,
+        # tactile3d, print, bambu, tts, section from defaults.
+        return { "meta": {...}, "site": {...}, "style": {...}, "bays": {...} }
+
+The template does not need to produce every section of state.json.
+Only provide meta, site, style, and bays. The template manager fills
+in the rest from controller defaults. If the template does not provide
+a rooms section, rooms are auto-generated from bays.
+
+Templates are Python (not JSON) because they can compute layouts from
+parameters. A template that just needs to store a fixed configuration
+can still be a Python file with a trivial generate function.
+
+
+## 21. Rhino Client
 
 ### How it works
 
@@ -1015,7 +1121,7 @@ geometry-modifying functions like rs.AddLine or rs.DeleteObject.
 Important: IronPython 2.7 — use .format() not f-strings.
 
 
-## 21. Extending the Jig
+## 22. Extending the Jig
 
 ### What extend_controller does
 
@@ -1105,7 +1211,7 @@ When asking an AI to write a new command, use this prompt template:
   controller/controller_cli.py, or restore a snapshot.
 
 
-## 22. Controller Introspection
+## 23. Controller Introspection
 
 ### list_commands
 
@@ -1125,7 +1231,7 @@ name ("cmd_corridor", "_cmd_set_bay").
 Use this before writing extensions with extend_controller.
 
 
-## 23. State Comparison
+## 24. State Comparison
 
 ### diff_snapshot
 
@@ -1151,7 +1257,7 @@ Checks performed:
 - Are aperture types valid? (door, window, or portal)
 
 
-## 24. Mode 3: Learning Rhino Python
+## 25. Mode 3: Learning Rhino Python
 
 The system supports three interaction modes:
 
@@ -1219,7 +1325,7 @@ See DESIGN_SESSION.md for a complete walkthrough showing all three
 modes in action during a school building design project.
 
 
-## 25. Swell-Print: PIAF Tactile Graphics
+## 26. Swell-Print: PIAF Tactile Graphics
 
 The swell-print tool converts designs into physical tactile graphics
 readable by touch on PIAF swell paper. Two modes of operation:
@@ -1300,7 +1406,7 @@ control the Rhino watcher only; the swell-print renderer uses
 paper-absolute sizes for PIAF compliance.
 
 
-## 26. End-to-End Workflows
+## 27. End-to-End Workflows
 
 These workflows show complete sequences from start to finish,
 combining multiple tools for real tasks.
@@ -1743,7 +1849,7 @@ verbal description.
     # - Practiced verbal description of the design intent
 
 
-## 27. Editing state.json by Hand
+## 28. Editing state.json by Hand
 
 You do not need the CLI or MCP to change the model. state.json is a
 plain text file. You can open it in any text editor and change values
@@ -1861,7 +1967,7 @@ If the Rhino watcher is running, it will detect the file change and
 rebuild the geometry automatically within half a second.
 
 
-## 28. How Things Work Under the Hood
+## 29. How Things Work Under the Hood
 
 ### When you type a command in the CLI
 
@@ -1915,7 +2021,7 @@ There is no validation when you edit by hand. Always test your
 edits by loading the file in the CLI afterward.
 
 
-## 29. MCP Resources and Prompts
+## 30. MCP Resources and Prompts
 
 ### Resources
 
@@ -1933,7 +2039,7 @@ accessibility_audit — ADA compliance, corridor widths, tactile readability.
 skill_builder — Guide through creating a new skill step by step.
 
 
-## 30. Troubleshooting
+## 31. Troubleshooting
 
 ### "mcp package not found"
 

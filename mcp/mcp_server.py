@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — MCP Server  v3.3
+PLAN LAYOUT JIG — MCP Server  v3.5
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Auditor: spatial validation, ADA checks, rich descriptions
   - Skill manager: save, list, and replay reusable command sequences (skills)
+  - Template manager: list, show, and load startup state generators (templates)
   - Rhino client: optional TCP queries to the Rhino watcher
   - Controller extension: add new command handlers at runtime
   - State introspection: read/write individual JSON fields by path
@@ -12,6 +13,18 @@ Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Controller introspection: list commands, read handler source code
   - State comparison: diff snapshots, validate JSON structure
   - Swell-print: render state.json and convert images to PIAF tactile graphics
+  - Style profiles: PIAF style system for tactile rendering control
+
+v3.5 changes (from v3.4):
+  - 5 style tools: style_use, style_show, style_set, style_save, style_list,
+    style_test
+  - 4 view tools: view_plan, view_section, view_axon, view_elevation
+  Total: 65 tools (was 56)
+
+v3.4 changes (from v3.3):
+  - 3 template tools: template_list, template_show, template_load
+  - 1 new resource: templates://list
+  Total: 56 tools (was 53)
 
 v3.3 changes (from v3.2):
   - 4 swell-print tools: render_tactile, convert_to_tactile,
@@ -92,6 +105,7 @@ import braille
 # ── Import engines (lazy-safe: all stdlib-only) ────────
 import auditor
 import skill_manager
+import template_manager
 import rhino_client
 
 # ── Import swell-print tools (optional: requires Pillow, reportlab) ──
@@ -841,6 +855,85 @@ def skill_save(name: str, description: str, commands: str,
                 param_dict[k] = {"description": f"Value for {k}", "default": v}
 
     return skill_manager.save_skill(name, description, cmd_list, param_dict)
+
+
+# ══════════════════════════════════════════════════════════
+# NEW v3.4 TOOLS — TEMPLATE ENGINE
+# ══════════════════════════════════════════════════════════
+
+@mcp.tool()
+def template_list() -> str:
+    """List all available templates with names, descriptions, and param counts.
+
+    Templates are startup state generators that produce complete state.json
+    configurations from parameters. Different from skills: templates replace
+    state, skills replay commands on existing state.
+    """
+    templates = template_manager.list_templates()
+    return template_manager.format_template_list(templates)
+
+
+@mcp.tool()
+def template_show(name: str) -> str:
+    """Show a template's full details: description, parameters, and defaults.
+
+    Args:
+        name: Template name (e.g. "sonsbeek-pavilion", "aggregate-ranch")
+    """
+    try:
+        return template_manager.show_template(name)
+    except ValueError as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def template_load(name: str, overrides: str = "") -> str:
+    """Load a template, replacing the current state with a new configuration.
+
+    Generates a complete state from the template's parameters, saves it,
+    and returns a summary. The previous state is lost (use snapshot save
+    first if you want to preserve it).
+
+    Args:
+        name: Template name to load (e.g. "sonsbeek-pavilion")
+        overrides: Parameter overrides as "key=value key2=value2" string.
+                   For complex params (lists/dicts), use JSON:
+                   'rooms=[{"name":"Hall","width":30}]'
+    """
+    import json as _json
+
+    # Parse overrides string into dict
+    override_dict = {}
+    if overrides.strip():
+        for pair in overrides.strip().split():
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                if v.startswith(("[", "{")):
+                    try:
+                        v = _json.loads(v)
+                    except _json.JSONDecodeError:
+                        return f"ERROR: Invalid JSON for parameter '{k}': {v}"
+                else:
+                    try:
+                        v = float(v)
+                        if v == int(v):
+                            v = int(v)
+                    except ValueError:
+                        pass
+                override_dict[k] = v
+
+    try:
+        new_state = template_manager.generate(name, override_dict)
+    except ValueError as e:
+        return f"ERROR: {e}"
+
+    cli.save_state(STATE_PATH, new_state)
+    bay_count = len(new_state.get("bays", {}))
+    bay_names = ", ".join(sorted(new_state.get("bays", {}).keys()))
+    return (
+        f"OK: Loaded template '{name}' with {bay_count} bay(s): {bay_names}. "
+        f"State saved.\nREADY:"
+    )
 
 
 # ══════════════════════════════════════════════════════════
@@ -1643,6 +1736,13 @@ def resource_skill_list() -> str:
     return skill_manager.format_skill_list(skills)
 
 
+@mcp.resource("templates://list")
+def resource_template_list() -> str:
+    """List of all available templates with summaries."""
+    templates = template_manager.list_templates()
+    return template_manager.format_template_list(templates)
+
+
 @mcp.resource("extensions://list")
 def resource_extension_list() -> str:
     """List of controller extensions added this session."""
@@ -2115,14 +2215,347 @@ def list_tactile_presets() -> str:
         return f"ERROR: {e}"
 
 
+# ══════════════════════════════════════════════════════════
+# Style profile tools (v3.5)
+# ══════════════════════════════════════════════════════════
+
+# Import style manager
+try:
+    import style_manager as _style_mod
+    _style_mgr = _style_mod.StyleManager()
+    _style_available = True
+except ImportError:
+    _style_mgr = None
+    _style_available = False
+
+
+@mcp.tool()
+def style_use(name: str) -> str:
+    """Switch the active PIAF rendering style profile.
+
+    Args:
+        name: Style name (e.g. "working", "presentation", "detail")
+    """
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        sname, desc = _style_mgr.use(name)
+        return f"OK: Style \"{sname}\" active. {desc}\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def style_show(category: str = None) -> str:
+    """Show current style settings.
+
+    Args:
+        category: Optional filter — lineweights, hatches, labels, layout, density.
+                  If omitted, shows a summary of all categories.
+    """
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        result = _style_mgr.show(category)
+        return f"OK: {result}\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def style_set(key: str, value: str) -> str:
+    """Set a style value using dot notation.
+
+    Args:
+        key: Dot-notation path (e.g. "lineweights.wall_exterior", "layout.paper")
+        value: New value (e.g. "3.0", "tabloid", "true")
+    """
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        new_val, old_val = _style_mgr.set(key, value)
+        parts = key.split(".")
+        short = parts[-1] if parts else key
+        return f"OK: {short} = {new_val}. Was {old_val}.\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def style_save(name: str = None) -> str:
+    """Save active style. If name given, save as new style file.
+
+    Args:
+        name: Optional new name for save-as. Omit to save in place.
+    """
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        fpath = _style_mgr.save(name)
+        saved = name or _style_mgr.active_name
+        return f"OK: Saved style \"{saved}\" to {os.path.basename(fpath)}.\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def style_list() -> str:
+    """List all available PIAF style profiles."""
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        styles = _style_mgr.list_styles()
+        lines = [f"OK: {len(styles)} styles available:"]
+        for i, (sname, desc, active) in enumerate(styles, 1):
+            marker = " (active)" if active else ""
+            lines.append(f"  {i}. {sname}{marker}")
+        lines.append("READY:")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def style_test() -> str:
+    """Generate a calibration test swatch showing all lineweights and hatches.
+
+    Creates a B&W image with labeled samples of every lineweight
+    and hatch pattern at the current style settings. Print on PIAF
+    swell paper to calibrate tactile output.
+    """
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+    try:
+        out_dir = os.path.dirname(STATE_PATH)
+        png_path = os.path.join(out_dir, "style_test.png")
+        _style_mgr.generate_test_swatch(png_path)
+        # Try PDF
+        try:
+            import pdf_generator
+            pdf_path = os.path.join(out_dir, "style_test.pdf")
+            from PIL import Image
+            img = Image.open(png_path)
+            paper = _style_mgr.get("layout.paper", "letter")
+            pdf_generator.generate_pdf(img, pdf_path, paper_size=paper)
+            return f"OK: Rendered style_test.pdf ({paper.title()}, all lineweights and hatches).\n  Path: {pdf_path}\nREADY:"
+        except ImportError:
+            return f"OK: Rendered style_test.png (all lineweights and hatches).\n  Path: {png_path}\nREADY:"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def view_plan(style: str = None, paper: str = None,
+              scale: str = None) -> str:
+    """Render a plan view with the active or specified style.
+
+    Args:
+        style: Optional style name to use (e.g. "presentation")
+        paper: Optional paper size override ("letter" or "tabloid")
+        scale: Optional scale override (default: "auto")
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        state = _load_state()
+        sm = _style_mgr
+        original = sm.active_name
+        if style:
+            sm.use(style)
+        paper_size = paper or sm.get("layout.paper", "letter")
+        dpi = 300
+        margin = sm.get("layout.margin_inches", 0.5)
+        img = state_renderer.render(state, dpi=dpi, paper_size=paper_size,
+                                    margin_in=margin, style_manager=sm)
+        out_dir = os.path.dirname(STATE_PATH)
+        out_path = os.path.join(out_dir, "plan.png")
+        img.save(out_path, dpi=(dpi, dpi))
+        try:
+            import pdf_generator
+            pdf_path = os.path.join(out_dir, "plan.pdf")
+            pdf_generator.generate_pdf(img, pdf_path, paper_size=paper_size)
+            out_path = pdf_path
+        except ImportError:
+            pass
+        d = state_renderer.density(img)
+        if style:
+            sm.use(original)
+        return (f"OK: Rendered {os.path.basename(out_path)} "
+                f"({paper_size.title()}, {dpi} DPI, density {d:.1f}%)\n"
+                f"  Path: {out_path}\nREADY:")
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def view_section(axis: str, gridline: int, style: str = None) -> str:
+    """Render a section cut at the given axis and gridline.
+
+    Args:
+        axis: "x" or "y"
+        gridline: Which gridline to cut at (0-based integer)
+        style: Optional style name
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        state = _load_state()
+        sm = _style_mgr
+        original = sm.active_name
+        if style:
+            sm.use(style)
+        paper_size = sm.get("layout.paper", "letter")
+        dpi = 300
+        overrides = sm.get("drawing_overrides.section", {})
+        poche = overrides.get("poche_fill", True)
+        beyond = overrides.get("beyond_weight_factor", 0.5)
+        img = state_renderer.render_section(state, axis, gridline, dpi=dpi,
+                                            paper_size=paper_size,
+                                            style_manager=sm,
+                                            poche_fill=poche,
+                                            beyond_weight_factor=beyond)
+        out_dir = os.path.dirname(STATE_PATH)
+        out_name = f"section_{axis}_{gridline}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        try:
+            import pdf_generator
+            pdf_name = f"section_{axis}_{gridline}.pdf"
+            pdf_path = os.path.join(out_dir, pdf_name)
+            pdf_generator.generate_pdf(img, pdf_path, paper_size=paper_size)
+            out_path = pdf_path
+            out_name = pdf_name
+        except ImportError:
+            pass
+        d = state_renderer.density(img)
+        if style:
+            sm.use(original)
+        return (f"OK: Rendered {out_name} "
+                f"(section cut at {axis}-gridline {gridline}, density {d:.1f}%)\n"
+                f"  Path: {out_path}\nREADY:")
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def view_axon(angle1: float = 30, angle2: float = 60,
+              hidden: bool = False, style: str = None) -> str:
+    """Render an axonometric projection.
+
+    Args:
+        angle1: Rotation around vertical axis in degrees (default 30)
+        angle2: Tilt angle in degrees (default 60)
+        hidden: Enable hidden-line removal
+        style: Optional style name
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        state = _load_state()
+        sm = _style_mgr
+        original = sm.active_name
+        if style:
+            sm.use(style)
+        paper_size = sm.get("layout.paper", "letter")
+        dpi = 300
+        overrides = sm.get("drawing_overrides.axon", {})
+        depth_fade = overrides.get("depth_fade", True)
+        depth_min = overrides.get("depth_fade_min_factor", 0.3)
+        img = state_renderer.render_axon(state, angle1, angle2, dpi=dpi,
+                                         paper_size=paper_size,
+                                         style_manager=sm,
+                                         hidden_line=hidden,
+                                         depth_fade=depth_fade,
+                                         depth_fade_min=depth_min)
+        suffix = "_hidden" if hidden else ""
+        out_dir = os.path.dirname(STATE_PATH)
+        out_name = f"axon{suffix}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        try:
+            import pdf_generator
+            pdf_name = f"axon{suffix}.pdf"
+            pdf_path = os.path.join(out_dir, pdf_name)
+            pdf_generator.generate_pdf(img, pdf_path, paper_size=paper_size)
+            out_path = pdf_path
+            out_name = pdf_name
+        except ImportError:
+            pass
+        d = state_renderer.density(img)
+        if style:
+            sm.use(original)
+        a1 = int(angle1) if angle1 == int(angle1) else angle1
+        a2 = int(angle2) if angle2 == int(angle2) else angle2
+        mode = "hidden-line" if hidden else "wireframe"
+        return (f"OK: Rendered {out_name} "
+                f"({a1}/{a2} projection, {mode}, density {d:.1f}%)\n"
+                f"  Path: {out_path}\nREADY:")
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def view_elevation(direction: str, style: str = None) -> str:
+    """Render a building elevation.
+
+    Args:
+        direction: "north", "south", "east", or "west"
+        style: Optional style name
+    """
+    if not _swell_available:
+        return _SWELL_MISSING_MSG
+    if not _style_available:
+        return "ERROR: Style manager not available."
+    try:
+        state = _load_state()
+        sm = _style_mgr
+        original = sm.active_name
+        if style:
+            sm.use(style)
+        paper_size = sm.get("layout.paper", "letter")
+        dpi = 300
+        img = state_renderer.render_elevation(state, direction, dpi=dpi,
+                                              paper_size=paper_size,
+                                              style_manager=sm)
+        out_dir = os.path.dirname(STATE_PATH)
+        out_name = f"elevation_{direction}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        try:
+            import pdf_generator
+            pdf_name = f"elevation_{direction}.pdf"
+            pdf_path = os.path.join(out_dir, pdf_name)
+            pdf_generator.generate_pdf(img, pdf_path, paper_size=paper_size)
+            out_path = pdf_path
+            out_name = pdf_name
+        except ImportError:
+            pass
+        d = state_renderer.density(img)
+        if style:
+            sm.use(original)
+        return (f"OK: Rendered {out_name} (density {d:.1f}%)\n"
+                f"  Path: {out_path}\nREADY:")
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
 # ── Entry point ────────────────────────────────────────
 
 if __name__ == "__main__":
-    _real_print(f"Layout Jig MCP Server v3.3 starting...", file=sys.stderr)
+    _real_print(f"Layout Jig MCP Server v3.5 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
-    _real_print(f"Tools: 53 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 4 v3.3)", file=sys.stderr)
+    _real_print(f"Tools: 65 (56 v3.4 + 9 v3.5 style/view)", file=sys.stderr)
     _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
     _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
+    _real_print(f"Style profiles: {'available' if _style_available else 'not available'}", file=sys.stderr)
     _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
     _real_print(f"Scripts dir: {SCRIPTS_DIR}", file=sys.stderr)
     mcp.run()

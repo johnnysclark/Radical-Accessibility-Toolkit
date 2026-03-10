@@ -805,6 +805,182 @@ if _swell_ok:
         test("swell-print: density checks", lambda: "ERROR: {}".format(_e))
 
 # ══════════════════════════════════════════════════
+# STYLE SYSTEM TESTS
+# ══════════════════════════════════════════════════
+
+_style_ok = False
+try:
+    import style_manager
+    _style_ok = True
+    test("style: import style_manager", lambda: None)
+except ImportError as _e:
+    test("style: import style_manager", lambda: "ERROR: {}".format(_e))
+
+if _style_ok:
+    # Test 1: Load styles
+    _sm = style_manager.StyleManager()
+    test("style: load styles",
+         lambda: None if len(_sm.list_styles()) >= 3 else "Expected >= 3 styles")
+
+    # Test 2: Default active is 'working'
+    test("style: default active is working",
+         lambda: None if _sm.active_name == "working" else
+         "Expected working, got {}".format(_sm.active_name))
+
+    # Test 3: All required keys exist in each style
+    for _sname, _sdesc, _sactive in _sm.list_styles():
+        _sm.use(_sname)
+        _profile = _sm.active
+        for _req in style_manager.REQUIRED_SECTIONS:
+            test("style: {} has key '{}'".format(_sname, _req),
+                 lambda _r=_req, _p=_profile: None if _r in _p else
+                 "Missing key '{}'".format(_r))
+    _sm.use("working")
+
+    # Test 4: get/set round-trip
+    _orig = _sm.get("lineweights.column")
+    test("style: get lineweights.column",
+         lambda: None if isinstance(_orig, (int, float)) and _orig > 0 else
+         "Expected positive number, got {}".format(_orig))
+
+    _new, _old = _sm.set("lineweights.column", "4.0")
+    test("style: set lineweights.column",
+         lambda: None if _new == 4.0 and _old == _orig else
+         "Expected new=4.0, old={}, got new={}, old={}".format(_orig, _new, _old))
+
+    _sm.reset()
+    test("style: reset restores original value",
+         lambda: None if _sm.get("lineweights.column") == _orig else
+         "Expected {} after reset, got {}".format(_orig, _sm.get("lineweights.column")))
+
+    # Test 5: Paper-absolute math (CRITICAL)
+    # Hatch spacing: 8.0mm at 300 DPI = 8.0 * 300 / 25.4 = 94.488... -> 94 px
+    _hatch_px = style_manager.StyleManager.mm_to_px(8.0, 300)
+    test("style: hatch spacing 8mm at 300 DPI = ~94px",
+         lambda: None if 93 <= _hatch_px <= 95 else
+         "Expected ~94, got {}".format(_hatch_px))
+
+    # Lineweight: 3.0pt at 300 DPI = 3.0 * 300 / 72 = 12.5 -> 13 px
+    _lw_px = style_manager.StyleManager.pt_to_px(3.0, 300)
+    test("style: lineweight 3.0pt at 300 DPI = ~13px",
+         lambda: None if 12 <= _lw_px <= 13 else
+         "Expected ~13, got {}".format(_lw_px))
+
+    # Test 6: style use switches profile
+    _sm.use("presentation")
+    test("style: use presentation",
+         lambda: None if _sm.active_name == "presentation" else
+         "Expected presentation, got {}".format(_sm.active_name))
+    _sm.use("working")
+
+    # Test 7: add/remove hatch
+    _sm.add_hatch("brick", 4.0, 0, 0.4)
+    test("style: add hatch brick",
+         lambda: None if _sm.get("hatches.brick.spacing_mm") == 4.0 else
+         "Hatch brick not found")
+    _sm.remove_hatch("brick")
+    test("style: remove hatch brick",
+         lambda: None if _sm.get("hatches.brick") is None else
+         "Hatch brick still present")
+
+    # Test 8: cannot remove built-in hatch
+    try:
+        _sm.remove_hatch("diagonal")
+        test("style: cannot remove built-in hatch", lambda: "Should have raised ValueError")
+    except ValueError:
+        test("style: cannot remove built-in hatch", lambda: None)
+
+    # Test 9: CLI round-trip
+    reset_state()
+    _s = cli.load_state(STATE)
+    _s, _msg = cli.apply_command(_s, cli.tokenize("style list"), state_file=STATE)
+    test("style CLI: style list",
+         lambda: None if "styles available" in _msg else _msg[:100])
+
+    _s, _msg = cli.apply_command(_s, cli.tokenize("style set lineweights.column 4.0"), state_file=STATE)
+    test("style CLI: style set lineweights.column",
+         lambda: None if "4.0" in _msg and "Was" in _msg else _msg[:100])
+
+    _s, _msg = cli.apply_command(_s, cli.tokenize("style show lineweights"), state_file=STATE)
+    test("style CLI: style show lineweights contains 4.0",
+         lambda: None if "4.0" in _msg else _msg[:100])
+
+    _s, _msg = cli.apply_command(_s, cli.tokenize("style use detail"), state_file=STATE)
+    test("style CLI: style use detail",
+         lambda: None if "detail" in _msg.lower() else _msg[:100])
+
+    _s, _msg = cli.apply_command(_s, cli.tokenize("style reset"), state_file=STATE)
+    test("style CLI: style reset",
+         lambda: None if "reset" in _msg.lower() else _msg[:100])
+
+    # Test 10: view commands
+    if _swell_ok:
+        _s = cli.load_state(STATE)
+        _s, _msg = cli.apply_command(_s, cli.tokenize("view plan"), state_file=STATE)
+        test("view CLI: view plan",
+             lambda: None if "Rendered" in _msg and "density" in _msg else _msg[:100])
+
+        _s, _msg = cli.apply_command(_s, cli.tokenize("view section x 1"), state_file=STATE)
+        test("view CLI: view section x 1",
+             lambda: None if "Rendered" in _msg and "section" in _msg.lower() else _msg[:100])
+
+        _s, _msg = cli.apply_command(_s, cli.tokenize("view axon"), state_file=STATE)
+        test("view CLI: view axon",
+             lambda: None if "Rendered" in _msg and "projection" in _msg else _msg[:100])
+
+        _s, _msg = cli.apply_command(_s, cli.tokenize("view elevation south"), state_file=STATE)
+        test("view CLI: view elevation south",
+             lambda: None if "Rendered" in _msg and "elevation" in _msg.lower() else _msg[:100])
+
+    # Test 11: Density calculation with style
+    if _swell_ok:
+        _s = cli.load_state(STATE)
+        _test_sm = style_manager.StyleManager()
+        _img = state_renderer.render(_s, style_manager=_test_sm)
+        _d = state_renderer.density(_img)
+        test("style: render with working style produces valid density",
+             lambda: None if 0 <= _d <= 100 else "Density out of range: {}".format(_d))
+
+    # Test 12: Test swatch generation
+    if _swell_ok:
+        import tempfile
+        _td = tempfile.mkdtemp()
+        _sw_path = os.path.join(_td, "test_swatch.png")
+        _test_sm2 = style_manager.StyleManager()
+        _test_sm2.generate_test_swatch(_sw_path)
+        test("style: test swatch generates file",
+             lambda: None if os.path.isfile(_sw_path) else "File not created")
+        if os.path.isfile(_sw_path):
+            from PIL import Image as _TestImg
+            _tw = _TestImg.open(_sw_path)
+            # Letter at 300 DPI = 2550 x 3300
+            test("style: test swatch has correct dimensions",
+                 lambda: None if _tw.size[0] == 2550 and _tw.size[1] == 3300 else
+                 "Expected 2550x3300, got {}x{}".format(_tw.size[0], _tw.size[1]))
+            _tw.close()
+        # Cleanup
+        try:
+            os.remove(_sw_path)
+            os.rmdir(_td)
+        except OSError:
+            pass
+
+    # Test 13: wall_height field on bays
+    reset_state()
+    _s = cli.load_state(STATE)
+    _bnames = list(_s.get("bays", {}).keys())
+    if _bnames:
+        _bn = _bnames[0]
+        _s, _msg = cli.apply_command(_s, cli.tokenize("set bay {} wall_height 12".format(_bn)),
+                                     state_file=STATE)
+        test("style: set bay wall_height",
+             lambda: None if "12" in _msg and "wall_height" in _msg else _msg[:100])
+        test("style: wall_height stored in bay",
+             lambda: None if _s["bays"][_bn].get("wall_height") == 12.0 else
+             "Expected 12.0, got {}".format(_s["bays"][_bn].get("wall_height")))
+
+
+# ══════════════════════════════════════════════════
 # FINAL RESET AND SUMMARY
 # ══════════════════════════════════════════════════
 
