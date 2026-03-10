@@ -1562,6 +1562,11 @@ def _cmd_set_bay(state, tokens):
     if f == "arc_start_deg":
         v = _float(tokens[4],"d"); old = bay.get("arc_start_deg",0); bay["arc_start_deg"] = v
         return state, f"Bay {name} arc_start_deg = {v}. Was {old}."
+    if f == "wall_height":
+        v = _float(tokens[4],"h")
+        if v <= 0: raise ValueError("wall_height must be > 0.")
+        old = bay.get("wall_height",10.0); bay["wall_height"] = v
+        return state, f"Bay {name} wall_height = {v} ft. Was {old} ft."
     if f == "void_center":
         if len(tokens) < 6: raise ValueError("set bay <n> void_center <x> <y>")
         old = list(bay["void_center"]); bay["void_center"] = [_float(tokens[4],"x"), _float(tokens[5],"y")]
@@ -1585,7 +1590,7 @@ def _cmd_set_bay(state, tokens):
         return state, f"Bay {name} {f} = '{raw}'. Was '{old}'."
     raise ValueError("Bay fields: grid_type, z_order, origin, rotation, bays, spacing, "
                      "spacing_x, spacing_y, rings, ring_spacing, arms, arc_deg, "
-                     "arc_start_deg, void_center, void_size, void_shape, label, braille")
+                     "arc_start_deg, wall_height, void_center, void_size, void_shape, label, braille")
 
 # ══════════════════════════════════════════════════════════
 # SECTION CUT
@@ -1879,6 +1884,740 @@ def cmd_setup(state, tokens, state_file):
     return state, "\n".join(lines)
 
 # ══════════════════════════════════════════════════════════
+# STYLE COMMANDS
+# ══════════════════════════════════════════════════════════
+
+# Module-level style manager, initialized lazily
+_style_mgr = None
+
+def _get_style_manager():
+    """Get or create the singleton StyleManager instance."""
+    global _style_mgr
+    if _style_mgr is None:
+        import style_manager as _sm
+        _style_mgr = _sm.StyleManager()
+    return _style_mgr
+
+
+def cmd_style(state, tokens, state_file=None):
+    """Handle all style subcommands."""
+    if len(tokens) < 2:
+        raise ValueError("Usage: style use|list|show|set|save|reset|test|add-hatch|remove-hatch")
+    sub = tokens[1].lower()
+    mgr = _get_style_manager()
+
+    if sub == "use":
+        if len(tokens) < 3:
+            raise ValueError("Usage: style use <name>")
+        name, desc = mgr.use(tokens[2])
+        return state, f'OK: Style "{name}" active. {desc}'
+
+    if sub == "list":
+        styles = mgr.list_styles()
+        lines = [f"OK: {len(styles)} styles available:"]
+        for i, (name, desc, active) in enumerate(styles, 1):
+            marker = " (active)" if active else ""
+            lines.append(f"  {i}. {name}{marker}")
+        return state, "\n".join(lines)
+
+    if sub == "show":
+        cat = tokens[2].lower() if len(tokens) >= 3 else None
+        result = mgr.show(cat)
+        return state, f"OK: {result}"
+
+    if sub == "set":
+        if len(tokens) < 4:
+            raise ValueError("Usage: style set <key.path> <value>")
+        key = tokens[2]
+        value = " ".join(tokens[3:])
+        new_val, old_val = mgr.set(key, value)
+        # Determine unit suffix
+        parts = key.split(".")
+        unit = ""
+        if "lineweights" in parts or key.endswith("_pt"):
+            unit = " pt"
+        elif key.endswith("_mm") or key.endswith("spacing_mm"):
+            unit = " mm"
+        elif key.endswith("_inches"):
+            unit = " in"
+        elif key.endswith("_percent"):
+            unit = "%"
+        short_key = parts[-1]
+        return state, f"OK: {short_key} = {new_val}{unit}. Was {old_val}{unit}."
+
+    if sub == "save":
+        name = tokens[2] if len(tokens) >= 3 else None
+        path = mgr.save(name)
+        save_name = name or mgr.active_name
+        return state, f'OK: Saved style "{save_name}" to {os.path.basename(path)}.'
+
+    if sub == "reset":
+        name = mgr.reset()
+        return state, f'OK: Style "{name}" reset to saved state.'
+
+    if sub == "test":
+        out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+        out_path = os.path.join(out_dir, "style_test.png")
+        # Try PDF first
+        try:
+            from reportlab.pdfgen import canvas as _c  # noqa: F401
+            out_path = os.path.join(out_dir, "style_test.pdf")
+        except ImportError:
+            pass
+        result_path = mgr.generate_test_swatch(out_path)
+        paper = mgr.get("layout.paper", "letter")
+        return state, f"OK: Rendered {os.path.basename(result_path)} ({paper.title()}, all lineweights and hatches at current settings)."
+
+    if sub == "add-hatch":
+        if len(tokens) < 5:
+            raise ValueError("Usage: style add-hatch <name> <spacing_mm> <angle_deg> [weight_pt]")
+        hname = tokens[2]
+        spacing = float(tokens[3])
+        angle = float(tokens[4])
+        weight = float(tokens[5]) if len(tokens) >= 6 else 0.4
+        mgr.add_hatch(hname, spacing, angle, weight)
+        return state, f'OK: Added hatch "{hname}" (spacing {spacing:.1f} mm, angle {angle:.0f} deg, weight {weight:.1f} pt).'
+
+    if sub == "remove-hatch":
+        if len(tokens) < 3:
+            raise ValueError("Usage: style remove-hatch <name>")
+        hname = tokens[2]
+        mgr.remove_hatch(hname)
+        return state, f'OK: Removed hatch "{hname}".'
+
+    raise ValueError(f"Unknown style subcommand: '{sub}'. Options: use, list, show, set, save, reset, test, add-hatch, remove-hatch")
+
+
+# ══════════════════════════════════════════════════════════
+# VIEW COMMANDS
+# ══════════════════════════════════════════════════════════
+
+def _get_view_renderer():
+    """Import and return the state renderer and pdf generator."""
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+    import state_renderer as _sr
+    return _sr
+
+
+def _parse_view_opts(tokens, start=2):
+    """Parse --style, --paper, --scale flags from tokens."""
+    opts = {}
+    i = start
+    while i < len(tokens):
+        if tokens[i] == "--style" and i + 1 < len(tokens):
+            opts["style"] = tokens[i + 1]; i += 2
+        elif tokens[i] == "--paper" and i + 1 < len(tokens):
+            opts["paper"] = tokens[i + 1]; i += 2
+        elif tokens[i] == "--scale" and i + 1 < len(tokens):
+            opts["scale"] = tokens[i + 1]; i += 2
+        elif tokens[i] == "--hidden":
+            opts["hidden"] = True; i += 1
+        else:
+            i += 1
+    return opts
+
+
+def cmd_view(state, tokens, state_file=None):
+    """Handle view subcommands: plan, section, axon, elevation."""
+    if len(tokens) < 2:
+        raise ValueError("Usage: view plan|section|axon|elevation")
+    sub = tokens[1].lower()
+    mgr = _get_style_manager()
+    sr = _get_view_renderer()
+    out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
+
+    if sub == "plan":
+        opts = _parse_view_opts(tokens, 2)
+        if opts.get("style"):
+            mgr.use(opts["style"])
+        paper = opts.get("paper", mgr.get("layout.paper", "letter"))
+        dpi = 300
+        margin = mgr.get("layout.margin_inches", 0.5)
+        img = sr.render(state, dpi=dpi, paper_size=paper, margin_in=margin,
+                        style_manager=mgr)
+        out_path = os.path.join(out_dir, "plan.png")
+        img.save(out_path, dpi=(dpi, dpi))
+        dens = sr.density(img)
+        return state, f"OK: Rendered plan.png ({paper.title()}, {dpi} DPI, density {dens:.1f}%)"
+
+    if sub == "section":
+        if len(tokens) < 4:
+            raise ValueError("Usage: view section <x|y> <gridline> [--style name]")
+        axis = tokens[2].lower()
+        gridline = int(tokens[3])
+        opts = _parse_view_opts(tokens, 4)
+        if opts.get("style"):
+            mgr.use(opts["style"])
+        paper = opts.get("paper", mgr.get("layout.paper", "letter"))
+        dpi = 300
+
+        img = _render_section(state, axis, gridline, mgr, dpi, paper)
+        out_name = f"section_{axis}{gridline}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        dens = sr.density(img)
+        return state, f"OK: Rendered {out_name} (section cut at {axis}-gridline {gridline}, density {dens:.1f}%)"
+
+    if sub == "axon":
+        # Parse optional angles
+        opts = _parse_view_opts(tokens, 2)
+        angle1 = 30.0
+        angle2 = 60.0
+        # Look for numeric args before flags
+        non_flag_args = []
+        i = 2
+        while i < len(tokens):
+            if tokens[i].startswith("--"):
+                break
+            try:
+                non_flag_args.append(float(tokens[i]))
+            except ValueError:
+                pass
+            i += 1
+        if len(non_flag_args) >= 2:
+            angle1, angle2 = non_flag_args[0], non_flag_args[1]
+        elif len(non_flag_args) == 1:
+            angle1 = non_flag_args[0]
+
+        if opts.get("style"):
+            mgr.use(opts["style"])
+        paper = opts.get("paper", mgr.get("layout.paper", "letter"))
+        hidden = opts.get("hidden", False)
+        dpi = 300
+
+        img = _render_axon(state, angle1, angle2, hidden, mgr, dpi, paper)
+        suffix = "_hidden" if hidden else ""
+        out_name = f"axon{suffix}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        dens = sr.density(img)
+        proj_type = "isometric" if angle1 == 45 and angle2 == 45 else f"{angle1:.0f}/{angle2:.0f} projection"
+        line_type = "hidden-line" if hidden else "wireframe"
+        return state, f"OK: Rendered {out_name} ({proj_type}, {line_type}, density {dens:.1f}%)"
+
+    if sub == "elevation":
+        if len(tokens) < 3:
+            raise ValueError("Usage: view elevation <north|south|east|west> [--style name]")
+        direction = tokens[2].lower()
+        if direction not in ("north", "south", "east", "west"):
+            raise ValueError(f"Invalid direction: {direction}. Options: north, south, east, west")
+        opts = _parse_view_opts(tokens, 3)
+        if opts.get("style"):
+            mgr.use(opts["style"])
+        paper = opts.get("paper", mgr.get("layout.paper", "letter"))
+        dpi = 300
+
+        img = _render_elevation(state, direction, mgr, dpi, paper)
+        out_name = f"elevation_{direction}.png"
+        out_path = os.path.join(out_dir, out_name)
+        img.save(out_path, dpi=(dpi, dpi))
+        dens = sr.density(img)
+        return state, f"OK: Rendered {out_name} (density {dens:.1f}%)"
+
+    raise ValueError(f"Unknown view type: '{sub}'. Options: plan, section, axon, elevation")
+
+
+# ---------------------------------------------------------------------------
+# Section renderer
+# ---------------------------------------------------------------------------
+
+def _render_section(state, axis, gridline, style_mgr, dpi=300, paper="letter"):
+    """Render a building section cut at the given axis and gridline."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    paper_sizes = {"letter": (11.0, 8.5), "tabloid": (17.0, 11.0)}
+    pw, ph = paper_sizes.get(paper, (11.0, 8.5))
+    w_px = int(pw * dpi)
+    h_px = int(ph * dpi)
+    margin_px = int(style_mgr.get("layout.margin_inches", 0.5) * dpi)
+
+    img = Image.new('1', (w_px, h_px), 1)
+    draw = ImageDraw.Draw(img)
+
+    def pt_to_px(pt):
+        return max(1, int(round(pt * dpi / 72.0)))
+
+    # Gather geometry: find what the section cuts through
+    site = state.get("site", {})
+    bays = state.get("bays", {})
+    overrides = style_mgr.get("drawing_overrides.section", {})
+    poche_fill = overrides.get("poche_fill", True)
+    beyond_factor = overrides.get("beyond_weight_factor", 0.5)
+
+    cut_weight = pt_to_px(style_mgr.get("lineweights.section_cut", 3.5))
+    wall_ext_weight = pt_to_px(style_mgr.get("lineweights.wall_exterior", 2.5))
+    beyond_weight = max(1, int(wall_ext_weight * beyond_factor))
+
+    # Determine cut position from gridline
+    # We use the first bay that has the relevant gridline
+    cut_pos = None
+    for bname, bay in sorted(bays.items()):
+        if bay.get("grid_type") != "rectangular":
+            continue
+        cx_arr, cy_arr = _get_spacing_arrays(bay)
+        ox, oy = bay["origin"]
+        if axis == "x" and gridline < len(cy_arr):
+            cut_pos = oy + cy_arr[gridline]
+            break
+        elif axis == "y" and gridline < len(cx_arr):
+            cut_pos = ox + cx_arr[gridline]
+            break
+
+    if cut_pos is None:
+        # Fallback: use gridline as direct offset
+        cut_pos = float(gridline) * 24.0
+
+    # For section rendering: project onto the plane perpendicular to cut
+    # axis=x: cut is horizontal; show section looking in +y direction
+    #   horizontal axis = x (model), vertical axis = z (height)
+    # axis=y: cut is vertical; show section looking in +x direction
+    #   horizontal axis = y (model), vertical axis = z (height)
+    default_wall_height = 10.0
+
+    # Collect wall segments that cross the cut plane
+    draw_area_w = w_px - 2 * margin_px
+    draw_area_h = h_px - 2 * margin_px
+
+    # Determine model extents for the section view
+    sw = site.get("width", 200)
+    sh = site.get("height", 200)
+    max_height = default_wall_height
+
+    for bname, bay in bays.items():
+        wh = bay.get("wall_height", default_wall_height)
+        if wh > max_height:
+            max_height = wh
+
+    if axis == "x":
+        model_w = sw
+    else:
+        model_w = sh
+    model_h = max_height * 1.2  # Add some headroom
+
+    scale = min(draw_area_w / max(model_w, 1), draw_area_h / max(model_h, 1))
+
+    def model_to_px(mx, mz):
+        """Convert model (horizontal, height) to pixel coords."""
+        px = margin_px + mx * scale
+        py = margin_px + draw_area_h - mz * scale  # flip Y
+        return (int(round(px)), int(round(py)))
+
+    # Draw ground line
+    p1 = model_to_px(0, 0)
+    p2 = model_to_px(model_w, 0)
+    draw.line([p1, p2], fill=0, width=pt_to_px(style_mgr.get("lineweights.site_boundary", 2.0)))
+
+    # Draw walls in section
+    for bname, bay in sorted(bays.items()):
+        if bay.get("grid_type") != "rectangular":
+            continue
+        walls = bay.get("walls", {})
+        if not walls.get("enabled"):
+            continue
+
+        ox, oy = bay["origin"]
+        rot = bay.get("rotation_deg", 0)
+        cx_arr, cy_arr = _get_spacing_arrays(bay)
+        wh = bay.get("wall_height", default_wall_height)
+        t = walls.get("thickness", 0.5)
+
+        if axis == "x":
+            # Cut is horizontal at y = cut_pos
+            # Check which y-gridlines this bay has near the cut
+            for j, y_val in enumerate(cy_arr):
+                wall_y = oy + y_val
+                if abs(wall_y - cut_pos) < t:
+                    # This wall is cut through
+                    # Draw vertical wall elements at each x span
+                    for i in range(len(cx_arr) - 1):
+                        x_start = ox + cx_arr[i]
+                        x_end = ox + cx_arr[i + 1]
+                        # Section cut: draw heavy rectangle (poche)
+                        p_bl = model_to_px(x_start, 0)
+                        p_tl = model_to_px(x_start, wh)
+                        p_tr = model_to_px(x_end, wh)
+                        p_br = model_to_px(x_end, 0)
+                        # Wall thickness in section (exaggerated for visibility)
+                        half_t_px = max(2, int(t * scale / 2))
+
+                        # Draw wall at each column position
+                        for k in [i, i + 1]:
+                            wall_x = ox + cx_arr[k]
+                            bl = model_to_px(wall_x - t/2, 0)
+                            tl = model_to_px(wall_x - t/2, wh)
+                            tr = model_to_px(wall_x + t/2, wh)
+                            br = model_to_px(wall_x + t/2, 0)
+                            if poche_fill:
+                                draw.polygon([tl, tr, br, bl], fill=0)
+                            else:
+                                draw.polygon([tl, tr, br, bl], fill=None, outline=0, width=cut_weight)
+                elif wall_y > cut_pos:
+                    # Beyond the cut — draw lighter
+                    for k in range(len(cx_arr)):
+                        wall_x = ox + cx_arr[k]
+                        bl = model_to_px(wall_x, 0)
+                        tl = model_to_px(wall_x, wh)
+                        draw.line([bl, tl], fill=0, width=beyond_weight)
+        else:
+            # Cut is vertical at x = cut_pos
+            for i, x_val in enumerate(cx_arr):
+                wall_x = ox + x_val
+                if abs(wall_x - cut_pos) < t:
+                    for k in [j for j in range(len(cy_arr))]:
+                        wall_y_pos = oy + cy_arr[k]
+                        bl = model_to_px(wall_y_pos - t/2, 0)
+                        tl = model_to_px(wall_y_pos - t/2, wh)
+                        tr = model_to_px(wall_y_pos + t/2, wh)
+                        br = model_to_px(wall_y_pos + t/2, 0)
+                        if poche_fill:
+                            draw.polygon([tl, tr, br, bl], fill=0)
+                        else:
+                            draw.polygon([tl, tr, br, bl], fill=None, outline=0, width=cut_weight)
+                elif wall_x > cut_pos:
+                    for k in range(len(cy_arr)):
+                        wall_y_pos = oy + cy_arr[k]
+                        bl = model_to_px(wall_y_pos, 0)
+                        tl = model_to_px(wall_y_pos, wh)
+                        draw.line([bl, tl], fill=0, width=beyond_weight)
+
+    # Draw columns in section
+    col_weight = pt_to_px(style_mgr.get("lineweights.column", 3.0))
+    col_size = state.get("style", {}).get("column_size", 1.5)
+    for bname, bay in sorted(bays.items()):
+        if bay.get("grid_type") != "rectangular":
+            continue
+        ox, oy = bay["origin"]
+        cx_arr, cy_arr = _get_spacing_arrays(bay)
+        wh = bay.get("wall_height", default_wall_height)
+
+        if axis == "x":
+            # Check which columns are at or near the cut
+            for j, y_val in enumerate(cy_arr):
+                if abs(oy + y_val - cut_pos) < col_size:
+                    for i, x_val in enumerate(cx_arr):
+                        col_x = ox + x_val
+                        bl = model_to_px(col_x - col_size/2, 0)
+                        tl = model_to_px(col_x - col_size/2, wh)
+                        tr = model_to_px(col_x + col_size/2, wh)
+                        br = model_to_px(col_x + col_size/2, 0)
+                        draw.polygon([tl, tr, br, bl], fill=0)
+        else:
+            for i, x_val in enumerate(cx_arr):
+                if abs(ox + x_val - cut_pos) < col_size:
+                    for j, y_val in enumerate(cy_arr):
+                        col_y = oy + y_val
+                        bl = model_to_px(col_y - col_size/2, 0)
+                        tl = model_to_px(col_y - col_size/2, wh)
+                        tr = model_to_px(col_y + col_size/2, wh)
+                        br = model_to_px(col_y + col_size/2, 0)
+                        draw.polygon([tl, tr, br, bl], fill=0)
+
+    return img
+
+
+# ---------------------------------------------------------------------------
+# Axonometric renderer
+# ---------------------------------------------------------------------------
+
+def _render_axon(state, angle1, angle2, hidden, style_mgr, dpi=300, paper="letter"):
+    """Render a parallel axonometric projection."""
+    from PIL import Image, ImageDraw
+
+    paper_sizes = {"letter": (11.0, 8.5), "tabloid": (17.0, 11.0)}
+    pw, ph = paper_sizes.get(paper, (11.0, 8.5))
+    w_px = int(pw * dpi)
+    h_px = int(ph * dpi)
+    margin_px = int(style_mgr.get("layout.margin_inches", 0.5) * dpi)
+
+    img = Image.new('1', (w_px, h_px), 1)
+    draw = ImageDraw.Draw(img)
+
+    def pt_to_px(pt):
+        return max(1, int(round(pt * dpi / 72.0)))
+
+    site = state.get("site", {})
+    bays = state.get("bays", {})
+    default_wall_height = 10.0
+
+    # Axon projection angles (in degrees)
+    a_rad = math.radians(angle1)
+    b_rad = math.radians(angle2)
+
+    cos_a = math.cos(a_rad)
+    sin_a = math.sin(a_rad)
+    sin_b = math.sin(b_rad)
+    cos_b = math.cos(b_rad)
+
+    def project(x, y, z):
+        """Project 3D point to 2D axon."""
+        px = x * cos_a + y * sin_a
+        py = -x * sin_a * sin_b + y * cos_a * sin_b + z * cos_b
+        return (px, py)
+
+    # Collect all 3D edges
+    edges = []  # list of ((x1,y1,z1), (x2,y2,z2), depth, element_type)
+
+    sw = site.get("width", 200)
+    sh = site.get("height", 200)
+
+    # Floor plane
+    floor_corners_3d = [(0, 0, 0), (sw, 0, 0), (sw, sh, 0), (0, sh, 0)]
+    for i in range(4):
+        p1 = floor_corners_3d[i]
+        p2 = floor_corners_3d[(i + 1) % 4]
+        depth = (p1[1] + p2[1]) / 2.0
+        edges.append((p1, p2, depth, "site_boundary"))
+
+    # Build 3D wireframe from bays
+    for bname, bay in sorted(bays.items()):
+        if bay.get("grid_type") != "rectangular":
+            continue
+        ox, oy = bay["origin"]
+        rot = bay.get("rotation_deg", 0)
+        cx_arr, cy_arr = _get_spacing_arrays(bay)
+        wh = bay.get("wall_height", default_wall_height)
+        col_size = state.get("style", {}).get("column_size", 1.5)
+
+        # Column verticals
+        for xi in cx_arr:
+            for yi in cy_arr:
+                r = math.radians(rot)
+                wx = ox + xi * math.cos(r) - yi * math.sin(r)
+                wy = oy + xi * math.sin(r) + yi * math.cos(r)
+                p1 = (wx, wy, 0)
+                p2 = (wx, wy, wh)
+                depth = wy
+                edges.append((p1, p2, depth, "column"))
+
+        # Wall edges
+        walls = bay.get("walls", {})
+        if walls.get("enabled"):
+            # Bottom and top horizontal wall lines
+            for j, y_val in enumerate(cy_arr):
+                for segment_start, segment_end in [(0, len(cx_arr) - 1)]:
+                    r = math.radians(rot)
+                    for z in [0, wh]:
+                        sx = ox + cx_arr[0] * math.cos(r) - y_val * math.sin(r)
+                        sy = oy + cx_arr[0] * math.sin(r) + y_val * math.cos(r)
+                        ex = ox + cx_arr[-1] * math.cos(r) - y_val * math.sin(r)
+                        ey = oy + cx_arr[-1] * math.sin(r) + y_val * math.cos(r)
+                        depth = (sy + ey) / 2.0
+                        etype = "wall_exterior" if j == 0 or j == len(cy_arr) - 1 else "wall_interior"
+                        edges.append(((sx, sy, z), (ex, ey, z), depth, etype))
+
+            for i, x_val in enumerate(cx_arr):
+                r = math.radians(rot)
+                for z in [0, wh]:
+                    sx = ox + x_val * math.cos(r) - cy_arr[0] * math.sin(r)
+                    sy = oy + x_val * math.sin(r) + cy_arr[0] * math.cos(r)
+                    ex = ox + x_val * math.cos(r) - cy_arr[-1] * math.sin(r)
+                    ey = oy + x_val * math.sin(r) + cy_arr[-1] * math.cos(r)
+                    depth = (sy + ey) / 2.0
+                    etype = "wall_exterior" if i == 0 or i == len(cx_arr) - 1 else "wall_interior"
+                    edges.append(((sx, sy, z), (ex, ey, z), depth, etype))
+
+            # Vertical wall edges at corners
+            corners_xy = []
+            r = math.radians(rot)
+            for xi in [cx_arr[0], cx_arr[-1]]:
+                for yi in [cy_arr[0], cy_arr[-1]]:
+                    wx = ox + xi * math.cos(r) - yi * math.sin(r)
+                    wy = oy + xi * math.sin(r) + yi * math.cos(r)
+                    corners_xy.append((wx, wy))
+                    edges.append(((wx, wy, 0), (wx, wy, wh), wy, "wall_exterior"))
+
+    # Project all edges to 2D
+    projected = []
+    all_px = []
+    all_py = []
+    for (p1_3d, p2_3d, depth, etype) in edges:
+        px1, py1 = project(*p1_3d)
+        px2, py2 = project(*p2_3d)
+        projected.append(((px1, py1), (px2, py2), depth, etype))
+        all_px.extend([px1, px2])
+        all_py.extend([py1, py2])
+
+    if not all_px:
+        return img
+
+    # Fit projected coords to drawing area
+    min_px, max_px = min(all_px), max(all_px)
+    min_py, max_py = min(all_py), max(all_py)
+    proj_w = max_px - min_px if max_px > min_px else 1
+    proj_h = max_py - min_py if max_py > min_py else 1
+    draw_w = w_px - 2 * margin_px
+    draw_h = h_px - 2 * margin_px
+    scale = min(draw_w / proj_w, draw_h / proj_h) * 0.9
+
+    cx_off = margin_px + draw_w / 2
+    cy_off = margin_px + draw_h / 2
+    mid_px_proj = (min_px + max_px) / 2
+    mid_py_proj = (min_py + max_py) / 2
+
+    def to_screen(px_proj, py_proj):
+        sx = cx_off + (px_proj - mid_px_proj) * scale
+        sy = cy_off - (py_proj - mid_py_proj) * scale  # flip Y
+        return (int(round(sx)), int(round(sy)))
+
+    # Depth fade settings
+    overrides = style_mgr.get("drawing_overrides.axon", {})
+    depth_fade = overrides.get("depth_fade", True)
+    min_factor = overrides.get("depth_fade_min_factor", 0.3)
+
+    all_depths = [d for _, _, d, _ in projected]
+    min_depth = min(all_depths) if all_depths else 0
+    max_depth = max(all_depths) if all_depths else 1
+    depth_range = max_depth - min_depth if max_depth > min_depth else 1
+
+    # Sort by depth (painter's algorithm: far to near)
+    projected.sort(key=lambda e: e[2])
+
+    for (p1_2d, p2_2d, depth, etype) in projected:
+        base_weight = style_mgr.get(f"lineweights.{etype}",
+                                     style_mgr.get("lineweights.wall_interior", 1.5))
+        if depth_fade:
+            # Closer (larger y in world) = heavier
+            norm_depth = (depth - min_depth) / depth_range
+            factor = min_factor + (1.0 - min_factor) * norm_depth
+            weight = base_weight * factor
+        else:
+            weight = base_weight
+
+        weight_px = pt_to_px(weight)
+        s1 = to_screen(*p1_2d)
+        s2 = to_screen(*p2_2d)
+        draw.line([s1, s2], fill=0, width=weight_px)
+
+    return img
+
+
+# ---------------------------------------------------------------------------
+# Elevation renderer
+# ---------------------------------------------------------------------------
+
+def _render_elevation(state, direction, style_mgr, dpi=300, paper="letter"):
+    """Render a building elevation (orthographic projection of one face)."""
+    from PIL import Image, ImageDraw
+
+    paper_sizes = {"letter": (11.0, 8.5), "tabloid": (17.0, 11.0)}
+    pw, ph = paper_sizes.get(paper, (11.0, 8.5))
+    w_px = int(pw * dpi)
+    h_px = int(ph * dpi)
+    margin_px = int(style_mgr.get("layout.margin_inches", 0.5) * dpi)
+
+    img = Image.new('1', (w_px, h_px), 1)
+    draw = ImageDraw.Draw(img)
+
+    def pt_to_px(pt):
+        return max(1, int(round(pt * dpi / 72.0)))
+
+    site = state.get("site", {})
+    bays = state.get("bays", {})
+    default_wall_height = 10.0
+
+    sw = site.get("width", 200)
+    sh = site.get("height", 200)
+
+    # Direction determines which face we see
+    # north: looking from +y toward -y, horizontal=x, vertical=z
+    # south: looking from -y toward +y, horizontal=x (reversed), vertical=z
+    # east: looking from +x toward -x, horizontal=y, vertical=z
+    # west: looking from -x toward +x, horizontal=y (reversed), vertical=z
+
+    max_height = default_wall_height
+    for bname, bay in bays.items():
+        wh = bay.get("wall_height", default_wall_height)
+        if wh > max_height:
+            max_height = wh
+
+    if direction in ("north", "south"):
+        model_w = sw
+    else:
+        model_w = sh
+    model_h = max_height * 1.2
+
+    draw_w = w_px - 2 * margin_px
+    draw_h = h_px - 2 * margin_px
+    elev_scale = min(draw_w / max(model_w, 1), draw_h / max(model_h, 1)) * 0.9
+
+    def model_to_px(mh, mz):
+        px = margin_px + (draw_w - model_w * elev_scale) / 2 + mh * elev_scale
+        py = margin_px + draw_h - mz * elev_scale
+        return (int(round(px)), int(round(py)))
+
+    # Ground line
+    gl1 = model_to_px(0, 0)
+    gl2 = model_to_px(model_w, 0)
+    draw.line([gl1, gl2], fill=0, width=pt_to_px(style_mgr.get("lineweights.site_boundary", 2.0)))
+
+    # Draw walls as rectangles on the elevation
+    for bname, bay in sorted(bays.items()):
+        if bay.get("grid_type") != "rectangular":
+            continue
+        walls = bay.get("walls", {})
+        if not walls.get("enabled"):
+            continue
+
+        ox, oy = bay["origin"]
+        cx_arr, cy_arr = _get_spacing_arrays(bay)
+        wh = bay.get("wall_height", default_wall_height)
+        wall_weight = pt_to_px(style_mgr.get("lineweights.wall_exterior", 2.5))
+
+        if direction == "north":
+            # Front face at max y of this bay
+            face_y = oy + cy_arr[-1]
+            for i in range(len(cx_arr)):
+                wall_h = ox + cx_arr[i]
+                bl = model_to_px(wall_h, 0)
+                tl = model_to_px(wall_h, wh)
+                draw.line([bl, tl], fill=0, width=wall_weight)
+            # Top and bottom horizontals
+            left = ox + cx_arr[0]
+            right = ox + cx_arr[-1]
+            draw.line([model_to_px(left, 0), model_to_px(right, 0)], fill=0, width=wall_weight)
+            draw.line([model_to_px(left, wh), model_to_px(right, wh)], fill=0, width=wall_weight)
+
+        elif direction == "south":
+            face_y = oy + cy_arr[0]
+            for i in range(len(cx_arr)):
+                wall_h = ox + cx_arr[i]
+                bl = model_to_px(wall_h, 0)
+                tl = model_to_px(wall_h, wh)
+                draw.line([bl, tl], fill=0, width=wall_weight)
+            left = ox + cx_arr[0]
+            right = ox + cx_arr[-1]
+            draw.line([model_to_px(left, 0), model_to_px(right, 0)], fill=0, width=wall_weight)
+            draw.line([model_to_px(left, wh), model_to_px(right, wh)], fill=0, width=wall_weight)
+
+        elif direction == "east":
+            for j in range(len(cy_arr)):
+                wall_h = oy + cy_arr[j]
+                bl = model_to_px(wall_h, 0)
+                tl = model_to_px(wall_h, wh)
+                draw.line([bl, tl], fill=0, width=wall_weight)
+            bottom_l = oy + cy_arr[0]
+            bottom_r = oy + cy_arr[-1]
+            draw.line([model_to_px(bottom_l, 0), model_to_px(bottom_r, 0)], fill=0, width=wall_weight)
+            draw.line([model_to_px(bottom_l, wh), model_to_px(bottom_r, wh)], fill=0, width=wall_weight)
+
+        elif direction == "west":
+            for j in range(len(cy_arr)):
+                wall_h = oy + cy_arr[j]
+                bl = model_to_px(wall_h, 0)
+                tl = model_to_px(wall_h, wh)
+                draw.line([bl, tl], fill=0, width=wall_weight)
+            bottom_l = oy + cy_arr[0]
+            bottom_r = oy + cy_arr[-1]
+            draw.line([model_to_px(bottom_l, 0), model_to_px(bottom_r, 0)], fill=0, width=wall_weight)
+            draw.line([model_to_px(bottom_l, wh), model_to_px(bottom_r, wh)], fill=0, width=wall_weight)
+
+    return img
+
+
+# ══════════════════════════════════════════════════════════
 # COMMAND DISPATCH
 # ══════════════════════════════════════════════════════════
 
@@ -1910,6 +2649,8 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "history":  return cmd_history(state, tokens, state_file)
     if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
     if cmd == "setup":    return cmd_setup(state, tokens, state_file)
+    if cmd == "style":    return cmd_style(state, tokens, state_file)
+    if cmd == "view":     return cmd_view(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -2083,6 +2824,23 @@ TEXT-TO-SPEECH:
   tts ........................ show TTS status
   tts on|off ................. enable/disable speech
   tts rate <-10..10> ......... speech rate (-10=slowest, 10=fastest)
+
+STYLE PROFILES (PIAF rendering):
+  style list .............. list available styles
+  style use <name> ........ switch active style
+  style show [category] ... show settings (lineweights, hatches, labels, layout, density)
+  style set <key> <value> . set a value (dot notation: lineweights.column 4.0)
+  style save [name] ....... save current style (or save-as with name)
+  style reset ............. discard unsaved changes
+  style test .............. render calibration test swatch
+  style add-hatch <name> <spacing_mm> <angle_deg> [weight_pt]
+  style remove-hatch <name>
+
+VIEW (drawing types with style support):
+  view plan [--style <name>] [--paper <size>]
+  view section <x|y> <gridline> [--style <name>]
+  view axon [angle1] [angle2] [--hidden] [--style <name>]
+  view elevation <north|south|east|west> [--style <name>]
 
 OUTPUT:
   set print scale|paper|margin|dpi|format <value>

@@ -1,0 +1,125 @@
+{
+  "name": "presentation",
+  "description": "Studio review and exhibition output. Heavy lines, large labels, tabloid.",
+
+  "lineweights": {
+    "column": 3.5,
+    "wall_exterior": 3.0,
+    "wall_interior": 2.0,
+    "corridor_edge": 1.5,
+    "corridor_dash": 1.3,
+    "door_swing": 1.1,
+    "door_frame": 1.3,
+    "window_line": 1.1,
+    "portal_line": 1.1,
+    "grid_line": 0.8,
+    "section_cut": 4.0,
+    "section_beyond": 1.3,
+    "hatch_line": 0.9,
+    "dimension_line": 0.8,
+    "leader_line": 0.8,
+    "site_boundary": 2.5,
+    "north_arrow": 2.0
+  },
+
+  "hatches": {
+    "diagonal": {
+      "spacing_mm": 10.0,
+      "angle_deg": 45,
+      "weight_pt": 0.5
+    },
+    "crosshatch": {
+      "spacing_mm": 10.0,
+      "angle_deg": [45, 135],
+      "weight_pt": 0.5
+    },
+    "horizontal": {
+      "spacing_mm": 8.0,
+      "angle_deg": 0,
+      "weight_pt": 0.5
+    },
+    "vertical": {
+      "spacing_mm": 8.0,
+      "angle_deg": 90,
+      "weight_pt": 0.5
+    },
+    "dots": {
+      "spacing_mm": 6.0,
+      "radius_mm": 1.2,
+      "filled": true
+    },
+    "dense_diagonal": {
+      "spacing_mm": 7.0,
+      "angle_deg": 45,
+      "weight_pt": 0.6
+    },
+    "sparse_diagonal": {
+      "spacing_mm": 14.0,
+      "angle_deg": 45,
+      "weight_pt": 0.4
+    }
+  },
+
+  "labels": {
+    "braille_pt": 34,
+    "room_name_pt": 16,
+    "dimension_pt": 12,
+    "legend_title_pt": 18,
+    "legend_entry_pt": 14,
+    "bay_label_pt": 18,
+    "grid_label_pt": 14
+  },
+
+  "layout": {
+    "paper": "tabloid",
+    "orientation": "landscape",
+    "margin_inches": 0.75,
+    "scale": "auto",
+    "title_block": true,
+    "legend": true,
+    "north_arrow": true,
+    "grid_labels": true,
+    "braille_labels": true,
+    "english_labels": true,
+    "dimensions": false,
+    "section_marks": true
+  },
+
+  "density": {
+    "target_percent": 25,
+    "warning_percent": 35,
+    "reject_percent": 40,
+    "auto_adjust": true,
+    "priority": [
+      "column",
+      "wall_exterior",
+      "wall_interior",
+      "corridor_edge",
+      "section_cut",
+      "door_frame",
+      "labels",
+      "hatches",
+      "grid_line"
+    ]
+  },
+
+  "drawing_overrides": {
+    "plan": {},
+    "section": {
+      "poche_fill": true,
+      "beyond_weight_factor": 0.5,
+      "hatches_beyond_cut": false
+    },
+    "axon": {
+      "hatches": false,
+      "depth_fade": true,
+      "depth_fade_min_factor": 0.3,
+      "hidden_line": true,
+      "projection_angle": [30, 60]
+    },
+    "elevation": {
+      "hatches": true,
+      "depth_fade": false
+    }
+  }
+}

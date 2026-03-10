@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-State Renderer — Render state.json to PIAF-ready B&W image  v1.0
+State Renderer — Render state.json to PIAF-ready B&W image  v2.0
 =================================================================
 Reads the Layout Jig Canonical Model Artifact (state.json) and
 draws a high-contrast black-and-white plan at 300 DPI, suitable
@@ -11,6 +11,10 @@ No Rhino dependency.  Uses Pillow for rasterization.
 Draws:  site boundary, column grid, walls (with aperture gaps),
         corridors (dashed), door/window/portal symbols, room hatches,
         void outlines, text labels, braille labels, legend, section cut.
+
+v2.0: StyleManager integration. All rendering properties are read from
+the active style profile when a StyleManager is provided. Falls back
+to hardcoded values from state.json for backward compatibility.
 
 Part of the Radical Accessibility Project — UIUC School of Architecture.
 
@@ -47,16 +51,7 @@ MIN_LINE_PX = 2  # minimum line width for PIAF readability
 # ---------------------------------------------------------------------------
 # PIAF text sizing — paper-absolute, independent of model scale
 # ---------------------------------------------------------------------------
-# BANA standard (Braille Authority of North America) specifies:
-#   Cell-to-cell horizontal: 0.245 in (6.2 mm)
-#   Line spacing: 0.400 in (10.0 mm)
-#   Dot-to-dot within cell: 0.092 in (2.34 mm)
-# A font size of ~30pt renders Unicode Braille characters at approximately
-# 10 mm line height, matching the BANA line-spacing standard.
-# These are PAPER-ABSOLUTE sizes — they do not change with model scale.
-# The state.json style.label_text_height / braille_text_height fields
-# (in feet) still control the Rhino watcher; this renderer overrides them
-# because PIAF output must have fixed braille dimensions.
+# These are fallback defaults when no StyleManager is provided.
 BRAILLE_FONT_PT = 30    # ~10 mm line height (BANA standard)
 TEXT_FONT_PT = 12        # 12 pt English text (~4.2 mm)
 LEGEND_TITLE_FONT_PT = 16  # 16 pt legend title (~5.6 mm)
@@ -130,13 +125,20 @@ def _calc_wall_segments(wall_len, apertures):
 # ---------------------------------------------------------------------------
 
 class StateRenderer:
-    """Renders state.json to a B&W PIL Image for PIAF printing."""
+    """Renders state.json to a B&W PIL Image for PIAF printing.
+
+    When a style_manager is provided, all rendering properties are read
+    from the active style profile via style_manager.get(). When omitted,
+    falls back to hardcoded values from the state.json style block for
+    full backward compatibility.
+    """
 
     def __init__(self, state, dpi=DEFAULT_DPI, paper_size="letter",
-                 margin_in=DEFAULT_MARGIN_IN):
+                 margin_in=DEFAULT_MARGIN_IN, style_manager=None):
         self.state = state
         self.dpi = dpi
         self.margin_in = margin_in
+        self._sm = style_manager  # StyleManager or None
 
         pw, ph = PAPER_SIZES.get(paper_size, PAPER_SIZES["letter"])
         self.paper_w_px = int(pw * dpi)
@@ -151,19 +153,68 @@ class StateRenderer:
 
         self.scale = min(draw_w / site_w, draw_h / site_h)
 
-        # Style settings
-        style = state.get("style", {})
-        self.heavy_px = _mm_to_px(style.get("heavy_lineweight_mm", 1.4), dpi)
-        self.wall_px = _mm_to_px(style.get("wall_lineweight_mm", 0.25), dpi)
-        self.corr_px = _mm_to_px(style.get("corridor_lineweight_mm", 0.35), dpi)
-        self.light_px = max(1, round(style.get("light_lineweight_mm", 0.08) * dpi / 25.4))
-        self.col_size = style.get("column_size", 1.5)
+        # Lineweight resolution: prefer StyleManager, fall back to state.json
+        if self._sm:
+            # Lineweights from style profile (in points), convert to pixels
+            self.col_px = _pt_to_px(self._sm.get("lineweights.column", 3.0), dpi)
+            self.wall_ext_px = _pt_to_px(self._sm.get("lineweights.wall_exterior", 2.5), dpi)
+            self.wall_int_px = _pt_to_px(self._sm.get("lineweights.wall_interior", 1.5), dpi)
+            self.corr_edge_px = _pt_to_px(self._sm.get("lineweights.corridor_edge", 1.0), dpi)
+            self.corr_dash_px = _pt_to_px(self._sm.get("lineweights.corridor_dash", 0.8), dpi)
+            self.door_swing_px = _pt_to_px(self._sm.get("lineweights.door_swing", 0.6), dpi)
+            self.door_frame_px = _pt_to_px(self._sm.get("lineweights.door_frame", 0.8), dpi)
+            self.window_px = _pt_to_px(self._sm.get("lineweights.window_line", 0.6), dpi)
+            self.portal_px = _pt_to_px(self._sm.get("lineweights.portal_line", 0.6), dpi)
+            self.grid_px = _pt_to_px(self._sm.get("lineweights.grid_line", 0.3), dpi)
+            self.section_cut_px = _pt_to_px(self._sm.get("lineweights.section_cut", 3.5), dpi)
+            self.hatch_px = _pt_to_px(self._sm.get("lineweights.hatch_line", 0.4), dpi)
+            self.site_px = _pt_to_px(self._sm.get("lineweights.site_boundary", 2.0), dpi)
+            self.col_size = state.get("style", {}).get("column_size", 1.5)
+            # Use wall_exterior as the default wall lineweight
+            self.wall_px = self.wall_ext_px
+            self.corr_px = self.corr_edge_px
+            self.heavy_px = self.col_px
+            self.light_px = self.grid_px
+            # Label sizes from style profile (paper-absolute points)
+            self._braille_pt = self._sm.get("labels.braille_pt", BRAILLE_FONT_PT)
+            self._text_pt = self._sm.get("labels.room_name_pt", TEXT_FONT_PT)
+            self._legend_title_pt = self._sm.get("labels.legend_title_pt", LEGEND_TITLE_FONT_PT)
+            self._legend_text_pt = self._sm.get("labels.legend_entry_pt", LEGEND_TEXT_FONT_PT)
+            self._bay_label_pt = self._sm.get("labels.bay_label_pt", TEXT_FONT_PT)
+        else:
+            # Legacy fallback: read from state.json style block
+            style = state.get("style", {})
+            self.heavy_px = _mm_to_px(style.get("heavy_lineweight_mm", 1.4), dpi)
+            self.wall_px = _mm_to_px(style.get("wall_lineweight_mm", 0.25), dpi)
+            self.corr_px = _mm_to_px(style.get("corridor_lineweight_mm", 0.35), dpi)
+            self.light_px = max(1, round(style.get("light_lineweight_mm", 0.08) * dpi / 25.4))
+            self.col_size = style.get("column_size", 1.5)
+            # Set all specific lineweights to the legacy values
+            self.col_px = self.heavy_px
+            self.wall_ext_px = self.wall_px
+            self.wall_int_px = self.wall_px
+            self.corr_edge_px = self.corr_px
+            self.corr_dash_px = self.corr_px
+            self.door_swing_px = self.wall_px
+            self.door_frame_px = self.wall_px
+            self.window_px = self.wall_px
+            self.portal_px = self.wall_px
+            self.grid_px = self.light_px
+            self.section_cut_px = self.corr_px
+            self.hatch_px = max(1, self.light_px)
+            self.site_px = self.light_px
+            # Legacy label sizes
+            self._braille_pt = BRAILLE_FONT_PT
+            self._text_pt = TEXT_FONT_PT
+            self._legend_title_pt = LEGEND_TITLE_FONT_PT
+            self._legend_text_pt = LEGEND_TEXT_FONT_PT
+            self._bay_label_pt = TEXT_FONT_PT
 
         self.img = None
         self.draw = None
 
     def _w2p(self, wx, wy):
-        """World coords (feet) → pixel coords on the image."""
+        """World coords (feet) -> pixel coords on the image."""
         px = self.margin_px + wx * self.scale
         # Flip Y axis (image Y goes down, world Y goes up)
         site_h = self.state.get("site", {}).get("height", 200)
@@ -177,6 +228,29 @@ class StateRenderer:
     def _ft_to_px(self, feet):
         """Convert a distance in feet to pixels."""
         return max(1, int(round(feet * self.scale)))
+
+    def _hatch_spacing_px(self, pattern_name):
+        """Get hatch spacing in pixels (paper-absolute conversion).
+
+        Hatch spacing is specified in mm on the physical paper and does
+        NOT change with model scale.
+        """
+        if self._sm:
+            spacing_mm = self._sm.get(
+                "hatches.{}.spacing_mm".format(pattern_name), 8.0)
+        else:
+            spacing_mm = 8.0  # default fallback
+        # Paper-absolute: mm -> pixels via DPI
+        return max(4, int(round(spacing_mm * self.dpi / 25.4)))
+
+    def _hatch_weight_px(self, pattern_name):
+        """Get hatch line weight in pixels (paper-absolute)."""
+        if self._sm:
+            weight_pt = self._sm.get(
+                "hatches.{}.weight_pt".format(pattern_name), 0.4)
+        else:
+            weight_pt = 0.4
+        return max(1, int(round(weight_pt * self.dpi / 72.0)))
 
     # -- Drawing primitives --
 
@@ -238,7 +312,7 @@ class StateRenderer:
         """Draw site boundary rectangle."""
         sw = self.state["site"]["width"]
         sh = self.state["site"]["height"]
-        self._rect_outline((0, 0), (sw, sh), width=self.light_px)
+        self._rect_outline((0, 0), (sw, sh), width=self.site_px)
 
     def _draw_columns(self):
         """Draw filled circles at each column position."""
@@ -287,8 +361,12 @@ class StateRenderer:
             cx_arr, cy_arr = _get_spacing_arrays(bay)
             aps = bay.get("apertures", [])
 
+            # Determine wall weight: exterior vs interior
+            # First and last gridlines are exterior walls
             # Horizontal walls (x-axis gridlines)
             for j, y_val in enumerate(cy_arr):
+                is_exterior = (j == 0 or j == len(cy_arr) - 1)
+                w_px = self.wall_ext_px if is_exterior else self.wall_int_px
                 wall_aps = sorted(
                     [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
                     key=lambda a: a.get("corner", 0))
@@ -296,11 +374,11 @@ class StateRenderer:
                     # Top edge
                     p1 = _local_to_world(s, y_val - half_t, (ox, oy), rot)
                     p2 = _local_to_world(e, y_val - half_t, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, w_px)
                     # Bottom edge
                     p1 = _local_to_world(s, y_val + half_t, (ox, oy), rot)
                     p2 = _local_to_world(e, y_val + half_t, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, w_px)
                 # End caps at aperture edges
                 for ap in wall_aps:
                     cn = ap.get("corner", 0)
@@ -308,27 +386,29 @@ class StateRenderer:
                     for x_pos in [cn, cn + wd]:
                         p1 = _local_to_world(x_pos, y_val - half_t, (ox, oy), rot)
                         p2 = _local_to_world(x_pos, y_val + half_t, (ox, oy), rot)
-                        self._line(p1, p2, self.wall_px)
+                        self._line(p1, p2, w_px)
 
             # Vertical walls (y-axis gridlines)
             for i, x_val in enumerate(cx_arr):
+                is_exterior = (i == 0 or i == len(cx_arr) - 1)
+                w_px = self.wall_ext_px if is_exterior else self.wall_int_px
                 wall_aps = sorted(
                     [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
                     key=lambda a: a.get("corner", 0))
                 for s, e in _calc_wall_segments(cy_arr[-1], wall_aps):
                     p1 = _local_to_world(x_val - half_t, s, (ox, oy), rot)
                     p2 = _local_to_world(x_val - half_t, e, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, w_px)
                     p1 = _local_to_world(x_val + half_t, s, (ox, oy), rot)
                     p2 = _local_to_world(x_val + half_t, e, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, w_px)
                 for ap in wall_aps:
                     cn = ap.get("corner", 0)
                     wd = ap.get("width", 3)
                     for y_pos in [cn, cn + wd]:
                         p1 = _local_to_world(x_val - half_t, y_pos, (ox, oy), rot)
                         p2 = _local_to_world(x_val + half_t, y_pos, (ox, oy), rot)
-                        self._line(p1, p2, self.wall_px)
+                        self._line(p1, p2, w_px)
 
     def _draw_door_arc(self, ap, bay):
         """Draw a door arc swing symbol."""
@@ -346,16 +426,14 @@ class StateRenderer:
         if axis == "x":
             y_val = cy_arr[gl] if gl < len(cy_arr) else cy_arr[-1]
             hx = cn if hinge == "start" else cn + wd
-            # Arc from open end
             center_w = _local_to_world(hx, y_val, (ox, oy), rot)
             r_px = self._ft_to_px(wd)
             cx_px, cy_px = self._w2p(center_w[0], center_w[1])
 
-            # Draw arc (quarter circle)
             start_angle = 0 if swing_sign > 0 else 270
             end_angle = start_angle + 90
             bbox = [cx_px - r_px, cy_px - r_px, cx_px + r_px, cy_px + r_px]
-            self.draw.arc(bbox, start_angle, end_angle, fill=0, width=self.wall_px)
+            self.draw.arc(bbox, start_angle, end_angle, fill=0, width=self.door_swing_px)
         else:
             x_val = cx_arr[gl] if gl < len(cx_arr) else cx_arr[-1]
             hy = cn if hinge == "start" else cn + wd
@@ -365,7 +443,7 @@ class StateRenderer:
             start_angle = 180 if swing_sign > 0 else 90
             end_angle = start_angle + 90
             bbox = [cx_px - r_px, cy_px - r_px, cx_px + r_px, cy_px + r_px]
-            self.draw.arc(bbox, start_angle, end_angle, fill=0, width=self.wall_px)
+            self.draw.arc(bbox, start_angle, end_angle, fill=0, width=self.door_swing_px)
 
     def _draw_apertures(self):
         """Draw aperture symbols (doors, windows, portals)."""
@@ -399,17 +477,16 @@ class StateRenderer:
 
         if axis == "x":
             y_val = cy_arr[gl] if gl < len(cy_arr) else cy_arr[-1]
-            # Two parallel glass lines
             for off in [-offset, offset]:
                 p1 = _local_to_world(cn, y_val + off, (ox, oy), rot)
                 p2 = _local_to_world(cn + wd, y_val + off, (ox, oy), rot)
-                self._line(p1, p2, self.wall_px)
+                self._line(p1, p2, self.window_px)
         else:
             x_val = cx_arr[gl] if gl < len(cx_arr) else cx_arr[-1]
             for off in [-offset, offset]:
                 p1 = _local_to_world(x_val + off, cn, (ox, oy), rot)
                 p2 = _local_to_world(x_val + off, cn + wd, (ox, oy), rot)
-                self._line(p1, p2, self.wall_px)
+                self._line(p1, p2, self.window_px)
 
     def _draw_portal_symbol(self, ap, bay, cx_arr, cy_arr, ox, oy, rot):
         """Draw bracket marks for portal opening."""
@@ -426,14 +503,14 @@ class StateRenderer:
                 for sign in [-1, 1]:
                     p1 = _local_to_world(x_off, y_val + sign * bracket, (ox, oy), rot)
                     p2 = _local_to_world(x_off, y_val, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, self.portal_px)
         else:
             x_val = cx_arr[gl] if gl < len(cx_arr) else cx_arr[-1]
             for y_off in [cn, cn + wd]:
                 for sign in [-1, 1]:
                     p1 = _local_to_world(x_val + sign * bracket, y_off, (ox, oy), rot)
                     p2 = _local_to_world(x_val, y_off, (ox, oy), rot)
-                    self._line(p1, p2, self.wall_px)
+                    self._line(p1, p2, self.portal_px)
 
     def _draw_corridors(self):
         """Draw corridor dashed centerlines and boundaries."""
@@ -462,29 +539,34 @@ class StateRenderer:
                 # Centerline (dashed)
                 p1 = _local_to_world(0, y_val, (ox, oy), rot)
                 p2 = _local_to_world(span, y_val, (ox, oy), rot)
-                self._dashed_line(p1, p2, self.corr_px, dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_dash_px, dash_ft, gap_ft)
                 # Boundary lines
                 p1 = _local_to_world(0, y_val - half_w, (ox, oy), rot)
                 p2 = _local_to_world(span, y_val - half_w, (ox, oy), rot)
-                self._dashed_line(p1, p2, max(1, self.corr_px // 2), dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_edge_px, dash_ft, gap_ft)
                 p1 = _local_to_world(0, y_val + half_w, (ox, oy), rot)
                 p2 = _local_to_world(span, y_val + half_w, (ox, oy), rot)
-                self._dashed_line(p1, p2, max(1, self.corr_px // 2), dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_edge_px, dash_ft, gap_ft)
             else:
                 x_val = cx_arr[pos] if pos < len(cx_arr) else cx_arr[-1]
                 span = cy_arr[-1]
                 p1 = _local_to_world(x_val, 0, (ox, oy), rot)
                 p2 = _local_to_world(x_val, span, (ox, oy), rot)
-                self._dashed_line(p1, p2, self.corr_px, dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_dash_px, dash_ft, gap_ft)
                 p1 = _local_to_world(x_val - half_w, 0, (ox, oy), rot)
                 p2 = _local_to_world(x_val - half_w, span, (ox, oy), rot)
-                self._dashed_line(p1, p2, max(1, self.corr_px // 2), dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_edge_px, dash_ft, gap_ft)
                 p1 = _local_to_world(x_val + half_w, 0, (ox, oy), rot)
                 p2 = _local_to_world(x_val + half_w, span, (ox, oy), rot)
-                self._dashed_line(p1, p2, max(1, self.corr_px // 2), dash_ft, gap_ft)
+                self._dashed_line(p1, p2, self.corr_edge_px, dash_ft, gap_ft)
 
     def _draw_hatch_region(self, corners_world, pattern, spacing_ft=2.0):
-        """Fill a polygon region with a hatch pattern."""
+        """Fill a polygon region with a hatch pattern.
+
+        When a StyleManager is available, hatch spacing is paper-absolute
+        (read from the style profile in mm). Otherwise, falls back to
+        spacing_ft converted via model scale.
+        """
         if pattern in ("none", None, ""):
             return
         # Convert world corners to pixel coords
@@ -498,7 +580,13 @@ class StateRenderer:
         x0, x1 = min(xs), max(xs)
         y0, y1 = min(ys), max(ys)
 
-        spacing_px = max(4, self._ft_to_px(spacing_ft))
+        # Paper-absolute spacing when StyleManager is available
+        if self._sm:
+            spacing_px = self._hatch_spacing_px(pattern)
+            weight_px = self._hatch_weight_px(pattern)
+        else:
+            spacing_px = max(4, self._ft_to_px(spacing_ft))
+            weight_px = 1
 
         # Create a mask for the polygon
         mask = Image.new('1', self.img.size, 0)
@@ -511,21 +599,35 @@ class StateRenderer:
 
         if pattern == "diagonal":
             for offset in range(-max(x1 - x0, y1 - y0), max(x1 - x0, y1 - y0), spacing_px):
-                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=1)
+                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=weight_px)
         elif pattern == "crosshatch":
             for offset in range(-max(x1 - x0, y1 - y0), max(x1 - x0, y1 - y0), spacing_px):
-                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=1)
-                temp_draw.line([(x0 + offset, y1), (x1 + offset, y0)], fill=0, width=1)
+                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=weight_px)
+                temp_draw.line([(x0 + offset, y1), (x1 + offset, y0)], fill=0, width=weight_px)
         elif pattern == "dots":
+            dot_r = 1
+            if self._sm:
+                r_mm = self._sm.get("hatches.dots.radius_mm", 1.0)
+                dot_r = max(1, int(round(r_mm * self.dpi / 25.4)))
             for x in range(x0, x1, spacing_px):
                 for y in range(y0, y1, spacing_px):
-                    temp_draw.ellipse([x - 1, y - 1, x + 1, y + 1], fill=0)
+                    temp_draw.ellipse([x - dot_r, y - dot_r, x + dot_r, y + dot_r], fill=0)
         elif pattern == "horizontal":
             for y in range(y0, y1, spacing_px):
-                temp_draw.line([(x0, y), (x1, y)], fill=0, width=1)
+                temp_draw.line([(x0, y), (x1, y)], fill=0, width=weight_px)
         elif pattern == "vertical":
             for x in range(x0, x1, spacing_px):
-                temp_draw.line([(x, y0), (x, y1)], fill=0, width=1)
+                temp_draw.line([(x, y0), (x, y1)], fill=0, width=weight_px)
+        elif pattern == "dense_diagonal":
+            sp = self._hatch_spacing_px("dense_diagonal") if self._sm else max(4, spacing_px // 2)
+            wt = self._hatch_weight_px("dense_diagonal") if self._sm else weight_px
+            for offset in range(-max(x1 - x0, y1 - y0), max(x1 - x0, y1 - y0), sp):
+                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=wt)
+        elif pattern == "sparse_diagonal":
+            sp = self._hatch_spacing_px("sparse_diagonal") if self._sm else max(4, spacing_px * 2)
+            wt = self._hatch_weight_px("sparse_diagonal") if self._sm else weight_px
+            for offset in range(-max(x1 - x0, y1 - y0), max(x1 - x0, y1 - y0), sp):
+                temp_draw.line([(x0 + offset, y0), (x1 + offset, y1)], fill=0, width=wt)
         elif pattern == "solid":
             temp_draw.polygon(pts, fill=0)
 
@@ -579,13 +681,13 @@ class StateRenderer:
             shape = bay.get("void_shape", "rectangle")
             if shape == "circle":
                 radius = vs[0] / 2.0
-                self._circle_outline(vc, radius, self.light_px)
+                self._circle_outline(vc, radius, self.grid_px)
             else:
                 half_w = vs[0] / 2.0
                 half_h = vs[1] / 2.0
                 p1 = (vc[0] - half_w, vc[1] - half_h)
                 p2 = (vc[0] + half_w, vc[1] + half_h)
-                self._rect_outline(p1, p2, self.light_px)
+                self._rect_outline(p1, p2, self.grid_px)
 
     def _draw_labels(self):
         """Draw English and braille labels for each bay."""
@@ -610,8 +712,8 @@ class StateRenderer:
 
             if label:
                 px, py = self._w2p(label_world[0], label_world[1])
-                # Paper-absolute 12pt English text (PIAF standard)
-                font_h = _pt_to_px(TEXT_FONT_PT, self.dpi)
+                # Paper-absolute English text
+                font_h = _pt_to_px(self._bay_label_pt, self.dpi)
                 try:
                     font = ImageFont.truetype("arial.ttf", font_h)
                 except (IOError, OSError):
@@ -619,20 +721,17 @@ class StateRenderer:
                 self.draw.text((px, py), label, fill=0, font=font, anchor="mt")
 
             if braille_text:
-                # If braille is empty, auto-generate from label
                 if not braille_text.strip() and label:
                     braille_text = _braille.to_braille(label)
-                # Offset braille below English label by BANA line spacing
-                # (0.400 in = 10 mm) converted to model feet via inverse scale
-                brl_offset_px = _pt_to_px(BRAILLE_FONT_PT, self.dpi)
+                brl_offset_px = _pt_to_px(self._braille_pt, self.dpi)
                 brl_off_ft = brl_offset_px / self.scale if self.scale > 0 else 1.0
                 brl_world = _local_to_world(
                     mid_x if gt == "rectangular" else 0,
                     (top_y + brl_off_ft) if gt == "rectangular" else (oy + outer + label_off + brl_off_ft) - oy,
                     (ox, oy), rot)
                 px, py = self._w2p(brl_world[0], brl_world[1])
-                # Paper-absolute 30pt braille (BANA standard ~10 mm line height)
-                brl_h = _pt_to_px(BRAILLE_FONT_PT, self.dpi)
+                # Paper-absolute braille
+                brl_h = _pt_to_px(self._braille_pt, self.dpi)
                 try:
                     font = ImageFont.truetype("DejaVuSans.ttf", brl_h)
                 except (IOError, OSError):
@@ -652,16 +751,15 @@ class StateRenderer:
         sw = self.state["site"]["width"]
         sh = self.state["site"]["height"]
         if axis == "x":
-            self._dashed_line((0, offset), (sw, offset), self.corr_px, 4.0, 2.0)
+            self._dashed_line((0, offset), (sw, offset), self.section_cut_px, 4.0, 2.0)
         else:
-            self._dashed_line((offset, 0), (offset, sh), self.corr_px, 4.0, 2.0)
+            self._dashed_line((offset, 0), (offset, sh), self.section_cut_px, 4.0, 2.0)
 
     def _draw_legend(self):
         """Draw legend box with hatch swatches and labels."""
         legend = self.state.get("legend", {})
         if not legend.get("enabled"):
             return
-        # Simplified legend: box in corner with room list
         position = legend.get("position", "bottom-right")
         width_ft = legend.get("width", 40.0)
         padding = legend.get("padding", 3.0)
@@ -677,7 +775,7 @@ class StateRenderer:
 
         sw = self.state["site"]["width"]
         sh = self.state["site"]["height"]
-        legend_h = padding * 2 + row_h * (len(hatched) + 1)  # +1 for title
+        legend_h = padding * 2 + row_h * (len(hatched) + 1)
 
         if "right" in position:
             lx = sw - width_ft - padding
@@ -692,27 +790,26 @@ class StateRenderer:
         self._rect_outline((lx, ly), (lx + width_ft, ly + legend_h),
                            _mm_to_px(legend.get("border_weight_mm", 0.5), self.dpi))
 
-        # Title — paper-absolute 16pt
+        # Title — paper-absolute
         title = legend.get("title", "Legend")
         px, py = self._w2p(lx + padding, ly + legend_h - padding)
         try:
             title_font = ImageFont.truetype("arial.ttf",
-                                            _pt_to_px(LEGEND_TITLE_FONT_PT, self.dpi))
+                                            _pt_to_px(self._legend_title_pt, self.dpi))
         except (IOError, OSError):
             title_font = ImageFont.load_default()
         self.draw.text((px, py), title, fill=0, font=title_font)
 
-        # Label font — paper-absolute 12pt
+        # Label font — paper-absolute
         try:
             label_font = ImageFont.truetype("arial.ttf",
-                                            _pt_to_px(LEGEND_TEXT_FONT_PT, self.dpi))
+                                            _pt_to_px(self._legend_text_pt, self.dpi))
         except (IOError, OSError):
             label_font = ImageFont.load_default()
 
         # Room rows with hatch swatches
         for idx, (rname, rdata) in enumerate(hatched):
             ry = ly + legend_h - padding - row_h * (idx + 2)
-            # Hatch swatch
             corners = [
                 (lx + padding, ry),
                 (lx + padding + swatch, ry),
@@ -723,7 +820,6 @@ class StateRenderer:
             if hatch_pat != "none":
                 self._draw_hatch_region(corners, hatch_pat, spacing_ft=1.0)
             self._rect_outline(corners[0], corners[2], 1)
-            # Label — paper-absolute 12pt
             label_text = rdata.get("label", rname)
             lbl_px, lbl_py = self._w2p(lx + padding + swatch + padding, ry + swatch / 2)
             self.draw.text((lbl_px, lbl_py), label_text, fill=0, font=label_font)
@@ -755,20 +851,22 @@ class StateRenderer:
 # Public API
 # ---------------------------------------------------------------------------
 
-def render(state, dpi=DEFAULT_DPI, paper_size="letter", margin_in=DEFAULT_MARGIN_IN):
+def render(state, dpi=DEFAULT_DPI, paper_size="letter", margin_in=DEFAULT_MARGIN_IN,
+           style_manager=None):
     """Render state.json dict to a B&W PIL Image for PIAF printing.
 
     Args:
-        state:     Parsed state.json dict.
-        dpi:       Output resolution (default 300).
-        paper_size: "letter" or "tabloid".
-        margin_in:  Margin in inches.
+        state:         Parsed state.json dict.
+        dpi:           Output resolution (default 300).
+        paper_size:    "letter" or "tabloid".
+        margin_in:     Margin in inches.
+        style_manager: Optional StyleManager instance for style profile support.
 
     Returns:
         PIL.Image in mode '1' (1-bit B&W).
     """
     renderer = StateRenderer(state, dpi=dpi, paper_size=paper_size,
-                             margin_in=margin_in)
+                             margin_in=margin_in, style_manager=style_manager)
     return renderer.render()
 
 

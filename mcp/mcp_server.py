@@ -2115,12 +2115,121 @@ def list_tactile_presets() -> str:
         return f"ERROR: {e}"
 
 
+# ══════════════════════════════════════════════════════════
+# v3.4 — STYLE PROFILE AND VIEW TOOLS (8 tools)
+# ══════════════════════════════════════════════════════════
+
+@mcp.tool()
+def style_use(name: str) -> str:
+    """Switch the active PIAF rendering style profile.
+
+    Available styles: working, presentation, detail.
+    """
+    return _run(f"style use {name}")
+
+
+@mcp.tool()
+def style_show(category: str = "") -> str:
+    """Show current style settings.
+
+    Category: lineweights, hatches, labels, layout, density.
+    Leave empty for summary of all categories.
+    """
+    cmd = "style show"
+    if category:
+        cmd += f" {category}"
+    return _run(cmd)
+
+
+@mcp.tool()
+def style_set(key: str, value: str) -> str:
+    """Set a style value using dot notation.
+
+    Examples:
+      key="lineweights.wall_exterior" value="3.0"
+      key="layout.paper" value="tabloid"
+      key="hatches.diagonal.spacing_mm" value="10.0"
+    """
+    return _run(f"style set {key} {value}")
+
+
+@mcp.tool()
+def style_save(name: str = "") -> str:
+    """Save active style. If name given, save as new style file."""
+    cmd = "style save"
+    if name:
+        cmd += f" {name}"
+    return _run(cmd)
+
+
+@mcp.tool()
+def style_test() -> str:
+    """Generate a calibration test swatch showing all lineweights and hatches.
+
+    Output is a PNG or PDF ready for PIAF printing.
+    """
+    return _run("style test")
+
+
+@mcp.tool()
+def view_plan(style: str = "", paper: str = "", scale: str = "") -> str:
+    """Render a plan view with the active or specified style.
+
+    Args:
+        style: Optional style name to use.
+        paper: Optional paper size (letter, tabloid).
+        scale: Optional scale ratio.
+    """
+    cmd = "view plan"
+    if style:
+        cmd += f" --style {style}"
+    if paper:
+        cmd += f" --paper {paper}"
+    if scale:
+        cmd += f" --scale {scale}"
+    return _run(cmd)
+
+
+@mcp.tool()
+def view_section(axis: str, gridline: int, style: str = "") -> str:
+    """Render a section cut at the given axis and gridline.
+
+    Args:
+        axis: Cut axis (x or y).
+        gridline: Which gridline to cut at (integer).
+        style: Optional style name to use.
+    """
+    cmd = f"view section {axis} {gridline}"
+    if style:
+        cmd += f" --style {style}"
+    return _run(cmd)
+
+
+@mcp.tool()
+def view_axon(angle1: float = 30, angle2: float = 60,
+              hidden: bool = False, style: str = "") -> str:
+    """Render an axonometric projection.
+
+    Args:
+        angle1: Rotation around vertical axis (default 30).
+        angle2: Tilt angle (default 60).
+        hidden: Enable hidden-line removal.
+        style: Optional style name to use.
+    """
+    cmd = f"view axon {angle1} {angle2}"
+    if hidden:
+        cmd += " --hidden"
+    if style:
+        cmd += f" --style {style}"
+    return _run(cmd)
+
+
 # ── Entry point ────────────────────────────────────────
 
 if __name__ == "__main__":
-    _real_print(f"Layout Jig MCP Server v3.3 starting...", file=sys.stderr)
+    _real_print(f"Layout Jig MCP Server v3.4 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
-    _real_print(f"Tools: 53 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 4 v3.3)", file=sys.stderr)
+    _real_print(f"Tools: 61 (21 v2.0 + 14 v3.0 + 11 v3.1 + 3 v3.2 + 4 v3.3 + 8 v3.4)", file=sys.stderr)
     _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
     _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
