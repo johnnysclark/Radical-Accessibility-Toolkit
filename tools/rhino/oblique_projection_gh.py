@@ -105,30 +105,52 @@ else:
         geo = [geo]
     geo = [g for g in geo if g is not None]
 
-    # Dereference GUIDs to actual geometry objects
+    # Debug: capture what Grasshopper actually sent us
+    _raw_types = [type(g).__name__ for g in geo]
+
+    # Dereference GUIDs/ObjectReferences to actual geometry objects
     import System
     resolved = []
     for g in geo:
+        geom = None
+        # Case 1: it's a raw GUID
         if isinstance(g, System.Guid):
             obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g)
             if obj is not None:
-                resolved.append(obj.Geometry)
+                geom = obj.Geometry
+        # Case 2: it's already real geometry
         elif hasattr(g, 'GetBoundingBox'):
-            resolved.append(g)
+            geom = g
+        # Case 3: Grasshopper ObjectReference or similar wrapper
         else:
-            # Try treating as a doc object reference
-            try:
-                obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g.Id)
-                if obj is not None:
-                    resolved.append(obj.Geometry)
-            except Exception:
-                pass
+            # Try .Geometry property (Grasshopper referenced objects)
+            if hasattr(g, 'Geometry'):
+                geom = g.Geometry
+            # Try .Id to look up in document
+            elif hasattr(g, 'Id'):
+                try:
+                    obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g.Id)
+                    if obj is not None:
+                        geom = obj.Geometry
+                except Exception:
+                    pass
+            # Try treating the object itself as a GUID string
+            if geom is None:
+                try:
+                    guid = System.Guid(str(g))
+                    obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(guid)
+                    if obj is not None:
+                        geom = obj.Geometry
+                except Exception:
+                    pass
+        if geom is not None:
+            resolved.append(geom)
     geo = resolved
 
     if len(geo) == 0:
         a = None
         b = None
-        info = "No valid geometry."
+        info = "No valid geometry. Raw input types: {0}".format(", ".join(_raw_types))
     else:
         tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance
 
