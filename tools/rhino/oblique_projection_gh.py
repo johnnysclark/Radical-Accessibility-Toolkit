@@ -144,9 +144,9 @@ else:
         # Convert ALL geometry to Brep first — Extrusions cannot be sheared
         brep_geo = []
         for g in geo:
-            b = to_brep(g)
-            if b is not None:
-                brep_geo.append(b)
+            converted = to_brep(g)
+            if converted is not None:
+                brep_geo.append(converted)
             elif isinstance(g, rg.Mesh):
                 brep_geo.append(g)  # meshes handle shear fine
             elif isinstance(g, rg.Curve):
