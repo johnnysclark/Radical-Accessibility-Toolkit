@@ -31,8 +31,20 @@
 #   Elevation oblique — Make2D from Front view
 
 import math
+import System
 import Rhino
 import Rhino.Geometry as rg
+
+
+def resolve_geo(item):
+    """Convert Guid references to actual geometry objects.
+    GhPython passes Guids when type hint is missing or set to 'No Type Hint'."""
+    if isinstance(item, System.Guid):
+        obj = Rhino.RhinoDoc.ActiveDoc.Objects.Find(item)
+        if obj is not None:
+            return obj.Geometry
+        return None
+    return item
 
 # ================================================================
 # PRESETS
@@ -111,6 +123,7 @@ if geo is None:
 else:
     if not hasattr(geo, '__iter__'):
         geo = [geo]
+    geo = [resolve_geo(g) for g in geo]
     geo = [g for g in geo if g is not None]
 
     if len(geo) == 0:
