@@ -30,9 +30,14 @@ else:
         geo = [geo]
 
     # -- bounding box center as pivot --
-    union_bb = rg.BoundingBox.Empty
+    # Collect all corner points; BoundingBox is a .NET struct so
+    # calling .Union() in a loop may not mutate in place in IronPython.
+    all_pts = []
     for g in geo:
-        union_bb.Union(g.GetBoundingBox(True))
+        bb = g.GetBoundingBox(True)
+        all_pts.append(bb.Min)
+        all_pts.append(bb.Max)
+    union_bb = rg.BoundingBox(all_pts)
     center = union_bb.Center
 
     # -- rotation transform --
