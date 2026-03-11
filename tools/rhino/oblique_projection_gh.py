@@ -220,13 +220,15 @@ else:
         #   x' = x + y * dp * cos(ang)
         #   z' = z + y * dp * sin(ang)
         ang_rad = math.radians(ang)
-        shear_xform = rg.Transform.Identity
+        # Build shear matrix — use indexer [row,col] because .M02 property
+        # setters silently fail on .NET structs in Python 3 / pythonnet
+        shear_xform = rg.Transform(1.0)  # identity
         if is_plan:
-            shear_xform.M02 = dp * math.cos(ang_rad)
-            shear_xform.M12 = dp * math.sin(ang_rad)
+            shear_xform[0, 2] = dp * math.cos(ang_rad)
+            shear_xform[1, 2] = dp * math.sin(ang_rad)
         else:
-            shear_xform.M01 = dp * math.cos(ang_rad)
-            shear_xform.M21 = dp * math.sin(ang_rad)
+            shear_xform[0, 1] = dp * math.cos(ang_rad)
+            shear_xform[2, 1] = dp * math.sin(ang_rad)
 
         combined = shear_xform * rot_xform
 
