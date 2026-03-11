@@ -111,11 +111,14 @@ def to_brep(g):
     return None
 
 def kept_side(bbox, axis, threshold, tolerance, keep_above=False):
-    c = bbox.Center
-    vals = [c.X, c.Y, c.Z]
+    """Check if a bbox is entirely on the kept side of the cut.
+    Used as fallback when Brep.Trim returns empty (geometry doesn't
+    intersect the cut plane)."""
+    mn = [bbox.Min.X, bbox.Min.Y, bbox.Min.Z]
+    mx = [bbox.Max.X, bbox.Max.Y, bbox.Max.Z]
     if keep_above:
-        return vals[axis] >= threshold - tolerance
-    return vals[axis] <= threshold + tolerance
+        return mn[axis] >= threshold - tolerance
+    return mx[axis] <= threshold + tolerance
 
 # ================================================================
 # MAIN
