@@ -15,7 +15,7 @@ Right-click the left edge of the component to add inputs. You need these, in thi
 
 1. geo — right-click, set Type Hint to GeometryBase, set Access to List. Connect a Geometry parameter containing your 3D model.
 2. preset — connect an Integer slider, range -1 to 3.
-3. angle — connect a Number Slider, range 0 to 90.
+3. angle — connect a Number Slider, range -90 to 90.
 4. depth — connect a Number Slider, range 0.1 to 1.0.
 5. rotation — connect a Number Slider, range 0 to 360.
 6. plan_ob — connect a Boolean Toggle.
@@ -35,7 +35,7 @@ Right-click the right edge and rename the outputs:
 
 ### What each input does
 
-preset: Picks a standard projection type. When set to 0-3, it overrides angle, depth, rotation, and plan_ob. Set to -1 to use your own values.
+preset: Picks a standard projection type. When set to 0-3, it overrides angle, depth, and rotation. The plan_ob toggle still works with presets, so you can use any preset in either plan or elevation mode. Set to -1 to use your own values.
 
 - -1 = Custom (use sliders below)
 - 0 = Cavalier 45 (receding axis at 45 degrees, full depth)
@@ -43,13 +43,13 @@ preset: Picks a standard projection type. When set to 0-3, it overrides angle, d
 - 2 = Cabinet 30 (receding axis at 30 degrees, half depth)
 - 3 = Military (verticals straight up, plan rotated 45 degrees)
 
-angle: The direction the receding axis points in your 2D drawing, measured in degrees from horizontal. 45 is the most common. 90 means straight up (used for military/planometric).
+angle: The direction the receding axis points in your 2D drawing, measured in degrees from horizontal. 45 is the most common. 90 means straight up (used for military/planometric). Negative angles flip the receding axis downward, giving a worm's eye effect.
 
 depth: How much the receding axis is foreshortened. 1.0 means the depth reads at full scale (cavalier). 0.5 means half scale (cabinet, the most common in architecture).
 
 rotation: Rotates the base model around the vertical axis before projecting. Use this to choose which face of the building is prominent. For military projection, 45 degrees gives the classic equal-two-face view.
 
-plan_ob: True = plan oblique (the plan on top is true/undistorted, walls drop down). False = elevation oblique (the front elevation is true, depth recedes behind).
+plan_ob: True = plan oblique (the plan on top is true/undistorted, walls drop down). False = elevation oblique (the front elevation is true, depth recedes behind). This toggle works with presets too — you can use Cabinet 45 as either plan or elevation oblique.
 
 cut: Turns section cutting on or off.
 
@@ -70,9 +70,10 @@ The script asks you to:
 
 1. Select your 3D objects.
 2. Pick a preset or choose Custom.
-3. If Custom: pick plan or elevation oblique, then enter receding angle, depth scale, and rotation.
-4. Choose whether to apply a section cut. If yes, pick the axis and location.
-5. Choose whether to add a ground grid. If yes, enter the spacing.
+3. Pick plan oblique or elevation oblique (works with presets too).
+4. If Custom: enter receding angle (negative for worm's eye), depth scale, and rotation.
+5. Choose whether to apply a section cut. If yes, pick the axis and location.
+6. Choose whether to add a ground grid. If yes, enter the spacing.
 
 Results go onto the OBLIQUE_PROJECTION layer. Grid goes onto OBLIQUE_GRID.
 
@@ -106,7 +107,7 @@ Depth scale: How much the receding axis is foreshortened. Cavalier (1.0) shows d
 
 Classic architecture axon: preset 1 (Cabinet 45), rotation to taste. This is the standard plan oblique you see in most studios.
 
-Worm's eye axon: preset 1, then in Rhino flip the result upside down (Mirror across a horizontal plane). Or set angle to -45 if using custom mode.
+Worm's eye axon: preset 1, set angle to -45. The negative angle flips the receding axis downward so you are looking up from below. Works with any preset.
 
 Military/planometric: preset 3. Plan is rotated 45 degrees, verticals go straight up. Clean and diagrammatic.
 

@@ -47,29 +47,38 @@ else:
         preset_idx = preset_names.index(pick)
         cancelled = False
 
-        if preset_idx <= 3:
-            p = PRESETS[preset_idx]
-            ang = p["angle"]
-            dp = p["dp"]
-            rot = p["rot"]
-            is_plan = p["plan"]
-            mode_name = p["name"]
+        # plan/elevation choice applies to ALL modes including presets
+        mode_pick = rs.ListBox(
+            ["Plan oblique (true plan on top, Make2D from Top)",
+             "Elevation oblique (true front elevation, Make2D from Front)"],
+            "Projection mode", "Mode")
+        if mode_pick is None:
+            cancelled = True
         else:
-            mode_pick = rs.ListBox(
-                ["Plan oblique (true plan on top, Make2D from Top)",
-                 "Elevation oblique (true front elevation, Make2D from Front)"],
-                "Projection mode", "Mode")
-            if mode_pick is None:
-                cancelled = True
+            is_plan = mode_pick.startswith("Plan")
+
+            if preset_idx <= 3:
+                p = PRESETS[preset_idx]
+                ang = p["angle"]
+                dp = p["dp"]
+                rot = p["rot"]
+                mode_name = p["name"]
             else:
-                is_plan = mode_pick.startswith("Plan")
-                ang = rs.GetReal("Receding axis angle in drawing (degrees from horizontal)", 45.0, 0.0, 90.0)
-                dp = rs.GetReal("Depth scale (1.0=full cavalier, 0.5=half cabinet)", 1.0, 0.01, 2.0)
+                ang = rs.GetReal("Receding axis angle (degrees, negative = worm's eye)",
+                                 45.0, -90.0, 90.0)
+                dp = rs.GetReal("Depth scale (1.0=full cavalier, 0.5=half cabinet)",
+                                1.0, 0.01, 2.0)
                 rot = rs.GetReal("Rotation around Z degrees", 0.0, -360.0, 360.0)
                 if ang is None or dp is None or rot is None:
                     cancelled = True
                 else:
-                    mode_name = "Plan oblique (custom)" if is_plan else "Elevation oblique (custom)"
+                    mode_name = "Custom"
+
+            if not cancelled:
+                if is_plan:
+                    mode_name += " (plan oblique)"
+                else:
+                    mode_name += " (elevation oblique)"
 
         if not cancelled:
             # ========================================================
