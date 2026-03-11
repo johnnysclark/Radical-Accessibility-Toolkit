@@ -85,7 +85,11 @@ else:
 # ================================================================
 # HELPERS
 # ================================================================
-def as_brep(g):
+def to_brep(g):
+    """Convert any geometry to Brep for reliable shear transforms.
+    Extrusions CANNOT handle arbitrary transforms — they silently fail."""
+    if isinstance(g, rg.Brep):
+        return g
     if isinstance(g, rg.Extrusion):
         return g.ToBrep()
     if isinstance(g, rg.Surface):
@@ -137,12 +141,26 @@ else:
         cut_origin = cut_pts[cut_axis]
         cut_plane = rg.Plane(cut_origin, -axis_vectors[cut_axis])
 
+        # Convert ALL geometry to Brep first — Extrusions cannot be sheared
+        brep_geo = []
+        for g in geo:
+            b = to_brep(g)
+            if b is not None:
+                brep_geo.append(b)
+            elif isinstance(g, rg.Mesh):
+                brep_geo.append(g)  # meshes handle shear fine
+            elif isinstance(g, rg.Curve):
+                brep_geo.append(g)  # curves handle shear fine
+            elif isinstance(g, rg.Point):
+                brep_geo.append(g)
+            else:
+                brep_geo.append(g)  # try anyway
+
         work = []
         if cut:
-            for g in geo:
-                brep = g if isinstance(g, rg.Brep) else as_brep(g)
-                if brep is not None:
-                    trimmed = brep.Trim(cut_plane, tol)
+            for g in brep_geo:
+                if isinstance(g, rg.Brep):
+                    trimmed = g.Trim(cut_plane, tol)
                     if trimmed and len(trimmed) > 0:
                         work.extend(trimmed)
                     elif kept_side(g.GetBoundingBox(True), cut_axis, cut_h, tol):
@@ -159,7 +177,7 @@ else:
                 else:
                     work.append(g)
         else:
-            work = list(geo)
+            work = list(brep_geo)
 
         # ========================================================
         # BUILD TRANSFORMS
@@ -171,13 +189,15 @@ else:
         )
 
         ang_rad = math.radians(ang)
-        shear_xform = rg.Transform.Identity
+        # Build shear via indexer — .M02 property setters silently fail
+        # on .NET structs even in IronPython in some Rhino builds
+        shear_xform = rg.Transform(1)  # identity via constructor
         if is_plan:
-            shear_xform.M02 = dp * math.cos(ang_rad)
-            shear_xform.M12 = dp * math.sin(ang_rad)
+            shear_xform[0, 2] = dp * math.cos(ang_rad)
+            shear_xform[1, 2] = dp * math.sin(ang_rad)
         else:
-            shear_xform.M01 = dp * math.cos(ang_rad)
-            shear_xform.M21 = dp * math.sin(ang_rad)
+            shear_xform[0, 1] = dp * math.cos(ang_rad)
+            shear_xform[2, 1] = dp * math.sin(ang_rad)
 
         combined = shear_xform * rot_xform
 
@@ -243,12 +263,19 @@ else:
         # INFO
         # ========================================================
         view = "Top" if is_plan else "Front"
+        # type summary for diagnostics
+        type_counts = {}
+        for g in result:
+            tn = type(g).__name__
+            type_counts[tn] = type_counts.get(tn, 0) + 1
+        type_str = ", ".join("{0}x{1}".format(v, k) for k, v in type_counts.items())
+
         parts = [mode_name]
         parts.append("Angle={0} deg".format(ang))
         parts.append("Depth={0}".format(dp))
         parts.append("Rotation={0}".format(rot))
         if cut:
             parts.append("Cut {0}={1}".format(axis_names[cut_axis], cut_h))
-        parts.append("{0} objects".format(len(result)))
+        parts.append("{0} objects ({1})".format(len(result), type_str))
         parts.append("Make2D: {0} view".format(view))
         info = " | ".join(parts)
