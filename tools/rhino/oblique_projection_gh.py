@@ -105,6 +105,26 @@ else:
         geo = [geo]
     geo = [g for g in geo if g is not None]
 
+    # Dereference GUIDs to actual geometry objects
+    import System
+    resolved = []
+    for g in geo:
+        if isinstance(g, System.Guid):
+            obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g)
+            if obj is not None:
+                resolved.append(obj.Geometry)
+        elif hasattr(g, 'GetBoundingBox'):
+            resolved.append(g)
+        else:
+            # Try treating as a doc object reference
+            try:
+                obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g.Id)
+                if obj is not None:
+                    resolved.append(obj.Geometry)
+            except Exception:
+                pass
+    geo = resolved
+
     if len(geo) == 0:
         a = None
         b = None
