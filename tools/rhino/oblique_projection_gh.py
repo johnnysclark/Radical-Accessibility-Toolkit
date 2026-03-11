@@ -18,6 +18,7 @@
 #   cut      — Item Access, type hint: bool
 #   cut_axis — Item Access, type hint: int
 #   cut_h    — Item Access, type hint: float
+#   worms_eye — Item Access, type hint: bool  (flip cut: keep above instead of below)
 #   grid_on  — Item Access, type hint: bool
 #   grid_sp  — Item Access, type hint: float
 #
@@ -67,6 +68,7 @@ if plan_ob is None:  plan_ob = True
 if cut is None:      cut = False
 if cut_axis is None: cut_axis = 2
 if cut_h is None:    cut_h = 25.0
+if worms_eye is None: worms_eye = False
 if grid_on is None:  grid_on = False
 if grid_sp is None:  grid_sp = 2.0
 
@@ -81,7 +83,7 @@ if preset in PRESETS:
     p = PRESETS[preset]
     ang = p["angle"]
     dp = p["depth"]
-    rot = p["rot"]
+    rot = p["rot"] + rotation   # slider adds to preset base rotation
     mode_name = p["name"]
 else:
     ang = angle
@@ -108,9 +110,11 @@ def to_brep(g):
         return g.ToBrep()
     return None
 
-def kept_side(bbox, axis, threshold, tolerance):
+def kept_side(bbox, axis, threshold, tolerance, keep_above=False):
     c = bbox.Center
     vals = [c.X, c.Y, c.Z]
+    if keep_above:
+        return vals[axis] >= threshold - tolerance
     return vals[axis] <= threshold + tolerance
 
 # ================================================================
@@ -152,7 +156,8 @@ else:
             rg.Point3d(0, cut_h, 0),
             rg.Point3d(0, 0, cut_h)]
         cut_origin = cut_pts[cut_axis]
-        cut_plane = rg.Plane(cut_origin, -axis_vectors[cut_axis])
+        cut_normal = axis_vectors[cut_axis] if worms_eye else -axis_vectors[cut_axis]
+        cut_plane = rg.Plane(cut_origin, cut_normal)
 
         # Convert ALL geometry to Brep first — Extrusions cannot be sheared
         brep_geo = []
@@ -176,14 +181,14 @@ else:
                     trimmed = g.Trim(cut_plane, tol)
                     if trimmed and len(trimmed) > 0:
                         work.extend(trimmed)
-                    elif kept_side(g.GetBoundingBox(True), cut_axis, cut_h, tol):
+                    elif kept_side(g.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
                         work.append(g)
                 elif isinstance(g, rg.Mesh):
                     split_plane = rg.Plane(cut_origin, axis_vectors[cut_axis])
                     parts = g.Split(split_plane)
                     if parts and len(parts) > 0:
                         for part in parts:
-                            if kept_side(part.GetBoundingBox(True), cut_axis, cut_h, tol):
+                            if kept_side(part.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
                                 work.append(part)
                     else:
                         work.append(g)
@@ -288,7 +293,8 @@ else:
         parts.append("Depth={0}".format(dp))
         parts.append("Rotation={0}".format(rot))
         if cut:
-            parts.append("Cut {0}={1}".format(axis_names[cut_axis], cut_h))
+            eye = "worm's eye" if worms_eye else "bird's eye"
+            parts.append("Cut {0}={1} ({2})".format(axis_names[cut_axis], cut_h, eye))
         parts.append("{0} objects ({1})".format(len(result), type_str))
         parts.append("Make2D: {0} view".format(view))
         info = " | ".join(parts)
