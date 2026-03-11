@@ -156,7 +156,7 @@ else:
             rg.Point3d(0, cut_h, 0),
             rg.Point3d(0, 0, cut_h)]
         cut_origin = cut_pts[cut_axis]
-        cut_normal = axis_vectors[cut_axis] if worms_eye else -axis_vectors[cut_axis]
+        cut_normal = -axis_vectors[cut_axis] if worms_eye else axis_vectors[cut_axis]
         cut_plane = rg.Plane(cut_origin, cut_normal)
 
         # Convert ALL geometry to Brep first — Extrusions cannot be sheared
@@ -280,7 +280,10 @@ else:
         # ========================================================
         # INFO
         # ========================================================
-        view = "Top" if is_plan else "Front"
+        if is_plan:
+            view = "Bottom" if worms_eye else "Top"
+        else:
+            view = "Back" if worms_eye else "Front"
         # type summary for diagnostics
         type_counts = {}
         for g in result:
