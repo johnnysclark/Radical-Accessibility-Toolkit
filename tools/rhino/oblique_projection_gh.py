@@ -110,15 +110,27 @@ def to_brep(g):
         return g.ToBrep()
     return None
 
-def kept_side(bbox, axis, threshold, tolerance, keep_above=False):
-    """Check if a bbox is entirely on the kept side of the cut.
-    Used as fallback when Brep.Trim returns empty (geometry doesn't
-    intersect the cut plane)."""
+def not_entirely_wrong_side(bbox, axis, threshold, tolerance, keep_above=False):
+    """Permissive check for Brep.Trim fallback: keep geometry unless it is
+    *entirely* on the discarded side of the cut plane.  If Trim failed on
+    geometry that spans the plane, this keeps the whole brep as a visible
+    fallback rather than dropping it."""
     mn = [bbox.Min.X, bbox.Min.Y, bbox.Min.Z]
     mx = [bbox.Max.X, bbox.Max.Y, bbox.Max.Z]
     if keep_above:
-        return mn[axis] >= threshold - tolerance
-    return mx[axis] <= threshold + tolerance
+        # keep unless entirely below threshold
+        return mx[axis] >= threshold - tolerance
+    # keep unless entirely above threshold
+    return mn[axis] <= threshold + tolerance
+
+def center_on_kept_side(bbox, axis, threshold, tolerance, keep_above=False):
+    """Strict check for mesh split parts: after a clean split each piece's
+    center is clearly on one side of the cut."""
+    c = bbox.Center
+    vals = [c.X, c.Y, c.Z]
+    if keep_above:
+        return vals[axis] >= threshold - tolerance
+    return vals[axis] <= threshold + tolerance
 
 # ================================================================
 # MAIN
@@ -184,14 +196,14 @@ else:
                     trimmed = g.Trim(cut_plane, tol)
                     if trimmed and len(trimmed) > 0:
                         work.extend(trimmed)
-                    elif kept_side(g.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
+                    elif not_entirely_wrong_side(g.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
                         work.append(g)
                 elif isinstance(g, rg.Mesh):
                     split_plane = rg.Plane(cut_origin, axis_vectors[cut_axis])
                     parts = g.Split(split_plane)
                     if parts and len(parts) > 0:
                         for part in parts:
-                            if kept_side(part.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
+                            if center_on_kept_side(part.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
                                 work.append(part)
                     else:
                         work.append(g)
