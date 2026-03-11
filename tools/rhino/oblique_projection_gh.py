@@ -1,20 +1,27 @@
-# Oblique Projection — GhPython component
-# Paste into a GhPython Script component in Grasshopper.
+# Oblique Projection — GhPython Script component (IronPython 2.7)
 #
-# INPUTS (right-click component, rename inputs, set type hints):
-#   geo      — list access, type hint: GeometryBase  (your 3D model)
-#   preset   — int, slider -1 to 3    (-1=custom, 0=cavalier45, 1=cabinet45, 2=cabinet30, 3=military)
-#   angle    — float, slider -90 to 90 (receding axis angle, negative = worm's eye)
-#   depth    — float, slider 0.1 to 1  (depth scale: 1=full/cavalier, 0.5=half/cabinet)
-#   rotation — float, slider 0 to 360  (Z-axis rotation of base model before projection)
-#   plan_ob  — bool toggle              (True=plan oblique, False=elevation oblique — works with presets too)
-#   cut      — bool toggle              (section cut on/off)
-#   cut_axis — int, slider 0 to 2       (cut plane axis: 0=X, 1=Y, 2=Z)
-#   cut_h    — float, slider 0 to 50    (cut location along axis, feet)
-#   grid_on  — bool toggle              (ground plane grid on/off)
-#   grid_sp  — float, slider 0.5 to 10  (grid spacing, default 2 = 24 inches on center)
+# USE WITH: GhPython Script component (search "GhPy" on canvas)
+# DO NOT USE the Rhino 8 "Python 3 Script" component — its output is broken.
 #
-# OUTPUTS (right-click component, rename outputs):
+# SETUP:
+#   1. Place a GhPython Script component on the canvas
+#   2. Zoom in and use +/- on component edges to add inputs/outputs
+#   3. Right-click each input to rename and set type hints:
+#
+# INPUTS:
+#   geo      — List Access, type hint: GeometryBase
+#   preset   — Item Access, type hint: int
+#   angle    — Item Access, type hint: float
+#   depth    — Item Access, type hint: float
+#   rotation — Item Access, type hint: float
+#   plan_ob  — Item Access, type hint: bool
+#   cut      — Item Access, type hint: bool
+#   cut_axis — Item Access, type hint: int
+#   cut_h    — Item Access, type hint: float
+#   grid_on  — Item Access, type hint: bool
+#   grid_sp  — Item Access, type hint: float
+#
+# OUTPUTS (rename via right-click):
 #   a    — projected geometry
 #   b    — ground grid lines (when grid_on=True)
 #   info — text summary
@@ -28,7 +35,7 @@ import Rhino
 import Rhino.Geometry as rg
 
 # ================================================================
-# PRESETS  (angle/depth/rotation only — plan_ob toggle always works)
+# PRESETS
 # ================================================================
 PRESETS = {
     0: {"name": "Cavalier 45",  "angle": 45, "depth": 1.0, "rot": 0},
@@ -38,7 +45,7 @@ PRESETS = {
 }
 
 # ================================================================
-# DEFAULTS  (50'x50'x50' bounding box, 24" grid)
+# DEFAULTS
 # ================================================================
 if preset is None:   preset = -1
 if angle is None:    angle = 45.0
@@ -56,7 +63,6 @@ cut_axis = int(max(0, min(2, cut_axis)))
 # ================================================================
 # RESOLVE PRESET vs CUSTOM
 # ================================================================
-# plan_ob toggle ALWAYS controls plan vs elevation, even with presets
 is_plan = plan_ob
 
 if preset in PRESETS:
@@ -80,7 +86,6 @@ else:
 # HELPERS
 # ================================================================
 def as_brep(g):
-    """Convert Extrusion or Surface to Brep for trimming."""
     if isinstance(g, rg.Extrusion):
         return g.ToBrep()
     if isinstance(g, rg.Surface):
@@ -88,7 +93,6 @@ def as_brep(g):
     return None
 
 def kept_side(bbox, axis, threshold, tolerance):
-    """Check if bounding box center is on the kept side (origin side) of the cut."""
     c = bbox.Center
     vals = [c.X, c.Y, c.Z]
     return vals[axis] <= threshold + tolerance
@@ -105,52 +109,10 @@ else:
         geo = [geo]
     geo = [g for g in geo if g is not None]
 
-    # Debug: capture what Grasshopper actually sent us
-    _raw_types = [type(g).__name__ for g in geo]
-
-    # Dereference GUIDs/ObjectReferences to actual geometry objects
-    import System
-    resolved = []
-    for g in geo:
-        geom = None
-        # Case 1: it's a raw GUID
-        if isinstance(g, System.Guid):
-            obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g)
-            if obj is not None:
-                geom = obj.Geometry
-        # Case 2: it's already real geometry
-        elif hasattr(g, 'GetBoundingBox'):
-            geom = g
-        # Case 3: Grasshopper ObjectReference or similar wrapper
-        else:
-            # Try .Geometry property (Grasshopper referenced objects)
-            if hasattr(g, 'Geometry'):
-                geom = g.Geometry
-            # Try .Id to look up in document
-            elif hasattr(g, 'Id'):
-                try:
-                    obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(g.Id)
-                    if obj is not None:
-                        geom = obj.Geometry
-                except Exception:
-                    pass
-            # Try treating the object itself as a GUID string
-            if geom is None:
-                try:
-                    guid = System.Guid(str(g))
-                    obj = Rhino.RhinoDoc.ActiveDoc.Objects.FindId(guid)
-                    if obj is not None:
-                        geom = obj.Geometry
-                except Exception:
-                    pass
-        if geom is not None:
-            resolved.append(geom)
-    geo = resolved
-
     if len(geo) == 0:
         a = None
         b = None
-        info = "No valid geometry. Raw input types: {0}".format(", ".join(_raw_types))
+        info = "No valid geometry."
     else:
         tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance
 
@@ -164,7 +126,7 @@ else:
         center = union_bb.Center
 
         # ========================================================
-        # SECTION CUT (before transform — cut the real 3D model)
+        # SECTION CUT (before transform)
         # ========================================================
         axis_names = ["X", "Y", "Z"]
         axis_vectors = [rg.Vector3d.XAxis, rg.Vector3d.YAxis, rg.Vector3d.ZAxis]
@@ -173,14 +135,12 @@ else:
             rg.Point3d(0, cut_h, 0),
             rg.Point3d(0, 0, cut_h)]
         cut_origin = cut_pts[cut_axis]
-        # flip normal so Trim keeps the origin side (below/in front of cut)
         cut_plane = rg.Plane(cut_origin, -axis_vectors[cut_axis])
 
         work = []
         if cut:
             for g in geo:
                 brep = g if isinstance(g, rg.Brep) else as_brep(g)
-
                 if brep is not None:
                     trimmed = brep.Trim(cut_plane, tol)
                     if trimmed and len(trimmed) > 0:
@@ -210,25 +170,14 @@ else:
             center
         )
 
-        # oblique shear: receding axis at angle `ang`, scaled by `dp`
-        #
-        # Plan oblique (Make2D from Top):
-        #   x' = x + z * dp * cos(ang)
-        #   y' = y + z * dp * sin(ang)
-        #
-        # Elevation oblique (Make2D from Front):
-        #   x' = x + y * dp * cos(ang)
-        #   z' = z + y * dp * sin(ang)
         ang_rad = math.radians(ang)
-        # Build shear matrix — use indexer [row,col] because .M02 property
-        # setters silently fail on .NET structs in Python 3 / pythonnet
-        shear_xform = rg.Transform(1.0)  # identity
+        shear_xform = rg.Transform.Identity
         if is_plan:
-            shear_xform[0, 2] = dp * math.cos(ang_rad)
-            shear_xform[1, 2] = dp * math.sin(ang_rad)
+            shear_xform.M02 = dp * math.cos(ang_rad)
+            shear_xform.M12 = dp * math.sin(ang_rad)
         else:
-            shear_xform[0, 1] = dp * math.cos(ang_rad)
-            shear_xform[2, 1] = dp * math.sin(ang_rad)
+            shear_xform.M01 = dp * math.cos(ang_rad)
+            shear_xform.M21 = dp * math.sin(ang_rad)
 
         combined = shear_xform * rot_xform
 
@@ -244,7 +193,7 @@ else:
         a = result
 
         # ========================================================
-        # GROUND PLANE GRID (24" on center = 2' spacing default)
+        # GROUND PLANE GRID
         # ========================================================
         if grid_on and grid_sp > 0:
             bb_min = union_bb.Min
