@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Webcam Dither</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111;
+  color: #eee;
+  font-family: -apple-system, system-ui, sans-serif;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+#canvas-container {
+  width: 100vw;
+  height: calc(100vh - 160px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#output { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+video { display: none; }
+.controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20, 20, 20, 0.95);
+  padding: 8px 12px 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.controls-row label {
+  font-size: 12px;
+  min-width: 70px;
+  color: #aaa;
+}
+.controls-row input[type="range"] {
+  flex: 1;
+  height: 28px;
+  accent-color: #4af;
+}
+.controls-row .val {
+  font-size: 12px;
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.btn {
+  flex: 1;
+  padding: 10px 4px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+}
+.btn-capture { background: #2a2; }
+.btn-bracket { background: #c72; }
+.btn-invert { background: #555; }
+.btn-flip { background: #447; }
+.btn-start { background: #2a6; font-size: 18px; padding: 16px; }
+#start-screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #111; z-index: 10;
+  gap: 16px;
+}
+#start-screen h1 { font-size: 22px; }
+#start-screen p { font-size: 14px; color: #aaa; max-width: 300px; text-align: center; }
+.hidden { display: none !important; }
+#status {
+  position: fixed;
+  top: 8px; left: 8px; right: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #8f8;
+  pointer-events: none;
+  z-index: 5;
+}
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>Webcam Dither</h1>
+  <p>Live dithertone conversion. Dot size varies with brightness for PIAF tactile printing.</p>
+  <button class="btn btn-start" id="startBtn">Start Camera</button>
+  <label style="font-size:13px; color:#aaa;">
+    <select id="cameraSelect" style="font-size:14px; padding:6px; border-radius:6px;">
+      <option value="environment">Back Camera</option>
+      <option value="user">Front Camera</option>
+    </select>
+  </label>
+</div>
+
+<div id="canvas-container" class="hidden">
+  <canvas id="output"></canvas>
+</div>
+<video id="video" playsinline autoplay muted></video>
+<div id="status"></div>
+
+<div class="controls hidden" id="controlPanel">
+  <div class="controls-row">
+    <label>Spacing</label>
+    <input type="range" id="spacing" min="3" max="30" value="8" step="1">
+    <span class="val" id="spacingVal">8</span>
+  </div>
+  <div class="controls-row">
+    <label>Gamma</label>
+    <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
+    <span class="val" id="gammaVal">1.0</span>
+  </div>
+  <div class="controls-row">
+    <label>Contrast</label>
+    <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
+    <span class="val" id="contrastVal">0</span>
+  </div>
+  <div class="controls-row">
+    <label>Brightness</label>
+    <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
+    <span class="val" id="brightnessVal">0</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-capture" id="captureBtn">Capture</button>
+    <button class="btn btn-bracket" id="bracketBtn">Bracket</button>
+    <button class="btn btn-invert" id="invertBtn">Invert</button>
+    <button class="btn btn-flip" id="flipBtn">Flip</button>
+  </div>
+</div>
+
+<script>
+const video = document.getElementById('video');
+const output = document.getElementById('output');
+const ctx = output.getContext('2d');
+const statusEl = document.getElementById('status');
+
+// Hidden canvas for grabbing video frames
+const srcCanvas = document.createElement('canvas');
+const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
+
+let running = false;
+let inverted = false;
+let facingMode = 'environment';
+
+// Controls
+const spacingSlider = document.getElementById('spacing');
+const gammaSlider = document.getElementById('gamma');
+const contrastSlider = document.getElementById('contrast');
+const brightnessSlider = document.getElementById('brightness');
+
+function getParams() {
+  return {
+    spacing: parseInt(spacingSlider.value),
+    gamma: parseFloat(gammaSlider.value),
+    contrast: parseFloat(contrastSlider.value),
+    brightness: parseFloat(brightnessSlider.value),
+    invert: inverted,
+    maxRadiusFactor: 0.45,
+    minRadius: 0.5,
+  };
+}
+
+// Update value displays
+function updateDisplays() {
+  document.getElementById('spacingVal').textContent = spacingSlider.value;
+  document.getElementById('gammaVal').textContent = parseFloat(gammaSlider.value).toFixed(1);
+  document.getElementById('contrastVal').textContent = contrastSlider.value;
+  document.getElementById('brightnessVal').textContent = brightnessSlider.value;
+}
+spacingSlider.addEventListener('input', updateDisplays);
+gammaSlider.addEventListener('input', updateDisplays);
+contrastSlider.addEventListener('input', updateDisplays);
+brightnessSlider.addEventListener('input', updateDisplays);
+
+// Build gamma LUT
+let gammaLUT = new Uint8Array(256);
+let lastGamma = -1;
+function buildGammaLUT(gamma) {
+  if (gamma === lastGamma) return;
+  const invGamma = 1.0 / gamma;
+  for (let i = 0; i < 256; i++) {
+    gammaLUT[i] = Math.round(Math.pow(i / 255, invGamma) * 255);
+  }
+  lastGamma = gamma;
+}
+
+// Extract grayscale from video frame
+function getGrayscale(w, h) {
+  srcCanvas.width = w;
+  srcCanvas.height = h;
+  srcCtx.drawImage(video, 0, 0, w, h);
+  const imageData = srcCtx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const gray = new Uint8Array(w * h);
+  for (let i = 0; i < gray.length; i++) {
+    const idx = i * 4;
+    gray[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]);
+  }
+  return gray;
+}
+
+// Apply brightness, contrast, gamma adjustments
+function adjustPixels(gray, params) {
+  const result = new Uint8Array(gray.length);
+  const factor = (100 + params.contrast) / 100;
+  buildGammaLUT(params.gamma);
+
+  for (let i = 0; i < gray.length; i++) {
+    let v = gray[i] + params.brightness;
+    v = 128 + factor * (v - 128);
+    v = Math.max(0, Math.min(255, v));
+    if (params.gamma !== 1.0) {
+      v = gammaLUT[Math.round(v)];
+    }
+    result[i] = v;
+  }
+  return result;
+}
+
+// Render dithertone
+function renderDithertone(gray, w, h, params) {
+  const adjusted = adjustPixels(gray, params);
+  const spacing = params.spacing;
+  const maxRadius = spacing * params.maxRadiusFactor;
+  const minRadius = params.minRadius;
+  const half = Math.floor(spacing / 2);
+
+  // Set up output canvas
+  output.width = w;
+  output.height = h;
+
+  if (params.invert) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+  }
+
+  for (let y = half; y < h; y += spacing) {
+    for (let x = half; x < w; x += spacing) {
+      const brightness = adjusted[y * w + x];
+      let radius;
+      if (params.invert) {
+        radius = maxRadius * (brightness / 255);
+      } else {
+        radius = maxRadius * (1 - brightness / 255);
+      }
+      if (radius > minRadius) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+// Main render loop
+function renderLoop() {
+  if (!running) return;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (vw > 0 && vh > 0) {
+    // Scale down for performance on mobile
+    const scale = Math.min(1, 640 / Math.max(vw, vh));
+    const w = Math.round(vw * scale);
+    const h = Math.round(vh * scale);
+    const gray = getGrayscale(w, h);
+    renderDithertone(gray, w, h, getParams());
+  }
+  requestAnimationFrame(renderLoop);
+}
+
+// Save current canvas as PNG
+function captureScreenshot(suffix) {
+  const link = document.createElement('a');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const name = suffix ? `dither_${suffix}_${ts}.png` : `dither_${ts}.png`;
+  link.download = name;
+  link.href = output.toDataURL('image/png');
+  link.click();
+  showStatus(`Saved: ${name}`);
+}
+
+// Bracket capture: tight, medium, loose
+function bracketCapture() {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (vw === 0) return;
+
+  const scale = Math.min(1, 640 / Math.max(vw, vh));
+  const w = Math.round(vw * scale);
+  const h = Math.round(vh * scale);
+  const gray = getGrayscale(w, h);
+  const baseParams = getParams();
+  const baseSpacing = baseParams.spacing;
+
+  const variants = [
+    { label: 'tight', spacing: Math.max(3, Math.round(baseSpacing * 0.6)) },
+    { label: 'medium', spacing: baseSpacing },
+    { label: 'loose', spacing: Math.min(30, Math.round(baseSpacing * 1.6)) },
+  ];
+
+  variants.forEach(v => {
+    const p = { ...baseParams, spacing: v.spacing };
+    p.maxRadiusFactor = 0.45;
+    renderDithertone(gray, w, h, p);
+    captureScreenshot(v.label);
+  });
+
+  // Restore current view
+  renderDithertone(gray, w, h, baseParams);
+  showStatus('Bracket: 3 variants saved');
+}
+
+function showStatus(msg) {
+  statusEl.textContent = msg;
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+// Start camera
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+    running = true;
+
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('canvas-container').classList.remove('hidden');
+    document.getElementById('controlPanel').classList.remove('hidden');
+
+    showStatus('Camera started');
+    renderLoop();
+  } catch (err) {
+    alert('Camera error: ' + err.message);
+  }
+}
+
+// Stop and restart with new facing mode
+async function flipCamera() {
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+  }
+  running = false;
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  document.getElementById('cameraSelect').value = facingMode;
+  await startCamera();
+}
+
+// Button handlers
+document.getElementById('startBtn').addEventListener('click', () => {
+  facingMode = document.getElementById('cameraSelect').value;
+  startCamera();
+});
+
+document.getElementById('captureBtn').addEventListener('click', () => captureScreenshot());
+document.getElementById('bracketBtn').addEventListener('click', () => bracketCapture());
+document.getElementById('invertBtn').addEventListener('click', () => {
+  inverted = !inverted;
+  document.getElementById('invertBtn').textContent = inverted ? 'Invert: ON' : 'Invert';
+  showStatus('Invert: ' + (inverted ? 'ON' : 'OFF'));
+});
+document.getElementById('flipBtn').addEventListener('click', () => flipCamera());
+
+// Keyboard shortcuts (for desktop use)
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') { e.preventDefault(); captureScreenshot(); }
+  else if (e.key === 'b') bracketCapture();
+  else if (e.key === 'i') { inverted = !inverted; }
+  else if (e.key === '=' || e.key === '+') { spacingSlider.value = Math.min(30, parseInt(spacingSlider.value) + 1); updateDisplays(); }
+  else if (e.key === '-') { spacingSlider.value = Math.max(3, parseInt(spacingSlider.value) - 1); updateDisplays(); }
+  else if (e.key === ']') { gammaSlider.value = Math.min(4, parseFloat(gammaSlider.value) + 0.1).toFixed(1); updateDisplays(); }
+  else if (e.key === '[') { gammaSlider.value = Math.max(0.2, parseFloat(gammaSlider.value) - 0.1).toFixed(1); updateDisplays(); }
+});
+</script>
+</body>
+</html>

@@ -94,12 +94,16 @@ def save_bracket(gray_frame, renderer, output_dir, paper_size="letter", piaf=Fal
         variant_renderer = renderer.clone_with_spacing(spacing)
         dithered = variant_renderer.render(gray_frame)
 
-        prefix = f"bracket_{label}_{ts}"
-        png_path = save_screenshot(dithered, output_dir, prefix=prefix)
+        name = f"bracket_{label}_{ts}"
+        os.makedirs(output_dir, exist_ok=True)
+
+        png_path = os.path.join(output_dir, f"{name}.png")
+        cv2.imwrite(png_path, dithered)
+        png_path = os.path.abspath(png_path)
 
         pdf_path = None
         if piaf:
-            pdf_path = save_piaf_pdf(dithered, output_dir, paper_size, prefix=prefix)
+            pdf_path = save_piaf_pdf(dithered, output_dir, paper_size, prefix=name)
 
         results.append((label, png_path, pdf_path))
 

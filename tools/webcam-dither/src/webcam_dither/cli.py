@@ -302,5 +302,85 @@ def snapshot(camera, spacing, min_radius, max_radius, invert,
     logger.ready()
 
 
+@main.command()
+@click.argument("input_path", type=click.Path(exists=True))
+@click.option("--spacing", "-s", default=8, type=int,
+              help="Grid spacing in pixels.")
+@click.option("--min-radius", default=0.5, type=float,
+              help="Minimum dot radius.")
+@click.option("--max-radius", default=0.45, type=float,
+              help="Max radius factor.")
+@click.option("--invert", is_flag=True, default=False,
+              help="Inverted mode.")
+@click.option("--gamma", "-g", default=1.0, type=float,
+              help="Gamma correction (default: 1.0).")
+@click.option("--contrast", default=0.0, type=float,
+              help="Contrast adjustment (-100 to 100).")
+@click.option("--brightness", default=0.0, type=float,
+              help="Brightness adjustment (-100 to 100).")
+@click.option("--output", "-o", default=None,
+              help="Output file path (default: auto-named in current dir).")
+@click.option("--piaf", is_flag=True, default=False,
+              help="Also generate PIAF PDF.")
+@click.option("--paper-size", "-p", default="letter",
+              type=click.Choice(["letter", "tabloid"]),
+              help="Paper size for PIAF.")
+@click.option("--bracket", is_flag=True, default=False,
+              help="Save tight/medium/loose spacing variants.")
+def image(input_path, spacing, min_radius, max_radius, invert,
+          gamma, contrast, brightness, output, piaf, paper_size, bracket):
+    """Process a static image file through the dithertone algorithm."""
+    img = cv2.imread(input_path)
+    if img is None:
+        logger.error(f"Cannot read image: {input_path}")
+        sys.exit(1)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    logger.info(f"Loaded image: {input_path} ({gray.shape[1]}x{gray.shape[0]})")
+
+    params = DithertoneParams(
+        spacing=spacing,
+        min_radius=min_radius,
+        max_radius_factor=max_radius,
+        invert=invert,
+        gamma=gamma,
+        contrast=contrast,
+        brightness=brightness,
+    )
+    renderer = DithertoneRenderer(params)
+
+    if bracket:
+        output_dir = os.path.dirname(output) if output else "."
+        results = save_bracket(gray, renderer, output_dir, paper_size, piaf=piaf)
+        for label, png_p, pdf_p in results:
+            logger.info(f"Bracket {label}: {png_p}")
+            if pdf_p:
+                logger.info(f"Bracket {label} PDF: {pdf_p}")
+    else:
+        dithered = renderer.render(gray)
+        if output:
+            output_dir = os.path.dirname(output) or "."
+            prefix = os.path.splitext(os.path.basename(output))[0]
+        else:
+            output_dir = "."
+            base = os.path.splitext(os.path.basename(input_path))[0]
+            prefix = f"dither_{base}"
+
+        png_path = save_screenshot(dithered, output_dir, prefix=prefix)
+        logger.info(f"Saved: {png_path}")
+
+        if piaf:
+            pdf_path = save_piaf_pdf(dithered, output_dir, paper_size, prefix=prefix)
+            if pdf_path:
+                logger.info(f"PIAF PDF saved: {pdf_path}")
+            else:
+                logger.error(
+                    "PIAF PDF failed. Is tactile-core installed? "
+                    "pip install -e tools/tact"
+                )
+
+    logger.ready()
+
+
 if __name__ == "__main__":
     main()
