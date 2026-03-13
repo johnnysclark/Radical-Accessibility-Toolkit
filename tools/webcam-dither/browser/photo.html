@@ -77,6 +77,14 @@ video { display: none; }
 .btn-invert { background: #555; }
 .btn-new { background: #447; }
 .btn-flip { background: #a72; }
+.controls-toggle {
+  display: block; width: 100%; padding: 6px 0; border: none;
+  background: transparent; color: #888; font-size: 12px;
+  cursor: pointer; text-align: center; letter-spacing: 1px;
+}
+.controls-toggle:active { color: #fff; }
+#slidersSection { overflow: hidden; transition: max-height 0.25s ease; }
+#slidersSection.collapsed { max-height: 0 !important; margin: 0; }
 .toggle-row {
   display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;
 }
@@ -118,30 +126,33 @@ video { display: none; }
   <video id="video" playsinline autoplay muted></video>
   <div id="status"></div>
   <div class="controls">
-    <div class="controls-row" id="spacingRow">
-      <label>Spacing</label>
-      <input type="range" id="spacing" min="1" max="30" value="8" step="1">
-      <span class="val" id="spacingVal">8</span>
-    </div>
-    <div class="controls-row hidden" id="scaleRow">
-      <label>Scale</label>
-      <input type="range" id="scale" min="1" max="8" value="3" step="1">
-      <span class="val" id="scaleVal">3</span>
-    </div>
-    <div class="controls-row">
-      <label>Gamma</label>
-      <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
-      <span class="val" id="gammaVal">1.0</span>
-    </div>
-    <div class="controls-row">
-      <label>Contrast</label>
-      <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
-      <span class="val" id="contrastVal">0</span>
-    </div>
-    <div class="controls-row">
-      <label>Brightness</label>
-      <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
-      <span class="val" id="brightnessVal">0</span>
+    <button class="controls-toggle" id="toggleSliders">&#9650; Sliders</button>
+    <div id="slidersSection">
+      <div class="controls-row" id="spacingRow">
+        <label>Spacing</label>
+        <input type="range" id="spacing" min="2" max="30" value="8" step="1">
+        <span class="val" id="spacingVal">8</span>
+      </div>
+      <div class="controls-row hidden" id="scaleRow">
+        <label>Scale</label>
+        <input type="range" id="scale" min="1" max="8" value="3" step="1">
+        <span class="val" id="scaleVal">3</span>
+      </div>
+      <div class="controls-row">
+        <label>Gamma</label>
+        <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
+        <span class="val" id="gammaVal">1.0</span>
+      </div>
+      <div class="controls-row">
+        <label>Contrast</label>
+        <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
+        <span class="val" id="contrastVal">0</span>
+      </div>
+      <div class="controls-row">
+        <label>Brightness</label>
+        <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
+        <span class="val" id="brightnessVal">0</span>
+      </div>
     </div>
     <div class="toggle-row" id="algoRow">
       <button class="toggle-btn active" data-algo="dithertone">Dots</button>
@@ -244,6 +255,16 @@ scaleSlider.addEventListener('input', onParamChange);
 gammaSlider.addEventListener('input', onParamChange);
 contrastSlider.addEventListener('input', onParamChange);
 brightnessSlider.addEventListener('input', onParamChange);
+
+// Slider panel toggle
+var slidersSection = document.getElementById('slidersSection');
+var toggleSlidersBtn = document.getElementById('toggleSliders');
+slidersSection.style.maxHeight = slidersSection.scrollHeight + 'px';
+toggleSlidersBtn.addEventListener('click', function() {
+  var collapsed = slidersSection.classList.toggle('collapsed');
+  toggleSlidersBtn.innerHTML = collapsed ? '&#9660; Sliders' : '&#9650; Sliders';
+  if (!collapsed) slidersSection.style.maxHeight = slidersSection.scrollHeight + 'px';
+});
 
 // Gamma LUT
 var gammaLUT = new Uint8Array(256);
@@ -921,7 +942,7 @@ function bracketCapture(gray, w, h) {
   var baseParams = getParams();
   var baseSpacing = baseParams.spacing;
   var variants = [
-    { label: 'tight', spacing: Math.max(1, Math.round(baseSpacing * 0.6)) },
+    { label: 'tight', spacing: Math.max(2, Math.round(baseSpacing * 0.6)) },
     { label: 'medium', spacing: baseSpacing },
     { label: 'loose', spacing: Math.min(30, Math.round(baseSpacing * 1.6)) },
   ];
@@ -997,7 +1018,7 @@ document.addEventListener('keydown', function(e) {
   else if (e.key === 'b') { if (liveMode) liveBracket(); else bracketCapture(sourceGray, sourceW, sourceH); }
   else if (e.key === 'i') toggleInvert();
   else if (e.key === '=' || e.key === '+') { spacingSlider.value = Math.min(30, parseInt(spacingSlider.value) + 1); onParamChange(); }
-  else if (e.key === '-') { spacingSlider.value = Math.max(1, parseInt(spacingSlider.value) - 1); onParamChange(); }
+  else if (e.key === '-') { spacingSlider.value = Math.max(2, parseInt(spacingSlider.value) - 1); onParamChange(); }
   else if (e.key === ']') { gammaSlider.value = Math.min(4, parseFloat(gammaSlider.value) + 0.1).toFixed(1); onParamChange(); }
   else if (e.key === '[') { gammaSlider.value = Math.max(0.2, parseFloat(gammaSlider.value) - 0.1).toFixed(1); onParamChange(); }
 });
