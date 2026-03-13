@@ -18,7 +18,7 @@ def _ensure_imports():
         return
     global load_3dm, describe_model, describe_layers_fn, describe_objects_fn
     global extract_plan_fn, extract_section_fn, extract_elevation_fn
-    global export_png, export_piaf
+    global export_png, export_piaf, export_stl_fn
 
     from model_reader.core.reader import load_3dm as _lr
     from model_reader.core.describer import (
@@ -31,12 +31,17 @@ def _ensure_imports():
         extract_section as _es,
         extract_elevation as _ee,
     )
-    from model_reader.core.exporter import export_png as _xp, export_piaf as _xf
+    from model_reader.core.exporter import (
+        export_png as _xp,
+        export_piaf as _xf,
+        export_stl as _xs,
+    )
 
     load_3dm = _lr
     describe_model, describe_layers_fn, describe_objects_fn = _dm, _dl, _do
     extract_plan_fn, extract_section_fn, extract_elevation_fn = _ep, _es, _ee
     export_png, export_piaf = _xp, _xf
+    export_stl_fn = _xs
 
     _imports_loaded = True
 
@@ -103,6 +108,7 @@ async def extract_plan_view(
     output_path: Optional[str] = None,
     height: Optional[float] = None,
     piaf: bool = False,
+    hatch: Optional[str] = None,
 ) -> str:
     """Extract a plan view (top-down projection) from a .3dm file.
 
@@ -111,6 +117,9 @@ async def extract_plan_view(
         output_path: Where to save the PNG (default: <file>_plan.png).
         height: Only include geometry at this Z height (optional).
         piaf: Also generate a PIAF tactile PDF.
+        hatch: Hatch mode — 'auto' assigns per layer, or a pattern name
+               (diagonal, crosshatch, dots, horizontal, dense_diagonal,
+               sparse_diagonal). Makes rooms tactilely distinguishable.
 
     Returns:
         Confirmation with output file path(s).
@@ -118,7 +127,7 @@ async def extract_plan_view(
     _ensure_imports()
     try:
         info = load_3dm(file_path)
-        img = extract_plan_fn(info, height=height)
+        img = extract_plan_fn(info, height=height, hatch=hatch)
 
         base = os.path.splitext(file_path)[0]
         if output_path is None:
@@ -137,7 +146,7 @@ async def extract_plan_view(
 
         return result + "\nREADY:"
     except Exception as e:
-        return f"ERROR: {e}"
+        return f"ERROR: Plan extraction failed: {e}"
 
 
 async def extract_section_view(
@@ -181,7 +190,7 @@ async def extract_section_view(
 
         return result + "\nREADY:"
     except Exception as e:
-        return f"ERROR: {e}"
+        return f"ERROR: Section extraction failed: {e}"
 
 
 async def extract_elevation_view(
@@ -223,4 +232,47 @@ async def extract_elevation_view(
 
         return result + "\nREADY:"
     except Exception as e:
+        return f"ERROR: Elevation extraction failed: {e}"
+
+
+async def export_stl_model(
+    file_path: str,
+    output_path: Optional[str] = None,
+    scale: float = 1.0,
+    layer: Optional[str] = None,
+) -> str:
+    """Export 3D model geometry from a .3dm file as binary STL for 3D printing.
+
+    Extracts mesh, brep, and extrusion geometry. Curves/lines are skipped
+    (STL is mesh-only). Use scale to convert units for your printer
+    (e.g. 25.4 for inches to mm).
+
+    Args:
+        file_path: Path to the .3dm file.
+        output_path: Where to save the STL (default: <file>.stl).
+        scale: Uniform scale factor applied to all vertices.
+        layer: Only export geometry on this layer (optional).
+
+    Returns:
+        Confirmation with output path and triangle count.
+    """
+    _ensure_imports()
+    try:
+        info = load_3dm(file_path)
+
+        base = os.path.splitext(file_path)[0]
+        if output_path is None:
+            output_path = f"{base}.stl"
+
+        stl_path, count = export_stl_fn(
+            info.file3dm, output_path, scale=scale, layer=layer
+        )
+        file_size = os.path.getsize(stl_path)
+        return (
+            f"OK: STL saved to {stl_path}.\n"
+            f"OK: Triangles: {count}.\n"
+            f"OK: File size: {file_size:,} bytes.\n"
+            f"READY:"
+        )
+    except (FileNotFoundError, ValueError) as e:
         return f"ERROR: {e}"

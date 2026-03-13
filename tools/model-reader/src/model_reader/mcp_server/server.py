@@ -26,6 +26,7 @@ from model_reader.mcp_server.tools import (
     extract_plan_view,
     extract_section_view,
     extract_elevation_view,
+    export_stl_model,
 )
 
 mcp = FastMCP(
@@ -34,8 +35,10 @@ mcp = FastMCP(
         "model-reader — Read .3dm Rhino files accessibly. "
         "Use open_3dm to load a file and get a summary. "
         "Use list_layers and list_objects to explore contents. "
-        "Use extract_plan_view, extract_section_view, and extract_elevation_view "
-        "to generate 2D drawings as PNG images or PIAF tactile PDFs."
+        "Use extract_plan_view (with optional hatch='auto' for tactile fills), "
+        "extract_section_view, and extract_elevation_view "
+        "to generate 2D drawings as PNG images or PIAF tactile PDFs. "
+        "Use export_stl_model to export 3D geometry as STL for 3D printing."
     ),
 )
 
@@ -45,6 +48,7 @@ mcp.tool()(list_objects)
 mcp.tool()(extract_plan_view)
 mcp.tool()(extract_section_view)
 mcp.tool()(extract_elevation_view)
+mcp.tool()(export_stl_model)
 
 
 def main():

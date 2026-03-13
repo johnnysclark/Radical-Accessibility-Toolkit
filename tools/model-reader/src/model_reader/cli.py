@@ -109,8 +109,13 @@ def inspect(file: str, name: str):
 @click.option("--piaf", is_flag=True, help="Also export PIAF tactile PDF.")
 @click.option("--height", type=float, default=None, help="Only include geometry at this Z height.")
 @click.option("--dpi", type=int, default=150, help="Output resolution (default: 150).")
-def plan(file: str, output: str | None, piaf: bool, height: float | None, dpi: int):
-    """Extract a plan view (top-down projection)."""
+@click.option("--hatch", default=None, help="Hatch fill mode: 'auto' assigns per layer, or a pattern name (diagonal, crosshatch, dots, horizontal, dense_diagonal, sparse_diagonal).")
+def plan(file: str, output: str | None, piaf: bool, height: float | None, dpi: int, hatch: str | None):
+    """Extract a plan view (top-down projection).
+
+    Use --hatch auto to fill closed regions with distinct tactile patterns
+    per layer, making rooms distinguishable by touch on PIAF prints.
+    """
     model = _load(file)
     if model is None:
         return
@@ -119,7 +124,7 @@ def plan(file: str, output: str | None, piaf: bool, height: float | None, dpi: i
     from model_reader.core.exporter import export_png, export_piaf
 
     try:
-        img = extract_plan(model, height=height, dpi=dpi)
+        img = extract_plan(model, height=height, dpi=dpi, hatch=hatch)
     except Exception as e:
         error(f"Plan extraction failed: {e}")
         ready()
@@ -127,10 +132,15 @@ def plan(file: str, output: str | None, piaf: bool, height: float | None, dpi: i
 
     base = os.path.splitext(file)[0]
     if output is None:
-        output = f"{base}_plan.png"
+        suffix = "_plan_hatched" if hatch else "_plan"
+        output = f"{base}{suffix}.png"
 
     png_path = export_png(img, output)
     ok(f"Plan saved to {png_path}.")
+
+    if hatch:
+        from model_reader.core.hatches import list_patterns
+        ok(f"Hatch mode: {hatch}. Available patterns: {', '.join(list_patterns())}.")
 
     if piaf:
         pdf_path = output.rsplit(".", 1)[0] + ".pdf"
@@ -221,6 +231,62 @@ def elevation(file: str, direction: str, output: str | None, piaf: bool, dpi: in
         except ImportError as e:
             error(str(e))
 
+    ready()
+
+
+# ── Export and utility commands ────────────────────────────
+
+
+@main.command("export-stl")
+@click.argument("file")
+@click.option("-o", "--output", default=None, help="Output STL path (default: <file>.stl).")
+@click.option("--scale", type=float, default=1.0, help="Uniform scale factor (e.g. 25.4 for inches to mm).")
+@click.option("--layer", "-l", default=None, help="Only export geometry on this layer.")
+def export_stl_cmd(file: str, output: str | None, scale: float, layer: str | None):
+    """Export 3D model geometry as binary STL for 3D printing.
+
+    Extracts mesh, brep, and extrusion geometry from the .3dm file
+    and writes a binary STL file. Curves/lines are skipped (STL is
+    mesh-only). Use --scale to convert units for your printer.
+    """
+    model = _load(file)
+    if model is None:
+        return
+
+    from model_reader.core.exporter import export_stl
+
+    base = os.path.splitext(file)[0]
+    if output is None:
+        output = f"{base}.stl"
+
+    try:
+        stl_path, count = export_stl(
+            model.file3dm, output, scale=scale, layer=layer
+        )
+        ok(f"STL saved to {stl_path}.")
+        ok(f"Triangles: {count}.")
+        file_size = os.path.getsize(stl_path)
+        ok(f"File size: {file_size:,} bytes.")
+    except ValueError as e:
+        error(str(e))
+
+    ready()
+
+
+@main.command()
+def hatches():
+    """List available hatch patterns for floor plans."""
+    from model_reader.core.hatches import HATCH_PATTERNS
+
+    ok(f"{len(HATCH_PATTERNS)} hatch patterns available.")
+    for i, (name, spec) in enumerate(HATCH_PATTERNS.items(), 1):
+        if spec.get("type") == "dots":
+            desc = f"dot grid, spacing {spec['spacing']}px, radius {spec['radius']}px"
+        else:
+            angles = spec["angles"]
+            angle_str = "+".join(f"{a} degrees" for a in angles)
+            desc = f"{angle_str}, spacing {spec['spacing']}px, weight {spec['weight']}px"
+        info(f"{i}. {name}: {desc}.")
     ready()
 
 

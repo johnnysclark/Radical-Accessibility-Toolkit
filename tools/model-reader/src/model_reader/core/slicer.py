@@ -146,6 +146,61 @@ def _collect_wireframe_segments(file3dm) -> list[list[tuple[float, float, float]
     return segments
 
 
+def _collect_wireframe_segments_by_layer(file3dm) -> dict[str, list[list[tuple[float, float, float]]]]:
+    """Collect wireframe segments grouped by layer name.
+
+    Returns dict mapping layer_name -> list of polyline segments.
+    """
+    layer_segments = {}
+
+    for obj in file3dm.Objects:
+        geo = obj.Geometry
+        if geo is None:
+            continue
+
+        # Resolve layer name
+        layer_idx = obj.Attributes.LayerIndex
+        try:
+            layer_name = file3dm.Layers[layer_idx].Name
+        except (IndexError, Exception):
+            layer_name = "unknown"
+
+        if layer_name not in layer_segments:
+            layer_segments[layer_name] = []
+
+        type_name = type(geo).__name__
+        segs = layer_segments[layer_name]
+
+        if hasattr(geo, "Domain") and hasattr(geo, "PointAt"):
+            pts = _sample_curve_points(geo)
+            if pts:
+                segs.append(pts)
+        elif "Mesh" in type_name and hasattr(geo, "Vertices") and hasattr(geo, "Faces"):
+            edges = _get_mesh_edges(geo)
+            for p0, p1 in edges:
+                segs.append([p0, p1])
+        elif "Brep" in type_name and hasattr(geo, "Edges"):
+            for edge in geo.Edges:
+                pts = _sample_curve_points(edge)
+                if pts:
+                    segs.append(pts)
+        elif hasattr(geo, "Location"):
+            loc = geo.Location
+            segs.append([(loc.X, loc.Y, loc.Z)])
+        elif "Extrusion" in type_name:
+            try:
+                brep = geo.ToBrep()
+                if brep is not None:
+                    for edge in brep.Edges:
+                        pts = _sample_curve_points(edge)
+                        if pts:
+                            segs.append(pts)
+            except Exception:
+                pass
+
+    return layer_segments
+
+
 def _project_xy(segments):
     """Project segments onto XY plane (plan view). Returns list of [(x,y), ...] polylines."""
     return [[(p[0], p[1]) for p in seg] for seg in segments]
@@ -288,7 +343,13 @@ def _intersect_segments_with_plane(segments, axis_index, position):
     return cut_segments
 
 
-def extract_plan(info: "ModelInfo", height: float | None = None, dpi: int = DEFAULT_DPI) -> Image.Image:
+def extract_plan(
+    info: "ModelInfo",
+    height: float | None = None,
+    dpi: int = DEFAULT_DPI,
+    hatch: str | None = None,
+    hatch_layers: dict[str, str] | None = None,
+) -> Image.Image:
     """Extract a plan view (top-down XY projection).
 
     Args:
@@ -296,16 +357,20 @@ def extract_plan(info: "ModelInfo", height: float | None = None, dpi: int = DEFA
         height: Optional Z height to filter — only include geometry that
                 exists at or crosses this height. None means project everything.
         dpi: Output resolution.
+        hatch: Hatch mode. 'auto' assigns patterns per layer automatically.
+               'none' or None disables hatching. A specific pattern name
+               applies that pattern to all closed regions.
+        hatch_layers: Dict mapping layer name -> pattern name for per-layer
+                      hatch control. Overrides 'hatch' for matched layers.
 
     Returns:
         PIL Image in B&W.
     """
     segments = _collect_wireframe_segments(info.file3dm)
+    layer_segments = _collect_wireframe_segments_by_layer(info.file3dm)
 
     if height is not None:
-        # Filter: only keep segments where at least one point is near the height
-        # or the segment crosses the height
-        tolerance = 0.5  # half a unit tolerance
+        tolerance = 0.5
         filtered = []
         for seg in segments:
             for i in range(len(seg)):
@@ -314,7 +379,6 @@ def extract_plan(info: "ModelInfo", height: float | None = None, dpi: int = DEFA
                     filtered.append(seg)
                     break
             else:
-                # Check if any edge crosses the height
                 for i in range(len(seg) - 1):
                     z0 = seg[i][2]
                     z1 = seg[i + 1][2]
@@ -323,8 +387,80 @@ def extract_plan(info: "ModelInfo", height: float | None = None, dpi: int = DEFA
                         break
         segments = filtered
 
+        # Also filter layer_segments
+        filtered_layers = {}
+        for layer_name, layer_segs in layer_segments.items():
+            fl = []
+            for seg in layer_segs:
+                for i in range(len(seg)):
+                    z = seg[i][2]
+                    if abs(z - height) < tolerance:
+                        fl.append(seg)
+                        break
+                else:
+                    for i in range(len(seg) - 1):
+                        z0 = seg[i][2]
+                        z1 = seg[i + 1][2]
+                        if (z0 - height) * (z1 - height) <= 0:
+                            fl.append(seg)
+                            break
+            if fl:
+                filtered_layers[layer_name] = fl
+        layer_segments = filtered_layers
+
     projected = _project_xy(segments)
-    return _render_2d(projected, dpi=dpi)
+
+    # If no hatching requested, use simple rendering
+    if not hatch and not hatch_layers:
+        return _render_2d(projected, dpi=dpi)
+
+    # Hatched rendering
+    from model_reader.core.hatches import (
+        auto_assign_patterns,
+        render_hatched_plan,
+        _find_closed_regions,
+    )
+
+    # Build pattern assignments
+    if hatch_layers:
+        pattern_map = hatch_layers
+    elif hatch == "auto":
+        layer_names = list(layer_segments.keys())
+        pattern_map = auto_assign_patterns(layer_names)
+    else:
+        # Single pattern for all regions
+        pattern_map = None
+        single_pattern = hatch
+
+    # Find closed regions per layer and assign patterns
+    regions_with_patterns = []
+    for layer_name, layer_segs in layer_segments.items():
+        layer_projected = _project_xy(layer_segs)
+        closed = _find_closed_regions(layer_projected)
+        if pattern_map:
+            pat = pattern_map.get(layer_name, "none")
+        else:
+            pat = single_pattern
+        for region in closed:
+            regions_with_patterns.append((region, pat))
+
+    # Compute canvas parameters
+    min_x, min_y, max_x, max_y = _compute_2d_bounds(projected)
+    content_w = max(max_x - min_x, 1e-6)
+    content_h = max(max_y - min_y, 1e-6)
+    img_w, img_h, scale, ox, oy = _canvas_setup(content_w, content_h, dpi)
+
+    return render_hatched_plan(
+        projected,
+        regions_with_patterns,
+        img_w,
+        img_h,
+        scale,
+        ox,
+        oy,
+        min_x,
+        max_y,
+    )
 
 
 def extract_section(
