@@ -163,6 +163,7 @@ video { display: none; }
         <button class="toggle-btn" data-algo="crosshatch">Hatch</button>
         <button class="toggle-btn" data-algo="engrave">Engrave</button>
         <button class="toggle-btn" data-algo="stipple">Stipple</button>
+        <button class="toggle-btn" data-algo="ox">OX</button>
       </div>
       <div class="toggle-row" id="shapeRow">
         <button class="toggle-btn active" data-shape="circle">Circle</button>
@@ -305,6 +306,7 @@ function render(gray, w, h, params) {
     case 'crosshatch':  renderCrosshatch(gray, w, h, params); break;
     case 'engrave':     renderEngrave(gray, w, h, params); break;
     case 'stipple':     renderStipple(gray, w, h, params); break;
+    case 'ox':          renderOX(gray, w, h, params); break;
   }
 }
 
@@ -604,11 +606,61 @@ function renderStucki(gray, w, h, params) {
   upsampleToCanvas(imgData, sw, sh, w, h);
 }
 
-// ── Crosshatch (Circles + Crosses) ──
-// Uses circles for lighter areas and crosses for darker areas, with size
-// proportional to darkness. Mid-tones get both overlaid. Creates a tactile
-// pattern with two distinct textures that encode brightness.
+// ── Crosshatch ──
+// Layers lines at different angles based on darkness level.
+// Light areas get fewer line directions, dark areas stack up to 4 directions.
 function renderCrosshatch(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+  var spacing = params.spacing;
+
+  output.width = w;
+  output.height = h;
+
+  if (params.invert) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#000';
+  }
+
+  ctx.lineWidth = Math.max(1, spacing * 0.15);
+
+  var half = Math.floor(spacing / 2);
+  for (var cy = half; cy < h; cy += spacing) {
+    for (var cx = half; cx < w; cx += spacing) {
+      var b = adjusted[cy * w + cx];
+      var darkness = params.invert ? (b / 255) : (1 - b / 255);
+
+      var level = 0;
+      if (darkness > 0.15) level = 1;
+      if (darkness > 0.35) level = 2;
+      if (darkness > 0.55) level = 3;
+      if (darkness > 0.75) level = 4;
+
+      if (level === 0) continue;
+
+      var x0 = cx - half;
+      var y0 = cy - half;
+      var x1 = cx + half;
+      var y1 = cy + half;
+
+      ctx.beginPath();
+      if (level >= 1) { ctx.moveTo(x0, cy); ctx.lineTo(x1, cy); }
+      if (level >= 2) { ctx.moveTo(cx, y0); ctx.lineTo(cx, y1); }
+      if (level >= 3) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y0); }
+      if (level >= 4) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }
+      ctx.stroke();
+    }
+  }
+}
+
+// ── OX (Circles + Crosses) ──
+// Circles for lighter areas, crosses for darker areas, both overlaid at mid-tones.
+// Two distinct tactile textures that encode brightness.
+function renderOX(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
   var spacing = params.spacing;
   var half = Math.floor(spacing / 2);
@@ -636,20 +688,18 @@ function renderCrosshatch(gray, w, h, params) {
 
       if (darkness <= 0.5) {
         // Light areas: circle only, size grows with darkness
-        var circR = r * 2;  // scale up so circles are visible at low darkness
+        var circR = r * 2;
         ctx.fillStyle = fg;
         ctx.beginPath();
         ctx.arc(cx, cy, Math.max(0.8, circR), 0, Math.PI * 2);
         ctx.fill();
       } else if (darkness <= 0.75) {
         // Mid areas: circle + cross overlaid
-        // Circle (outline for texture contrast)
         ctx.strokeStyle = fg;
         ctx.lineWidth = Math.max(1, spacing * 0.1);
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
-        // Cross
         var t = r * 0.3;
         ctx.fillStyle = fg;
         ctx.fillRect(cx - r, cy - t, r * 2, t * 2);
@@ -657,11 +707,9 @@ function renderCrosshatch(gray, w, h, params) {
       } else {
         // Dark areas: bold cross + filled circle
         ctx.fillStyle = fg;
-        // Filled circle
         ctx.beginPath();
         ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
         ctx.fill();
-        // Cross (thicker)
         var t2 = r * 0.35;
         ctx.fillRect(cx - r, cy - t2, r * 2, t2 * 2);
         ctx.fillRect(cx - t2, cy - r, t2 * 2, r * 2);
