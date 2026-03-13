@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "webcam-dither"
+version = "0.1.0"
+description = "Live webcam dithering converter for PIAF tactile output"
+requires-python = ">=3.10"
+dependencies = [
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+    "click>=8.1.0",
+    "reportlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+tact = ["tactile-core>=1.0.0"]
+
+[project.scripts]
+webcam-dither = "webcam_dither.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/webcam_dither"]
