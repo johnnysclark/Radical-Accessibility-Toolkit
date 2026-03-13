@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dithertone</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111;
+  color: #eee;
+  font-family: -apple-system, system-ui, sans-serif;
+  touch-action: manipulation;
+  min-height: 100vh;
+}
+#start-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh;
+  gap: 16px; padding: 20px;
+}
+#start-screen h1 { font-size: 24px; }
+#start-screen p { font-size: 14px; color: #aaa; max-width: 320px; text-align: center; }
+.start-btn {
+  display: block; width: 280px;
+  padding: 16px; border: none; border-radius: 12px;
+  font-size: 18px; font-weight: 600;
+  cursor: pointer; color: #fff; text-align: center;
+}
+.btn-photo { background: #2a6; }
+.btn-library { background: #46a; }
+input[type="file"] { display: none; }
+.hidden { display: none !important; }
+#canvas-container {
+  width: 100vw;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px; overflow: hidden;
+}
+#output {
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  border-radius: 4px;
+}
+.controls {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(20, 20, 20, 0.97);
+  padding: 8px 12px 24px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.controls-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.controls-row label {
+  font-size: 12px; min-width: 70px; color: #aaa;
+}
+.controls-row input[type="range"] {
+  flex: 1; height: 32px; accent-color: #4af;
+}
+.controls-row .val {
+  font-size: 12px; min-width: 36px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.btn-row { display: flex; gap: 8px; margin-top: 6px; }
+.btn {
+  flex: 1; padding: 12px 4px; border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer; color: #fff;
+}
+.btn-save { background: #2a2; }
+.btn-bracket { background: #c72; }
+.btn-invert { background: #555; }
+.btn-new { background: #447; }
+#status {
+  position: fixed; top: 8px; left: 8px; right: 8px;
+  text-align: center; font-size: 13px; color: #8f8;
+  pointer-events: none; z-index: 5;
+}
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>Dithertone</h1>
+  <p>Convert photos to dot patterns for PIAF tactile printing. Dot size varies with brightness.</p>
+  <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
+  <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment">
+  <input type="file" id="libraryInput" accept="image/*">
+</div>
+
+<div id="editor" class="hidden">
+  <div id="canvas-container">
+    <canvas id="output"></canvas>
+  </div>
+  <div id="status"></div>
+  <div class="controls">
+    <div class="controls-row">
+      <label>Spacing</label>
+      <input type="range" id="spacing" min="3" max="30" value="8" step="1">
+      <span class="val" id="spacingVal">8</span>
+    </div>
+    <div class="controls-row">
+      <label>Gamma</label>
+      <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
+      <span class="val" id="gammaVal">1.0</span>
+    </div>
+    <div class="controls-row">
+      <label>Contrast</label>
+      <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
+      <span class="val" id="contrastVal">0</span>
+    </div>
+    <div class="controls-row">
+      <label>Brightness</label>
+      <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
+      <span class="val" id="brightnessVal">0</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-save" id="saveBtn">Save</button>
+      <button class="btn btn-bracket" id="bracketBtn">Bracket</button>
+      <button class="btn btn-invert" id="invertBtn">Invert</button>
+      <button class="btn btn-new" id="newBtn">New</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const output = document.getElementById('output');
+const ctx = output.getContext('2d');
+const statusEl = document.getElementById('status');
+
+// Source image data (grayscale)
+let sourceGray = null;
+let sourceW = 0;
+let sourceH = 0;
+let inverted = false;
+
+// Sliders
+const spacingSlider = document.getElementById('spacing');
+const gammaSlider = document.getElementById('gamma');
+const contrastSlider = document.getElementById('contrast');
+const brightnessSlider = document.getElementById('brightness');
+
+function getParams() {
+  return {
+    spacing: parseInt(spacingSlider.value),
+    gamma: parseFloat(gammaSlider.value),
+    contrast: parseFloat(contrastSlider.value),
+    brightness: parseFloat(brightnessSlider.value),
+    invert: inverted,
+    maxRadiusFactor: 0.45,
+    minRadius: 0.5,
+  };
+}
+
+function updateDisplays() {
+  document.getElementById('spacingVal').textContent = spacingSlider.value;
+  document.getElementById('gammaVal').textContent = parseFloat(gammaSlider.value).toFixed(1);
+  document.getElementById('contrastVal').textContent = contrastSlider.value;
+  document.getElementById('brightnessVal').textContent = brightnessSlider.value;
+}
+
+// Re-render on any slider change
+function onParamChange() {
+  updateDisplays();
+  if (sourceGray) renderDithertone(sourceGray, sourceW, sourceH, getParams());
+}
+spacingSlider.addEventListener('input', onParamChange);
+gammaSlider.addEventListener('input', onParamChange);
+contrastSlider.addEventListener('input', onParamChange);
+brightnessSlider.addEventListener('input', onParamChange);
+
+// Gamma LUT
+let gammaLUT = new Uint8Array(256);
+let lastGamma = -1;
+function buildGammaLUT(gamma) {
+  if (gamma === lastGamma) return;
+  const invGamma = 1.0 / gamma;
+  for (let i = 0; i < 256; i++) {
+    gammaLUT[i] = Math.round(Math.pow(i / 255, invGamma) * 255);
+  }
+  lastGamma = gamma;
+}
+
+function adjustPixels(gray, params) {
+  const result = new Uint8Array(gray.length);
+  const factor = (100 + params.contrast) / 100;
+  buildGammaLUT(params.gamma);
+  for (let i = 0; i < gray.length; i++) {
+    let v = gray[i] + params.brightness;
+    v = 128 + factor * (v - 128);
+    v = Math.max(0, Math.min(255, v));
+    if (params.gamma !== 1.0) v = gammaLUT[Math.round(v)];
+    result[i] = v;
+  }
+  return result;
+}
+
+function renderDithertone(gray, w, h, params) {
+  const adjusted = adjustPixels(gray, params);
+  const spacing = params.spacing;
+  const maxRadius = spacing * params.maxRadiusFactor;
+  const minRadius = params.minRadius;
+  const half = Math.floor(spacing / 2);
+
+  output.width = w;
+  output.height = h;
+
+  if (params.invert) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+  }
+
+  for (let y = half; y < h; y += spacing) {
+    for (let x = half; x < w; x += spacing) {
+      const brightness = adjusted[y * w + x];
+      let radius;
+      if (params.invert) {
+        radius = maxRadius * (brightness / 255);
+      } else {
+        radius = maxRadius * (1 - brightness / 255);
+      }
+      if (radius > minRadius) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+// Load image from file input
+function loadImage(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Scale down large images for performance
+      const maxDim = 800;
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      sourceW = Math.round(img.width * scale);
+      sourceH = Math.round(img.height * scale);
+
+      // Draw to hidden canvas to extract pixels
+      const tmp = document.createElement('canvas');
+      tmp.width = sourceW;
+      tmp.height = sourceH;
+      const tmpCtx = tmp.getContext('2d', { willReadFrequently: true });
+      tmpCtx.drawImage(img, 0, 0, sourceW, sourceH);
+      const imageData = tmpCtx.getImageData(0, 0, sourceW, sourceH);
+      const data = imageData.data;
+
+      // Convert to grayscale
+      sourceGray = new Uint8Array(sourceW * sourceH);
+      for (let i = 0; i < sourceGray.length; i++) {
+        const idx = i * 4;
+        sourceGray[i] = Math.round(
+          0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]
+        );
+      }
+
+      // Show editor, render
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('editor').classList.remove('hidden');
+      renderDithertone(sourceGray, sourceW, sourceH, getParams());
+      showStatus('Photo loaded. Adjust sliders and save.');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function savePNG(suffix) {
+  // On iOS Safari, window.open with data URL works better than <a> download
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const name = suffix ? 'dither_' + suffix + '_' + ts + '.png' : 'dither_' + ts + '.png';
+  const dataURL = output.toDataURL('image/png');
+
+  // Try download link first (works on desktop and some iOS versions)
+  const link = document.createElement('a');
+  link.download = name;
+  link.href = dataURL;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showStatus('Saved: ' + name);
+}
+
+function bracketCapture() {
+  if (!sourceGray) return;
+  const baseParams = getParams();
+  const baseSpacing = baseParams.spacing;
+  var variants = [
+    { label: 'tight', spacing: Math.max(3, Math.round(baseSpacing * 0.6)) },
+    { label: 'medium', spacing: baseSpacing },
+    { label: 'loose', spacing: Math.min(30, Math.round(baseSpacing * 1.6)) },
+  ];
+  variants.forEach(function(v) {
+    var p = Object.assign({}, baseParams, { spacing: v.spacing });
+    renderDithertone(sourceGray, sourceW, sourceH, p);
+    savePNG(v.label);
+  });
+  // Restore
+  renderDithertone(sourceGray, sourceW, sourceH, baseParams);
+  showStatus('Bracket: 3 variants saved');
+}
+
+function showStatus(msg) {
+  statusEl.textContent = msg;
+  setTimeout(function() { statusEl.textContent = ''; }, 4000);
+}
+
+// Button handlers
+document.getElementById('takePhotoBtn').addEventListener('click', function() {
+  document.getElementById('cameraInput').click();
+});
+document.getElementById('choosePhotoBtn').addEventListener('click', function() {
+  document.getElementById('libraryInput').click();
+});
+document.getElementById('cameraInput').addEventListener('change', function(e) {
+  if (e.target.files.length > 0) loadImage(e.target.files[0]);
+});
+document.getElementById('libraryInput').addEventListener('change', function(e) {
+  if (e.target.files.length > 0) loadImage(e.target.files[0]);
+});
+document.getElementById('saveBtn').addEventListener('click', function() { savePNG(); });
+document.getElementById('bracketBtn').addEventListener('click', function() { bracketCapture(); });
+document.getElementById('invertBtn').addEventListener('click', function() {
+  inverted = !inverted;
+  document.getElementById('invertBtn').textContent = inverted ? 'Invert: ON' : 'Invert';
+  if (sourceGray) renderDithertone(sourceGray, sourceW, sourceH, getParams());
+});
+document.getElementById('newBtn').addEventListener('click', function() {
+  sourceGray = null;
+  inverted = false;
+  document.getElementById('invertBtn').textContent = 'Invert';
+  document.getElementById('editor').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+  // Reset file inputs so same file can be re-selected
+  document.getElementById('cameraInput').value = '';
+  document.getElementById('libraryInput').value = '';
+});
+</script>
+</body>
+</html>
