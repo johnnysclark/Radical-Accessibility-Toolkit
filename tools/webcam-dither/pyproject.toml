@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "webcam-dither"
+version = "0.1.0"
+description = "Live webcam dithertone converter for PIAF tactile printing"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Radical Accessibility Project" },
+]
+dependencies = [
+    "click>=8.1.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+piaf = ["tactile-core>=1.0.0"]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0"]
+
+[project.scripts]
+webcam-dither = "webcam_dither.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/webcam_dither"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/webcam_dither"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
