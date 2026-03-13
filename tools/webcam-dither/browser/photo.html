@@ -120,7 +120,7 @@ video { display: none; }
   <div class="controls">
     <div class="controls-row" id="spacingRow">
       <label>Spacing</label>
-      <input type="range" id="spacing" min="3" max="30" value="8" step="1">
+      <input type="range" id="spacing" min="1" max="30" value="8" step="1">
       <span class="val" id="spacingVal">8</span>
     </div>
     <div class="controls-row hidden" id="scaleRow">
@@ -151,6 +151,7 @@ video { display: none; }
       <button class="toggle-btn" data-algo="bayer">Bayer</button>
       <button class="toggle-btn" data-algo="halftone">Lines</button>
       <button class="toggle-btn" data-algo="crosshatch">Hatch</button>
+      <button class="toggle-btn" data-algo="engrave">Engrave</button>
     </div>
     <div class="toggle-row" id="shapeRow">
       <button class="toggle-btn active" data-shape="circle">Circle</button>
@@ -280,6 +281,7 @@ function render(gray, w, h, params) {
     case 'bayer':       renderBayer(gray, w, h, params); break;
     case 'halftone':    renderHalftone(gray, w, h, params); break;
     case 'crosshatch':  renderCrosshatch(gray, w, h, params); break;
+    case 'engrave':     renderEngrave(gray, w, h, params); break;
   }
 }
 
@@ -653,6 +655,64 @@ function renderCrosshatch(gray, w, h, params) {
   }
 }
 
+// ── Engrave ──
+// Continuous diagonal lines with variable thickness based on brightness.
+// Produces an engraving / banknote etching look.
+function renderEngrave(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+  var spacing = params.spacing;
+
+  output.width = w;
+  output.height = h;
+
+  if (params.invert) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#000';
+  }
+
+  ctx.lineCap = 'butt';
+
+  // Draw diagonal lines (top-left to bottom-right direction)
+  // Each line runs from one edge to the opposite, spaced apart by 'spacing'.
+  // Line thickness varies along the line based on local brightness.
+  var maxThick = spacing * 0.85;
+  var step = Math.max(2, Math.floor(spacing * 0.5));
+
+  // Lines go from top-right to bottom-left (perpendicular offset along y = -x direction)
+  for (var d = -h; d < w + h; d += spacing) {
+    ctx.beginPath();
+    var started = false;
+    for (var x = Math.max(0, d); x < Math.min(w, d + h); x += step) {
+      var y = x - d;
+      if (y < 0 || y >= h) continue;
+      var b = adjusted[y * w + x];
+      var darkness = params.invert ? (b / 255) : (1 - b / 255);
+      var thick = maxThick * darkness;
+      if (thick < 0.3) {
+        if (started) { ctx.stroke(); ctx.beginPath(); started = false; }
+        continue;
+      }
+      ctx.lineWidth = thick;
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+    }
+    if (started) ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+}
+
 // ── Algorithm toggle buttons ──
 document.querySelectorAll('#algoRow .toggle-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
@@ -861,7 +921,7 @@ function bracketCapture(gray, w, h) {
   var baseParams = getParams();
   var baseSpacing = baseParams.spacing;
   var variants = [
-    { label: 'tight', spacing: Math.max(3, Math.round(baseSpacing * 0.6)) },
+    { label: 'tight', spacing: Math.max(1, Math.round(baseSpacing * 0.6)) },
     { label: 'medium', spacing: baseSpacing },
     { label: 'loose', spacing: Math.min(30, Math.round(baseSpacing * 1.6)) },
   ];
@@ -937,7 +997,7 @@ document.addEventListener('keydown', function(e) {
   else if (e.key === 'b') { if (liveMode) liveBracket(); else bracketCapture(sourceGray, sourceW, sourceH); }
   else if (e.key === 'i') toggleInvert();
   else if (e.key === '=' || e.key === '+') { spacingSlider.value = Math.min(30, parseInt(spacingSlider.value) + 1); onParamChange(); }
-  else if (e.key === '-') { spacingSlider.value = Math.max(3, parseInt(spacingSlider.value) - 1); onParamChange(); }
+  else if (e.key === '-') { spacingSlider.value = Math.max(1, parseInt(spacingSlider.value) - 1); onParamChange(); }
   else if (e.key === ']') { gammaSlider.value = Math.min(4, parseFloat(gammaSlider.value) + 0.1).toFixed(1); onParamChange(); }
   else if (e.key === '[') { gammaSlider.value = Math.max(0.2, parseFloat(gammaSlider.value) - 0.1).toFixed(1); onParamChange(); }
 });
