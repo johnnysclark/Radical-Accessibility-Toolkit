@@ -26,6 +26,7 @@ from tactile_core.utils.validators import (
 from tactile_core.core.text_detector import TextDetector, TextDetectionConfig
 from tactile_core.core.braille_converter import BrailleConverter, BrailleConfig
 from tactile_core.core.label_scaler import analyze_label_fit
+from tactile_core.core.dithertone import DithertoneConfig, bracket_configs
 
 
 class DefaultGroup(click.Group):
@@ -205,7 +206,59 @@ def main():
     is_flag=True,
     help='Generate dual PDFs for Braille sticker workflow: PIAF version (counter-highlighted, no Braille) + text-only version for second print pass'
 )
-def convert(input_path, output, threshold, paper_size, verbose, interactive, config, preset, enhance, enhance_strength, save_intermediate, enable_tiling, tile_overlap, no_registration_marks, auto_reduce_density, target_density, max_reduction_iterations, detect_text, braille_grade, braille_placement, zoom_region, scale_percent, auto_scale, max_scale_factor, abbreviation_key, force_abbreviation_key, sticker_workflow):
+@click.option(
+    '--mode',
+    type=click.Choice(['threshold', 'dithertone'], case_sensitive=False),
+    default='threshold',
+    help='Conversion mode: threshold (binary B&W) or dithertone (dot-grid halftone). Default: threshold'
+)
+@click.option(
+    '--dot-shape',
+    type=click.Choice(['circle', 'square', 'cross', 'triangle', 'dash'], case_sensitive=False),
+    default='circle',
+    help='Dithertone dot shape (default: circle). Only used when --mode dithertone'
+)
+@click.option(
+    '--dot-spacing',
+    type=int,
+    default=12,
+    help='Dithertone center-to-center dot spacing in pixels (default: 12)'
+)
+@click.option(
+    '--min-radius',
+    type=float,
+    default=1.0,
+    help='Dithertone minimum dot radius in pixels (default: 1.0)'
+)
+@click.option(
+    '--max-radius',
+    type=float,
+    default=5.0,
+    help='Dithertone maximum dot radius in pixels (default: 5.0)'
+)
+@click.option(
+    '--gamma',
+    type=float,
+    default=1.0,
+    help='Dithertone gamma curve (default: 1.0). >1 darkens midtones, <1 lightens'
+)
+@click.option(
+    '--grid-angle',
+    type=float,
+    default=45.0,
+    help='Dithertone grid rotation angle in degrees (default: 45.0)'
+)
+@click.option(
+    '--invert-dots',
+    is_flag=True,
+    help='Invert dot sizing: bright areas get large dots, dark areas get small dots'
+)
+@click.option(
+    '--bracket',
+    is_flag=True,
+    help='Output 3 dithertone variants (tight/medium/loose spacing) for quick PIAF testing'
+)
+def convert(input_path, output, threshold, paper_size, verbose, interactive, config, preset, enhance, enhance_strength, save_intermediate, enable_tiling, tile_overlap, no_registration_marks, auto_reduce_density, target_density, max_reduction_iterations, detect_text, braille_grade, braille_placement, zoom_region, scale_percent, auto_scale, max_scale_factor, abbreviation_key, force_abbreviation_key, sticker_workflow, mode, dot_shape, dot_spacing, min_radius, max_radius, gamma, grid_angle, invert_dots, bracket):
     """
     Convert an image to PIAF-ready PDF format.
 
@@ -315,6 +368,23 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                 if enhance_strength is None:
                     enhance_strength = preset_settings.get('enhance_strength', 1.0)
 
+                # Apply dithertone settings from preset
+                if preset_settings.get('mode') == 'dithertone' and mode == 'threshold':
+                    mode = 'dithertone'
+                if mode == 'dithertone':
+                    if dot_shape == 'circle':  # Default
+                        dot_shape = preset_settings.get('dot_shape', 'circle')
+                    if dot_spacing == 12:  # Default
+                        dot_spacing = preset_settings.get('dot_spacing', 12)
+                    if min_radius == 1.0:
+                        min_radius = preset_settings.get('min_radius', 1.0)
+                    if max_radius == 5.0:
+                        max_radius = preset_settings.get('max_radius', 5.0)
+                    if gamma == 1.0:
+                        gamma = preset_settings.get('gamma', 1.0)
+                    if grid_angle == 45.0:
+                        grid_angle = preset_settings.get('grid_angle', 45.0)
+
             except PresetError as e:
                 logger.error("Invalid preset", e)
                 logger.solution("Use 'tact presets' to see available presets")
@@ -399,6 +469,14 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                     logger.info(f"  Abbreviation key: enabled")
             else:
                 logger.info(f"  Abbreviation key: disabled")
+            if mode == 'dithertone':
+                logger.info(f"  Mode: dithertone")
+                logger.info(f"  Dot shape: {dot_shape}")
+                logger.info(f"  Dot spacing: {dot_spacing}")
+                logger.info(f"  Radius: {min_radius}-{max_radius}")
+                logger.info(f"  Gamma: {gamma}")
+                if bracket:
+                    logger.info(f"  Bracket: 3 variants (tight/medium/loose)")
             logger.blank_line()
 
             if not click.confirm("Continue with these settings?", default=True):
@@ -406,6 +484,22 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                 sys.exit(0)
 
             logger.blank_line()
+
+        # Build dithertone config if in dithertone mode
+        dithertone_config = None
+        if mode == 'dithertone':
+            dithertone_config = DithertoneConfig(
+                dot_shape=dot_shape,
+                dot_spacing=dot_spacing,
+                min_radius=min_radius,
+                max_radius=max_radius,
+                gamma=gamma,
+                angle=grid_angle,
+                invert=invert_dots,
+            )
+            if verbose:
+                logger.info(f"Dithertone mode: {dot_shape} dots, spacing={dot_spacing}, "
+                            f"radius={min_radius}-{max_radius}, gamma={gamma}")
 
         # Generate output filename if not specified
         if not output:
@@ -487,7 +581,9 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                 target_density=target_density,
                 max_reduction_iterations=max_reduction_iterations,
                 detect_text=False,
-                save_intermediate_path=save_intermediate
+                save_intermediate_path=save_intermediate,
+                mode=mode,
+                dithertone_config=dithertone_config,
             )
         except ImageProcessorError as e:
             logger.error("Image processing failed", e)
@@ -547,7 +643,9 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                     auto_reduce_density=auto_reduce_density,
                     target_density=target_density,
                     max_reduction_iterations=max_reduction_iterations,
-                    detect_text=False
+                    detect_text=False,
+                    mode=mode,
+                    dithertone_config=dithertone_config,
                 )
 
                 # Inject EasyOCR results
@@ -628,7 +726,9 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                         auto_reduce_density=auto_reduce_density,
                         target_density=target_density,
                         max_reduction_iterations=max_reduction_iterations,
-                        detect_text=False
+                        detect_text=False,
+                        mode=mode,
+                        dithertone_config=dithertone_config,
                     )
 
                     # Inject EasyOCR results
@@ -737,6 +837,51 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                     logger.info("Proceeding with scaled output")
                 logger.blank_line()
 
+        # Handle dithertone bracketing (3 variants: tight, medium, loose)
+        if bracket and mode == 'dithertone' and dithertone_config is not None:
+            bracket_variants = bracket_configs(dithertone_config)
+            labels = ['tight', 'medium', 'loose']
+            output_base = output.rsplit('.pdf', 1)[0] if output.endswith('.pdf') else output
+
+            pdf_generator = PIAFPDFGenerator(logger=logger, config=standards.get_all_config())
+
+            for label, variant_config in zip(labels, bracket_variants):
+                logger.blank_line()
+                logger.info(f"Bracket variant: {label} (spacing={variant_config.dot_spacing})")
+
+                variant_image, variant_metadata = processor.process(
+                    input_path=zoomed_input_path,
+                    threshold=threshold,
+                    check_density_flag=True,
+                    enhance=enhance,
+                    enhance_strength=enhance_strength,
+                    paper_size=paper_size,
+                    auto_reduce_density=auto_reduce_density,
+                    target_density=target_density,
+                    max_reduction_iterations=max_reduction_iterations,
+                    detect_text=False,
+                    mode='dithertone',
+                    dithertone_config=variant_config,
+                )
+
+                variant_output = f"{output_base}_{label}.pdf"
+                pdf_generator.generate(
+                    image=variant_image,
+                    output_path=variant_output,
+                    paper_size=paper_size,
+                    metadata=variant_metadata,
+                    braille_labels=braille_labels,
+                    symbol_key_entries=symbol_key_entries,
+                    braille_converter=braille_converter,
+                    key_entries=key_entries if key_entries else None,
+                )
+                logger.success(f"OK: {label} variant saved to {variant_output}")
+
+            logger.blank_line()
+            logger.success(f"OK: Bracket output complete: 3 variants saved")
+            logger.info(f"READY:")
+            return
+
         # Generate PDF
         pdf_generator = PIAFPDFGenerator(logger=logger, config=standards.get_all_config())
 
@@ -833,7 +978,11 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                 logger.info("Processing Summary:")
                 logger.info(f"  Input: {Path(input_path).name}")
                 logger.info(f"  Output: {output_path}")
-                logger.info(f"  Threshold: {threshold}")
+                logger.info(f"  Mode: {mode}")
+                if mode == 'threshold':
+                    logger.info(f"  Threshold: {threshold}")
+                else:
+                    logger.info(f"  Dot shape: {dot_shape}, spacing: {dot_spacing}")
                 logger.info(f"  Paper size: {paper_size}")
                 if metadata.get('density_percentage'):
                     logger.info(f"  Density: {metadata['density_percentage']:.1f}%")

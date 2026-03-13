@@ -21,6 +21,7 @@ from tactile_core.config.presets import PresetManager, PresetError
 from tactile_core.core.braille_converter import BrailleConverter, BrailleConfig, KeyEntry
 from tactile_core.core.text_detector import TextDetector, TextDetectionConfig, DetectedText
 from tactile_core.core.label_scaler import analyze_label_fit
+from tactile_core.core.dithertone import DithertoneConfig, bracket_configs
 
 logger = logging.getLogger("tactile.converter")
 
@@ -86,6 +87,17 @@ class ConversionParams:
     color_to_tactile: bool = False
     rainbowtact_num_colors: int = 5
 
+    # Dithertone mode
+    mode: str = "threshold"
+    dot_shape: str = "circle"
+    dot_spacing: int = 12
+    min_radius: float = 1.0
+    max_radius: float = 5.0
+    gamma: float = 1.0
+    grid_angle: float = 45.0
+    invert_dots: bool = False
+    bracket: bool = False
+
     # Pre-detected texts (for hybrid OCR or CLI text injection)
     predetected_texts: Optional[List[DetectedText]] = None
 
@@ -117,6 +129,7 @@ class ConversionResult:
     error_type: Optional[str] = None
 
     # Additional metadata
+    mode_used: str = "threshold"
     paper_size: Optional[str] = None
     threshold_used: Optional[int] = None
     preset_used: Optional[str] = None
@@ -228,6 +241,23 @@ class TactileConverter:
                     enhance = preset_settings.get('enhance')
                 if params.enhance_strength == 1.0:  # Default value
                     enhance_strength = preset_settings.get('enhance_strength', 1.0)
+
+                # Apply dithertone settings from preset
+                if preset_settings.get('mode') == 'dithertone' and params.mode == 'threshold':
+                    params.mode = 'dithertone'
+                if params.mode == 'dithertone':
+                    if params.dot_shape == 'circle':  # Default value
+                        params.dot_shape = preset_settings.get('dot_shape', 'circle')
+                    if params.dot_spacing == 12:  # Default value
+                        params.dot_spacing = preset_settings.get('dot_spacing', 12)
+                    if params.min_radius == 1.0:
+                        params.min_radius = preset_settings.get('min_radius', 1.0)
+                    if params.max_radius == 5.0:
+                        params.max_radius = preset_settings.get('max_radius', 5.0)
+                    if params.gamma == 1.0:
+                        params.gamma = preset_settings.get('gamma', 1.0)
+                    if params.grid_angle == 45.0:
+                        params.grid_angle = preset_settings.get('grid_angle', 45.0)
 
             except PresetError as e:
                 raise ConversionError(f"Invalid preset '{params.preset}': {e}", "preset_error")
@@ -416,6 +446,19 @@ class TactileConverter:
                         # Scale detected text coordinates
                         detected_texts = processor.scale_detected_texts(detected_texts, effective_scale_percent)
 
+            # Build dithertone config if in dithertone mode
+            dithertone_config = None
+            if params.mode == 'dithertone':
+                dithertone_config = DithertoneConfig(
+                    dot_shape=params.dot_shape,
+                    dot_spacing=params.dot_spacing,
+                    min_radius=params.min_radius,
+                    max_radius=params.max_radius,
+                    gamma=params.gamma,
+                    angle=params.grid_angle,
+                    invert=params.invert_dots,
+                )
+
             # Process image
             try:
                 processed_image, metadata = processor.process(
@@ -428,7 +471,9 @@ class TactileConverter:
                     auto_reduce_density=params.auto_reduce_density,
                     target_density=params.target_density,
                     max_reduction_iterations=params.max_reduction_iterations,
-                    detect_text=params.detect_text and not detected_texts  # Skip if we have pre-detected
+                    detect_text=params.detect_text and not detected_texts,  # Skip if we have pre-detected
+                    mode=params.mode,
+                    dithertone_config=dithertone_config,
                 )
             except ImageProcessorError as e:
                 return ConversionResult(
@@ -534,8 +579,14 @@ class TactileConverter:
             if effective_scale_percent is not None and effective_scale_percent > 300:
                 warnings.append(f"High scaling ({effective_scale_percent:.0f}%) may degrade image quality.")
 
+            # Add dithertone info to message
+            if params.mode == 'dithertone':
+                message_parts_prefix = [f"Dithertone conversion ({params.dot_shape} dots) complete."]
+            else:
+                message_parts_prefix = []
+
             # Build message
-            message_parts = ["Converted successfully."]
+            message_parts = message_parts_prefix or ["Converted successfully."]
             if braille_labels_count > 0:
                 message_parts.append(f"{braille_labels_count} Braille label(s) added.")
             if key_entries:
@@ -561,6 +612,7 @@ class TactileConverter:
                 needs_tiling=needs_tiling,
                 page_count=1,  # Single page for basic convert
                 warnings=warnings,
+                mode_used=params.mode,
                 paper_size=paper_size,
                 threshold_used=threshold,
                 preset_used=params.preset,

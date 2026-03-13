@@ -31,6 +31,8 @@ def _ensure_imports():
     global cache_tesseract_results, load_cached_tesseract
     global analyze_label_fit
     global RainbowTactConverter, RainbowTactConfig
+    global DithertoneConfig, bracket_configs
+    global TactileConverter, ConversionParams, ConversionResult
 
     from tactile_core.core.processor import ImageProcessor as _IP, ImageProcessorError as _IPE
     from tactile_core.core.pdf_generator import PIAFPDFGenerator as _PPG, PDFGeneratorError as _PDFE
@@ -55,6 +57,12 @@ def _ensure_imports():
     cache_tesseract_results, load_cached_tesseract = _CTR, _LCT
     analyze_label_fit = _ALF
     RainbowTactConverter, RainbowTactConfig = _RTC, _RTCfg
+
+    from tactile_core.core.dithertone import DithertoneConfig as _DC, bracket_configs as _BC2
+    from tactile_core.core.converter import TactileConverter as _TC, ConversionParams as _CP, ConversionResult as _CR
+    DithertoneConfig, bracket_configs = _DC, _BC2
+    TactileConverter, ConversionParams, ConversionResult = _TC, _CP, _CR
+
     _imports_loaded = True
 
 logger = logging.getLogger("tactile-mcp")
@@ -2041,3 +2049,162 @@ def _get_adjustment_suggestions(density: float, image_type: str) -> Dict[str, An
         })
 
     return suggestions
+
+
+async def image_to_dithertone(
+    image_path: str,
+    output_path: Optional[str] = None,
+    dot_shape: str = "circle",
+    dot_spacing: int = 12,
+    min_radius: float = 1.0,
+    max_radius: float = 5.0,
+    gamma: float = 1.0,
+    grid_angle: float = 45.0,
+    invert: bool = False,
+    bracket: bool = False,
+    preset: Optional[str] = None,
+    paper_size: str = "letter",
+    detect_text: bool = True,
+    braille_grade: int = 2,
+    auto_reduce_density: bool = False,
+) -> str:
+    """
+    Convert an image to a PIAF-ready PDF using dithertone dot-grid halftone.
+
+    Unlike simple B&W thresholding, dithertone preserves tonal gradation by
+    rendering a grid of dots whose size maps to local brightness. This produces
+    tactile output where dark areas have large, closely-spaced dots and bright
+    areas have small or no dots.
+
+    Five dot shapes are available for different tactile textures: circle (smooth),
+    square (angular), cross (open), triangle (directional), dash (linear).
+
+    Use bracket=True to generate 3 variants (tight/medium/loose spacing) in one
+    call for quick PIAF testing to find the best spacing for a given image.
+
+    Args:
+        image_path: Path to the input image file (JPG, PNG, TIFF, BMP, GIF, or PDF)
+        output_path: Path for output PDF. If not specified, creates {input_name}_piaf.pdf
+        dot_shape: Shape of halftone dots. One of: circle, square, cross, triangle, dash.
+        dot_spacing: Center-to-center distance between dots in pixels (default: 12).
+            Smaller = denser output, larger = more open.
+        min_radius: Minimum dot radius in pixels for brightest areas (default: 1.0).
+        max_radius: Maximum dot radius in pixels for darkest areas (default: 5.0).
+        gamma: Gamma curve for brightness-to-size mapping (default: 1.0).
+            >1 darkens midtones (more ink), <1 lightens midtones (less ink).
+        grid_angle: Grid rotation angle in degrees (default: 45.0 for classic halftone).
+        invert: If True, bright areas get large dots and dark areas get small dots.
+        bracket: If True, generate 3 variants (tight/medium/loose spacing) for PIAF testing.
+        preset: Optional preset name (dithertone_photo or dithertone_drawing recommended).
+        paper_size: Output paper size - "letter" or "tabloid" (default: letter).
+        detect_text: Enable OCR text detection and Braille conversion (default: True).
+        braille_grade: Braille grade 1 (uncontracted) or 2 (contracted). Default: 2.
+        auto_reduce_density: Automatically reduce density if too high for PIAF.
+
+    Returns:
+        JSON string with conversion results including output file path(s) and metadata.
+    """
+    _ensure_imports()
+    try:
+        silent_logger = SilentLogger()
+
+        if bracket:
+            # Bracket mode: generate 3 variants
+            base_config = DithertoneConfig(
+                dot_shape=dot_shape,
+                dot_spacing=dot_spacing,
+                min_radius=min_radius,
+                max_radius=max_radius,
+                gamma=gamma,
+                angle=grid_angle,
+                invert=invert,
+            )
+            variants = bracket_configs(base_config)
+            labels = ['tight', 'medium', 'loose']
+
+            input_file = Path(image_path)
+            base_output = output_path or str(
+                input_file.parent / f"{input_file.stem}_piaf.pdf"
+            )
+            base_stem = base_output.rsplit('.pdf', 1)[0] if base_output.endswith('.pdf') else base_output
+
+            results = []
+            for label, variant in zip(labels, variants):
+                variant_output = f"{base_stem}_{label}.pdf"
+                params = ConversionParams(
+                    input_path=image_path,
+                    output_path=variant_output,
+                    paper_size=paper_size,
+                    preset=preset,
+                    mode="dithertone",
+                    dot_shape=variant.dot_shape,
+                    dot_spacing=variant.dot_spacing,
+                    min_radius=variant.min_radius,
+                    max_radius=variant.max_radius,
+                    gamma=variant.gamma,
+                    grid_angle=variant.angle,
+                    invert_dots=variant.invert,
+                    detect_text=detect_text,
+                    braille_grade=braille_grade,
+                    auto_reduce_density=auto_reduce_density,
+                )
+                converter = TactileConverter(logger=silent_logger)
+                result = converter.convert(params)
+                results.append({
+                    "variant": label,
+                    "dot_spacing": variant.dot_spacing,
+                    "success": result.success,
+                    "output_file": result.output_file,
+                    "density_percentage": result.density_percentage,
+                    "error": result.error,
+                })
+
+            return json.dumps({
+                "success": all(r["success"] for r in results),
+                "bracket": True,
+                "variants": results,
+                "message": f"Bracket complete: 3 dithertone variants generated ({dot_shape} dots).",
+            })
+
+        # Single conversion
+        params = ConversionParams(
+            input_path=image_path,
+            output_path=output_path,
+            paper_size=paper_size,
+            preset=preset,
+            mode="dithertone",
+            dot_shape=dot_shape,
+            dot_spacing=dot_spacing,
+            min_radius=min_radius,
+            max_radius=max_radius,
+            gamma=gamma,
+            grid_angle=grid_angle,
+            invert_dots=invert,
+            detect_text=detect_text,
+            braille_grade=braille_grade,
+            auto_reduce_density=auto_reduce_density,
+        )
+
+        converter = TactileConverter(logger=silent_logger)
+        result = converter.convert(params)
+
+        return json.dumps({
+            "success": result.success,
+            "output_file": result.output_file,
+            "mode": "dithertone",
+            "dot_shape": dot_shape,
+            "dot_spacing": dot_spacing,
+            "density_percentage": result.density_percentage,
+            "braille_labels_count": result.braille_labels_count,
+            "paper_size": result.paper_size,
+            "message": result.message,
+            "error": result.error,
+        })
+
+    except Exception as e:
+        logger.error(f"Dithertone conversion error: {e}")
+        return json.dumps({
+            "success": False,
+            "error": str(e),
+            "error_type": "unexpected_error",
+        })

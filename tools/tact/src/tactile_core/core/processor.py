@@ -16,6 +16,7 @@ from tactile_core.core.contrast import ContrastEnhancer
 from tactile_core.core.text_detector import TextDetector, TextDetectionConfig, DetectedText
 from tactile_core.core.braille_converter import BRAILLE_DPI, BRAILLE_FONT_SIZE_POINTS
 from tactile_core.core.rainbowtact import RainbowTactConverter, RainbowTactConfig, ColorRegion, TactilePattern
+from tactile_core.core.dithertone import DithertoneConfig, DithertoneRenderer
 
 
 class ImageProcessorError(Exception):
@@ -136,6 +137,35 @@ class ImageProcessor:
 
         # Convert to 1-bit mode (pure B&W)
         bw_image = bw_image.convert('1')
+
+        return bw_image
+
+    def apply_dithertone(self, image: Image.Image, config: DithertoneConfig) -> Image.Image:
+        """
+        Apply dithertone dot-grid halftone conversion.
+
+        Replaces simple thresholding with a dot grid where dot size
+        maps to local brightness, preserving tonal gradation.
+
+        Args:
+            image: Grayscale PIL Image
+            config: DithertoneConfig with dot shape, spacing, radius, etc.
+
+        Returns:
+            1-bit B&W PIL Image with dot-grid halftone
+        """
+        self.logger.progress(
+            f"Applying dithertone: {config.dot_shape} dots, "
+            f"spacing={config.dot_spacing}, gamma={config.gamma}"
+        )
+
+        renderer = DithertoneRenderer(config)
+        bw_image = renderer.render(image)
+
+        self.logger.info(
+            f"Dithertone complete: {config.dot_shape} shape, "
+            f"radius {config.min_radius}-{config.max_radius}px"
+        )
 
         return bw_image
 
@@ -712,7 +742,9 @@ class ImageProcessor:
                 target_density: Optional[float] = None,
                 max_reduction_iterations: Optional[int] = None,
                 detect_text: bool = False,
-                save_intermediate_path: Optional[str] = None) -> Tuple[Image.Image, dict]:
+                save_intermediate_path: Optional[str] = None,
+                mode: str = 'threshold',
+                dithertone_config: Optional[DithertoneConfig] = None) -> Tuple[Image.Image, dict]:
         """
         Main processing pipeline: load, enhance, convert, threshold.
 
@@ -804,8 +836,11 @@ class ImageProcessor:
                         self.logger.warning(f"Text detection failed: {e}")
                         self.logger.info("Continuing with processing")
 
-            # Apply threshold
-            bw_image = self.apply_threshold(enhanced, threshold)
+            # Apply threshold or dithertone conversion
+            if mode == 'dithertone' and dithertone_config is not None:
+                bw_image = self.apply_dithertone(enhanced, dithertone_config)
+            else:
+                bw_image = self.apply_threshold(enhanced, threshold)
 
             # Initialize density reduction metadata
             reduction_stats = None
@@ -858,6 +893,7 @@ class ImageProcessor:
                 'original_size': image.size,
                 'original_mode': image.mode,
                 'threshold': threshold,
+                'mode': mode,
                 'enhancement': enhance,
                 'enhance_strength': enhance_strength if enhance == 's_curve' else None,
                 'density_percentage': density,

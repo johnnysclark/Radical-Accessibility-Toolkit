@@ -25,6 +25,7 @@ except ImportError:
 
 from tactile_core.mcp_server.tools import (
     image_to_piaf,
+    image_to_dithertone,
     list_presets,
     analyze_image,
     describe_image,
@@ -35,11 +36,12 @@ from tactile_core.mcp_server.tools import (
 # Initialize MCP server
 mcp = FastMCP(
     name="tact",
-    instructions="TACT — Tactile Architectural Conversion Tool. Use image_to_piaf to convert images to PIAF-ready PDFs — text detection and Braille conversion happen automatically in a single call. Use list_presets to see available presets, analyze_image for pre-conversion checks, and describe_image for detailed accessibility descriptions of architectural images. For Braille sticker workflows, use sticker_workflow=true to generate dual PDFs (PIAF version + text-only for second print pass). For color images, use color_to_tactile=true to convert colors into distinguishable tactile patterns (waves for chromatic, dots for achromatic) with a color pattern legend page."
+    instructions="TACT — Tactile Architectural Conversion Tool. Use image_to_piaf to convert images to PIAF-ready PDFs — text detection and Braille conversion happen automatically in a single call. Use image_to_dithertone for photographs and tonal images — it replaces binary thresholding with a dot-grid halftone where dot size maps to brightness, preserving gradients. Use list_presets to see available presets (including dithertone_photo and dithertone_drawing), analyze_image for pre-conversion checks, and describe_image for detailed accessibility descriptions. For Braille sticker workflows, use sticker_workflow=true. For color images, use color_to_tactile=true for RainbowTact pattern conversion."
 )
 
 # Register tools
 mcp.tool()(image_to_piaf)
+mcp.tool()(image_to_dithertone)
 mcp.tool()(list_presets)
 mcp.tool()(analyze_image)
 mcp.tool()(describe_image)

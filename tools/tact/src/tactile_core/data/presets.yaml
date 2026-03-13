@@ -114,6 +114,40 @@ presets:
       max_density: 32
     notes: "CLAHE for mixed images and text. Often larger format."
 
+  dithertone_photo:
+    name: "Dithertone Photo"
+    description: "Photographs converted with dot-grid halftone for tonal preservation"
+    settings:
+      mode: "dithertone"
+      dot_shape: "circle"
+      dot_spacing: 10
+      min_radius: 1.0
+      max_radius: 4.5
+      gamma: 1.2
+      grid_angle: 45
+      enhance: "clahe"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 35
+    notes: "Dot-grid halftone preserves tonal gradation in photographs. CLAHE enhancement for varying lighting."
+
+  dithertone_drawing:
+    name: "Dithertone Drawing"
+    description: "Drawings with halftone shading for material indications and gradients"
+    settings:
+      mode: "dithertone"
+      dot_shape: "circle"
+      dot_spacing: 14
+      min_radius: 1.0
+      max_radius: 5.0
+      gamma: 0.8
+      grid_angle: 45
+      enhance: "s_curve"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 40
+    notes: "Wider spacing and lower gamma for drawings with hatching and material patterns."
+
 # Default preset if none specified
 default: "floor_plan"
 
@@ -135,3 +169,7 @@ recommendations:
   detailed:
     - "detail_drawing"
     - "section"
+
+  tonal:
+    - "dithertone_photo"
+    - "dithertone_drawing"
