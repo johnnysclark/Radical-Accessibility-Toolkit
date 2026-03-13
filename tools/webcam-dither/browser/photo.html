@@ -29,7 +29,13 @@ body {
 }
 .btn-photo { background: #2a6; }
 .btn-library { background: #46a; }
+.btn-live { background: #a72; }
+.camera-select {
+  font-size: 14px; padding: 8px 12px; border-radius: 8px;
+  background: #222; color: #ccc; border: 1px solid #444;
+}
 input[type="file"] { display: none; }
+video { display: none; }
 .hidden { display: none !important; }
 #canvas-container {
   width: 100vw;
@@ -38,7 +44,7 @@ input[type="file"] { display: none; }
 }
 #output {
   max-width: 100%;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 260px);
   border-radius: 4px;
 }
 .controls {
@@ -70,15 +76,16 @@ input[type="file"] { display: none; }
 .btn-bracket { background: #c72; }
 .btn-invert { background: #555; }
 .btn-new { background: #447; }
-.shape-row {
+.btn-flip { background: #a72; }
+.toggle-row {
   display: flex; gap: 6px; margin-bottom: 6px;
 }
-.shape-btn {
+.toggle-btn {
   flex: 1; padding: 8px 4px; border: 2px solid #444; border-radius: 8px;
   font-size: 13px; font-weight: 600; cursor: pointer;
   color: #aaa; background: transparent; text-align: center;
 }
-.shape-btn.active {
+.toggle-btn.active {
   border-color: #4af; color: #fff; background: rgba(68,170,255,0.15);
 }
 #status {
@@ -92,9 +99,14 @@ input[type="file"] { display: none; }
 
 <div id="start-screen">
   <h1>Dithertone</h1>
-  <p>Convert photos to dot patterns for PIAF tactile printing. Dot size varies with brightness.</p>
+  <p>Convert photos to tactile dot patterns for PIAF printing. Multiple dithering algorithms with live preview.</p>
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
+  <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
+  <select id="cameraSelect" class="camera-select">
+    <option value="environment">Back Camera</option>
+    <option value="user">Front Camera</option>
+  </select>
   <input type="file" id="cameraInput" accept="image/*" capture="environment">
   <input type="file" id="libraryInput" accept="image/*">
 </div>
@@ -103,6 +115,7 @@ input[type="file"] { display: none; }
   <div id="canvas-container">
     <canvas id="output"></canvas>
   </div>
+  <video id="video" playsinline autoplay muted></video>
   <div id="status"></div>
   <div class="controls">
     <div class="controls-row">
@@ -125,38 +138,60 @@ input[type="file"] { display: none; }
       <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
       <span class="val" id="brightnessVal">0</span>
     </div>
-    <div class="shape-row">
-      <button class="shape-btn active" data-shape="circle">Circle</button>
-      <button class="shape-btn" data-shape="cross">Cross</button>
-      <button class="shape-btn" data-shape="dash">Dash</button>
-      <button class="shape-btn" data-shape="diamond">Diamond</button>
+    <div class="toggle-row" id="algoRow">
+      <button class="toggle-btn active" data-algo="dithertone">Dots</button>
+      <button class="toggle-btn" data-algo="floyd">Floyd</button>
+      <button class="toggle-btn" data-algo="bayer">Bayer</button>
+      <button class="toggle-btn" data-algo="halftone">Lines</button>
     </div>
-    <div class="btn-row">
+    <div class="toggle-row" id="shapeRow">
+      <button class="toggle-btn active" data-shape="circle">Circle</button>
+      <button class="toggle-btn" data-shape="cross">Cross</button>
+      <button class="toggle-btn" data-shape="dash">Dash</button>
+      <button class="toggle-btn" data-shape="diamond">Diamond</button>
+    </div>
+    <div class="btn-row" id="photoButtons">
       <button class="btn btn-save" id="saveBtn">Save</button>
       <button class="btn btn-bracket" id="bracketBtn">Bracket</button>
       <button class="btn btn-invert" id="invertBtn">Invert</button>
       <button class="btn btn-new" id="newBtn">New</button>
     </div>
+    <div class="btn-row hidden" id="liveButtons">
+      <button class="btn btn-save" id="captureBtn">Capture</button>
+      <button class="btn btn-bracket" id="liveBracketBtn">Bracket</button>
+      <button class="btn btn-invert" id="liveInvertBtn">Invert</button>
+      <button class="btn btn-flip" id="flipBtn">Flip</button>
+      <button class="btn btn-new" id="stopBtn">Stop</button>
+    </div>
   </div>
 </div>
 
 <script>
-const output = document.getElementById('output');
-const ctx = output.getContext('2d');
-const statusEl = document.getElementById('status');
+var output = document.getElementById('output');
+var ctx = output.getContext('2d');
+var statusEl = document.getElementById('status');
+var video = document.getElementById('video');
 
 // Source image data (grayscale)
-let sourceGray = null;
-let sourceW = 0;
-let sourceH = 0;
-let inverted = false;
-let currentShape = 'circle';
+var sourceGray = null;
+var sourceW = 0;
+var sourceH = 0;
+var inverted = false;
+var currentShape = 'circle';
+var currentAlgo = 'dithertone';
+var liveMode = false;
+var liveRunning = false;
+var facingMode = 'environment';
+
+// Hidden canvas for grabbing video frames
+var srcCanvas = document.createElement('canvas');
+var srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
 
 // Sliders
-const spacingSlider = document.getElementById('spacing');
-const gammaSlider = document.getElementById('gamma');
-const contrastSlider = document.getElementById('contrast');
-const brightnessSlider = document.getElementById('brightness');
+var spacingSlider = document.getElementById('spacing');
+var gammaSlider = document.getElementById('gamma');
+var contrastSlider = document.getElementById('contrast');
+var brightnessSlider = document.getElementById('brightness');
 
 function getParams() {
   return {
@@ -166,6 +201,7 @@ function getParams() {
     brightness: parseFloat(brightnessSlider.value),
     invert: inverted,
     shape: currentShape,
+    algorithm: currentAlgo,
     maxRadiusFactor: 0.45,
     minRadius: 0.5,
   };
@@ -178,10 +214,9 @@ function updateDisplays() {
   document.getElementById('brightnessVal').textContent = brightnessSlider.value;
 }
 
-// Re-render on any slider change
 function onParamChange() {
   updateDisplays();
-  if (sourceGray) renderDithertone(sourceGray, sourceW, sourceH, getParams());
+  if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
 spacingSlider.addEventListener('input', onParamChange);
 gammaSlider.addEventListener('input', onParamChange);
@@ -189,23 +224,23 @@ contrastSlider.addEventListener('input', onParamChange);
 brightnessSlider.addEventListener('input', onParamChange);
 
 // Gamma LUT
-let gammaLUT = new Uint8Array(256);
-let lastGamma = -1;
+var gammaLUT = new Uint8Array(256);
+var lastGamma = -1;
 function buildGammaLUT(gamma) {
   if (gamma === lastGamma) return;
-  const invGamma = 1.0 / gamma;
-  for (let i = 0; i < 256; i++) {
+  var invGamma = 1.0 / gamma;
+  for (var i = 0; i < 256; i++) {
     gammaLUT[i] = Math.round(Math.pow(i / 255, invGamma) * 255);
   }
   lastGamma = gamma;
 }
 
 function adjustPixels(gray, params) {
-  const result = new Uint8Array(gray.length);
-  const factor = (100 + params.contrast) / 100;
+  var result = new Uint8Array(gray.length);
+  var factor = (100 + params.contrast) / 100;
   buildGammaLUT(params.gamma);
-  for (let i = 0; i < gray.length; i++) {
-    let v = gray[i] + params.brightness;
+  for (var i = 0; i < gray.length; i++) {
+    var v = gray[i] + params.brightness;
     v = 128 + factor * (v - 128);
     v = Math.max(0, Math.min(255, v));
     if (params.gamma !== 1.0) v = gammaLUT[Math.round(v)];
@@ -214,12 +249,24 @@ function adjustPixels(gray, params) {
   return result;
 }
 
+// ── Main render dispatcher ──
+function render(gray, w, h, params) {
+  switch (params.algorithm) {
+    case 'dithertone': renderDithertone(gray, w, h, params); break;
+    case 'floyd':      renderFloydSteinberg(gray, w, h, params); break;
+    case 'bayer':      renderBayer(gray, w, h, params); break;
+    case 'halftone':   renderHalftone(gray, w, h, params); break;
+  }
+}
+
+// ── Dithertone (variable-size shapes on grid) ──
 function renderDithertone(gray, w, h, params) {
-  const adjusted = adjustPixels(gray, params);
-  const spacing = params.spacing;
-  const maxRadius = spacing * params.maxRadiusFactor;
-  const minRadius = params.minRadius;
-  const half = Math.floor(spacing / 2);
+  var adjusted = adjustPixels(gray, params);
+  var spacing = params.spacing;
+  var maxRadius = spacing * params.maxRadiusFactor;
+  var minRadius = params.minRadius;
+  var half = Math.floor(spacing / 2);
+  var shape = params.shape || 'circle';
 
   output.width = w;
   output.height = h;
@@ -234,16 +281,14 @@ function renderDithertone(gray, w, h, params) {
     ctx.fillStyle = '#000';
   }
 
-  var shape = params.shape || 'circle';
-
-  for (let y = half; y < h; y += spacing) {
-    for (let x = half; x < w; x += spacing) {
-      const brightness = adjusted[y * w + x];
-      let radius;
+  for (var y = half; y < h; y += spacing) {
+    for (var x = half; x < w; x += spacing) {
+      var b = adjusted[y * w + x];
+      var radius;
       if (params.invert) {
-        radius = maxRadius * (brightness / 255);
+        radius = maxRadius * (b / 255);
       } else {
-        radius = maxRadius * (1 - brightness / 255);
+        radius = maxRadius * (1 - b / 255);
       }
       if (radius > minRadius) {
         drawShape(ctx, x, y, radius, shape);
@@ -252,77 +297,192 @@ function renderDithertone(gray, w, h, params) {
   }
 }
 
-function drawShape(ctx, x, y, r, shape) {
+function drawShape(c, x, y, r, shape) {
   switch (shape) {
     case 'circle':
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI * 2);
+      c.fill();
       break;
     case 'cross':
       var t = r * 0.35;
-      ctx.fillRect(x - r, y - t, r * 2, t * 2);
-      ctx.fillRect(x - t, y - r, t * 2, r * 2);
+      c.fillRect(x - r, y - t, r * 2, t * 2);
+      c.fillRect(x - t, y - r, t * 2, r * 2);
       break;
     case 'dash':
-      ctx.fillRect(x - r, y - r * 0.3, r * 2, r * 0.6);
+      c.fillRect(x - r, y - r * 0.3, r * 2, r * 0.6);
       break;
     case 'diamond':
-      ctx.beginPath();
-      ctx.moveTo(x, y - r);
-      ctx.lineTo(x + r, y);
-      ctx.lineTo(x, y + r);
-      ctx.lineTo(x - r, y);
-      ctx.closePath();
-      ctx.fill();
+      c.beginPath();
+      c.moveTo(x, y - r);
+      c.lineTo(x + r, y);
+      c.lineTo(x, y + r);
+      c.lineTo(x - r, y);
+      c.closePath();
+      c.fill();
       break;
   }
 }
 
-// Shape buttons
-document.querySelectorAll('.shape-btn').forEach(function(btn) {
+// ── Floyd-Steinberg error diffusion ──
+function renderFloydSteinberg(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+  var err = new Float32Array(adjusted.length);
+  for (var i = 0; i < adjusted.length; i++) err[i] = adjusted[i];
+
+  output.width = w;
+  output.height = h;
+  var imgData = ctx.createImageData(w, h);
+  var pix = imgData.data;
+
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var idx = y * w + x;
+      var old = err[idx];
+      var nv = old < 128 ? 0 : 255;
+      if (params.invert) nv = 255 - nv;
+      var e = old - (old < 128 ? 0 : 255);
+
+      var pi = idx * 4;
+      pix[pi] = pix[pi + 1] = pix[pi + 2] = nv;
+      pix[pi + 3] = 255;
+
+      if (x + 1 < w) err[idx + 1] += e * 7 / 16;
+      if (y + 1 < h) {
+        if (x > 0) err[idx + w - 1] += e * 3 / 16;
+        err[idx + w] += e * 5 / 16;
+        if (x + 1 < w) err[idx + w + 1] += e * 1 / 16;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// ── Bayer ordered dither (4x4) ──
+var BAYER4 = [
+   0, 8, 2, 10,
+  12, 4, 14,  6,
+   3, 11, 1,  9,
+  15, 7, 13,  5
+];
+// Scale to 0-255
+var bayerThreshold = new Uint8Array(16);
+for (var i = 0; i < 16; i++) {
+  bayerThreshold[i] = Math.round((BAYER4[i] / 16) * 255);
+}
+
+function renderBayer(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+
+  output.width = w;
+  output.height = h;
+  var imgData = ctx.createImageData(w, h);
+  var pix = imgData.data;
+
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var idx = y * w + x;
+      var v = adjusted[idx];
+      var thresh = bayerThreshold[(y % 4) * 4 + (x % 4)];
+      var nv = v > thresh ? 255 : 0;
+      if (params.invert) nv = 255 - nv;
+
+      var pi = idx * 4;
+      pix[pi] = pix[pi + 1] = pix[pi + 2] = nv;
+      pix[pi + 3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// ── Halftone lines ──
+function renderHalftone(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+  var spacing = params.spacing;
+  var half = Math.floor(spacing / 2);
+  var maxThick = spacing * 0.9;
+
+  output.width = w;
+  output.height = h;
+
+  if (params.invert) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+  }
+
+  for (var y = half; y < h; y += spacing) {
+    for (var x = half; x < w; x += spacing) {
+      var b = adjusted[y * w + x];
+      var thick;
+      if (params.invert) {
+        thick = maxThick * (b / 255);
+      } else {
+        thick = maxThick * (1 - b / 255);
+      }
+      if (thick > 0.5) {
+        var ht = thick / 2;
+        ctx.fillRect(x - half, y - ht, spacing, thick);
+      }
+    }
+  }
+}
+
+// ── Algorithm toggle buttons ──
+document.querySelectorAll('#algoRow .toggle-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
-    document.querySelectorAll('.shape-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('#algoRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentAlgo = btn.dataset.algo;
+    // Show shape row only for dithertone
+    document.getElementById('shapeRow').style.display = currentAlgo === 'dithertone' ? 'flex' : 'none';
+    onParamChange();
+  });
+});
+
+// ── Shape toggle buttons ──
+document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     currentShape = btn.dataset.shape;
     onParamChange();
   });
 });
 
-// Load image from file input
+// ── Load image from file input ──
 function loadImage(file) {
-  const reader = new FileReader();
+  var reader = new FileReader();
   reader.onload = function(e) {
-    const img = new Image();
+    var img = new Image();
     img.onload = function() {
-      // Scale down large images for performance
-      const maxDim = 800;
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      var maxDim = 800;
+      var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
       sourceW = Math.round(img.width * scale);
       sourceH = Math.round(img.height * scale);
 
-      // Draw to hidden canvas to extract pixels
-      const tmp = document.createElement('canvas');
+      var tmp = document.createElement('canvas');
       tmp.width = sourceW;
       tmp.height = sourceH;
-      const tmpCtx = tmp.getContext('2d', { willReadFrequently: true });
+      var tmpCtx = tmp.getContext('2d', { willReadFrequently: true });
       tmpCtx.drawImage(img, 0, 0, sourceW, sourceH);
-      const imageData = tmpCtx.getImageData(0, 0, sourceW, sourceH);
-      const data = imageData.data;
+      var imageData = tmpCtx.getImageData(0, 0, sourceW, sourceH);
+      var data = imageData.data;
 
-      // Convert to grayscale
       sourceGray = new Uint8Array(sourceW * sourceH);
-      for (let i = 0; i < sourceGray.length; i++) {
-        const idx = i * 4;
+      for (var i = 0; i < sourceGray.length; i++) {
+        var idx = i * 4;
         sourceGray[i] = Math.round(
           0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]
         );
       }
 
-      // Show editor, render
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('editor').classList.remove('hidden');
-      renderDithertone(sourceGray, sourceW, sourceH, getParams());
+      enterPhotoMode();
+      render(sourceGray, sourceW, sourceH, getParams());
       showStatus('Photo loaded. Adjust sliders and save.');
     };
     img.src = e.target.result;
@@ -330,40 +490,178 @@ function loadImage(file) {
   reader.readAsDataURL(file);
 }
 
-function savePNG(suffix) {
-  // On iOS Safari, window.open with data URL works better than <a> download
-  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const name = suffix ? 'dither_' + suffix + '_' + ts + '.png' : 'dither_' + ts + '.png';
-  const dataURL = output.toDataURL('image/png');
+function enterPhotoMode() {
+  liveMode = false;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('editor').classList.remove('hidden');
+  document.getElementById('photoButtons').classList.remove('hidden');
+  document.getElementById('liveButtons').classList.add('hidden');
+}
 
-  // Try download link first (works on desktop and some iOS versions)
-  const link = document.createElement('a');
+function enterLiveMode() {
+  liveMode = true;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('editor').classList.remove('hidden');
+  document.getElementById('photoButtons').classList.add('hidden');
+  document.getElementById('liveButtons').classList.remove('hidden');
+}
+
+function returnToStart() {
+  stopLive();
+  sourceGray = null;
+  inverted = false;
+  currentShape = 'circle';
+  currentAlgo = 'dithertone';
+  liveMode = false;
+
+  // Reset UI
+  document.getElementById('invertBtn').textContent = 'Invert';
+  document.getElementById('liveInvertBtn').textContent = 'Invert';
+  document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('#shapeRow .toggle-btn[data-shape="circle"]').classList.add('active');
+  document.querySelectorAll('#algoRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('#algoRow .toggle-btn[data-algo="dithertone"]').classList.add('active');
+  document.getElementById('shapeRow').style.display = 'flex';
+  document.getElementById('editor').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+  document.getElementById('cameraInput').value = '';
+  document.getElementById('libraryInput').value = '';
+}
+
+// ── Live webcam ──
+function getGrayscaleFromVideo(w, h) {
+  srcCanvas.width = w;
+  srcCanvas.height = h;
+  srcCtx.drawImage(video, 0, 0, w, h);
+  var imageData = srcCtx.getImageData(0, 0, w, h);
+  var data = imageData.data;
+  var gray = new Uint8Array(w * h);
+  for (var i = 0; i < gray.length; i++) {
+    var idx = i * 4;
+    gray[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]);
+  }
+  return gray;
+}
+
+function liveRenderLoop() {
+  if (!liveRunning) return;
+  var vw = video.videoWidth;
+  var vh = video.videoHeight;
+  if (vw > 0 && vh > 0) {
+    var scale = Math.min(1, 480 / Math.max(vw, vh));
+    var w = Math.round(vw * scale);
+    var h = Math.round(vh * scale);
+    var gray = getGrayscaleFromVideo(w, h);
+    render(gray, w, h, getParams());
+  }
+  requestAnimationFrame(liveRenderLoop);
+}
+
+function startLive() {
+  facingMode = document.getElementById('cameraSelect').value;
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  }).then(function(stream) {
+    video.srcObject = stream;
+    video.play();
+    liveRunning = true;
+    enterLiveMode();
+    showStatus('Camera started');
+    liveRenderLoop();
+  }).catch(function(err) {
+    showStatus('Camera error: ' + err.message);
+  });
+}
+
+function stopLive() {
+  liveRunning = false;
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(function(t) { t.stop(); });
+    video.srcObject = null;
+  }
+}
+
+function flipCamera() {
+  stopLive();
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  document.getElementById('cameraSelect').value = facingMode;
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  }).then(function(stream) {
+    video.srcObject = stream;
+    video.play();
+    liveRunning = true;
+    showStatus('Camera flipped');
+    liveRenderLoop();
+  }).catch(function(err) {
+    showStatus('Camera error: ' + err.message);
+  });
+}
+
+function captureLiveFrame() {
+  if (!video.srcObject) return;
+  var vw = video.videoWidth;
+  var vh = video.videoHeight;
+  if (vw === 0) return;
+  var maxDim = 800;
+  var scale = Math.min(1, maxDim / Math.max(vw, vh));
+  sourceW = Math.round(vw * scale);
+  sourceH = Math.round(vh * scale);
+  sourceGray = getGrayscaleFromVideo(sourceW, sourceH);
+
+  stopLive();
+  enterPhotoMode();
+  render(sourceGray, sourceW, sourceH, getParams());
+  showStatus('Frame captured. Adjust and save.');
+}
+
+// ── Save / Bracket ──
+function savePNG(suffix) {
+  var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  var name = suffix ? 'dither_' + suffix + '_' + ts + '.png' : 'dither_' + ts + '.png';
+  var dataURL = output.toDataURL('image/png');
+
+  var link = document.createElement('a');
   link.download = name;
   link.href = dataURL;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
   showStatus('Saved: ' + name);
 }
 
-function bracketCapture() {
-  if (!sourceGray) return;
-  const baseParams = getParams();
-  const baseSpacing = baseParams.spacing;
+function bracketCapture(gray, w, h) {
+  if (!gray) return;
+  var baseParams = getParams();
+  var baseSpacing = baseParams.spacing;
   var variants = [
     { label: 'tight', spacing: Math.max(3, Math.round(baseSpacing * 0.6)) },
     { label: 'medium', spacing: baseSpacing },
     { label: 'loose', spacing: Math.min(30, Math.round(baseSpacing * 1.6)) },
   ];
   variants.forEach(function(v) {
-    var p = Object.assign({}, baseParams, { spacing: v.spacing });
-    renderDithertone(sourceGray, sourceW, sourceH, p);
+    var p = {};
+    for (var k in baseParams) p[k] = baseParams[k];
+    p.spacing = v.spacing;
+    render(gray, w, h, p);
     savePNG(v.label);
   });
-  // Restore
-  renderDithertone(sourceGray, sourceW, sourceH, baseParams);
+  render(gray, w, h, baseParams);
   showStatus('Bracket: 3 variants saved');
+}
+
+function liveBracket() {
+  if (!video.srcObject) return;
+  var vw = video.videoWidth;
+  var vh = video.videoHeight;
+  if (vw === 0) return;
+  var scale = Math.min(1, 640 / Math.max(vw, vh));
+  var w = Math.round(vw * scale);
+  var h = Math.round(vh * scale);
+  var gray = getGrayscaleFromVideo(w, h);
+  bracketCapture(gray, w, h);
 }
 
 function showStatus(msg) {
@@ -371,7 +669,15 @@ function showStatus(msg) {
   setTimeout(function() { statusEl.textContent = ''; }, 4000);
 }
 
-// Button handlers
+function toggleInvert() {
+  inverted = !inverted;
+  var label = inverted ? 'Invert: ON' : 'Invert';
+  document.getElementById('invertBtn').textContent = label;
+  document.getElementById('liveInvertBtn').textContent = label;
+  if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
+}
+
+// ── Button handlers ──
 document.getElementById('takePhotoBtn').addEventListener('click', function() {
   document.getElementById('cameraInput').click();
 });
@@ -384,25 +690,32 @@ document.getElementById('cameraInput').addEventListener('change', function(e) {
 document.getElementById('libraryInput').addEventListener('change', function(e) {
   if (e.target.files.length > 0) loadImage(e.target.files[0]);
 });
+
+// Photo mode buttons
 document.getElementById('saveBtn').addEventListener('click', function() { savePNG(); });
-document.getElementById('bracketBtn').addEventListener('click', function() { bracketCapture(); });
-document.getElementById('invertBtn').addEventListener('click', function() {
-  inverted = !inverted;
-  document.getElementById('invertBtn').textContent = inverted ? 'Invert: ON' : 'Invert';
-  if (sourceGray) renderDithertone(sourceGray, sourceW, sourceH, getParams());
+document.getElementById('bracketBtn').addEventListener('click', function() {
+  bracketCapture(sourceGray, sourceW, sourceH);
 });
-document.getElementById('newBtn').addEventListener('click', function() {
-  sourceGray = null;
-  inverted = false;
-  currentShape = 'circle';
-  document.getElementById('invertBtn').textContent = 'Invert';
-  document.querySelectorAll('.shape-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelector('.shape-btn[data-shape="circle"]').classList.add('active');
-  document.getElementById('editor').classList.add('hidden');
-  document.getElementById('start-screen').classList.remove('hidden');
-  // Reset file inputs so same file can be re-selected
-  document.getElementById('cameraInput').value = '';
-  document.getElementById('libraryInput').value = '';
+document.getElementById('invertBtn').addEventListener('click', toggleInvert);
+document.getElementById('newBtn').addEventListener('click', returnToStart);
+
+// Live mode buttons
+document.getElementById('liveBtn').addEventListener('click', startLive);
+document.getElementById('captureBtn').addEventListener('click', captureLiveFrame);
+document.getElementById('liveBracketBtn').addEventListener('click', liveBracket);
+document.getElementById('liveInvertBtn').addEventListener('click', toggleInvert);
+document.getElementById('flipBtn').addEventListener('click', flipCamera);
+document.getElementById('stopBtn').addEventListener('click', returnToStart);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.key === ' ') { e.preventDefault(); if (liveMode) captureLiveFrame(); else savePNG(); }
+  else if (e.key === 'b') { if (liveMode) liveBracket(); else bracketCapture(sourceGray, sourceW, sourceH); }
+  else if (e.key === 'i') toggleInvert();
+  else if (e.key === '=' || e.key === '+') { spacingSlider.value = Math.min(30, parseInt(spacingSlider.value) + 1); onParamChange(); }
+  else if (e.key === '-') { spacingSlider.value = Math.max(3, parseInt(spacingSlider.value) - 1); onParamChange(); }
+  else if (e.key === ']') { gammaSlider.value = Math.min(4, parseFloat(gammaSlider.value) + 0.1).toFixed(1); onParamChange(); }
+  else if (e.key === '[') { gammaSlider.value = Math.max(0.2, parseFloat(gammaSlider.value) - 0.1).toFixed(1); onParamChange(); }
 });
 </script>
 </body>
