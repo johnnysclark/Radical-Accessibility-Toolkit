@@ -118,10 +118,15 @@ video { display: none; }
   <video id="video" playsinline autoplay muted></video>
   <div id="status"></div>
   <div class="controls">
-    <div class="controls-row">
+    <div class="controls-row" id="spacingRow">
       <label>Spacing</label>
       <input type="range" id="spacing" min="3" max="30" value="8" step="1">
       <span class="val" id="spacingVal">8</span>
+    </div>
+    <div class="controls-row hidden" id="scaleRow">
+      <label>Scale</label>
+      <input type="range" id="scale" min="1" max="8" value="3" step="1">
+      <span class="val" id="scaleVal">3</span>
     </div>
     <div class="controls-row">
       <label>Gamma</label>
@@ -192,13 +197,18 @@ var srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
 
 // Sliders
 var spacingSlider = document.getElementById('spacing');
+var scaleSlider = document.getElementById('scale');
 var gammaSlider = document.getElementById('gamma');
 var contrastSlider = document.getElementById('contrast');
 var brightnessSlider = document.getElementById('brightness');
 
+// Pixel-level algorithms that use the scale slider instead of spacing
+var PIXEL_ALGOS = { floyd: 1, atkinson: 1, stucki: 1, bayer: 1 };
+
 function getParams() {
   return {
     spacing: parseInt(spacingSlider.value),
+    scale: parseInt(scaleSlider.value),
     gamma: parseFloat(gammaSlider.value),
     contrast: parseFloat(contrastSlider.value),
     brightness: parseFloat(brightnessSlider.value),
@@ -212,9 +222,16 @@ function getParams() {
 
 function updateDisplays() {
   document.getElementById('spacingVal').textContent = spacingSlider.value;
+  document.getElementById('scaleVal').textContent = scaleSlider.value;
   document.getElementById('gammaVal').textContent = parseFloat(gammaSlider.value).toFixed(1);
   document.getElementById('contrastVal').textContent = contrastSlider.value;
   document.getElementById('brightnessVal').textContent = brightnessSlider.value;
+}
+
+function updateSliderVisibility() {
+  var isPixel = currentAlgo in PIXEL_ALGOS;
+  document.getElementById('spacingRow').classList.toggle('hidden', isPixel);
+  document.getElementById('scaleRow').classList.toggle('hidden', !isPixel);
 }
 
 function onParamChange() {
@@ -222,6 +239,7 @@ function onParamChange() {
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
 spacingSlider.addEventListener('input', onParamChange);
+scaleSlider.addEventListener('input', onParamChange);
 gammaSlider.addEventListener('input', onParamChange);
 contrastSlider.addEventListener('input', onParamChange);
 brightnessSlider.addEventListener('input', onParamChange);
@@ -371,7 +389,7 @@ function upsampleToCanvas(imgData, sw, sh, w, h) {
 
 // ── Floyd-Steinberg error diffusion ──
 function renderFloydSteinberg(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.spacing);
+  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
   var err = new Float32Array(ds.gray.length);
   for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
@@ -416,7 +434,7 @@ for (var i = 0; i < 16; i++) {
 }
 
 function renderBayer(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.spacing);
+  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
 
   var imgData = ctx.createImageData(sw, sh);
@@ -479,7 +497,7 @@ function renderHalftone(gray, w, h, params) {
 // Distributes only 6/8 of quantization error, giving a lighter, more open look.
 // Classic original Macintosh algorithm.
 function renderAtkinson(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.spacing);
+  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
   var err = new Float32Array(ds.gray.length);
   for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
@@ -516,7 +534,7 @@ function renderAtkinson(gray, w, h, params) {
 // ── Stucki error diffusion ──
 // Wider 5-column, 3-row kernel for smoother gradients than Floyd-Steinberg.
 function renderStucki(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.spacing);
+  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
   var err = new Float32Array(ds.gray.length);
   for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
@@ -643,6 +661,7 @@ document.querySelectorAll('#algoRow .toggle-btn').forEach(function(btn) {
     currentAlgo = btn.dataset.algo;
     // Show shape row only for dithertone
     document.getElementById('shapeRow').style.display = currentAlgo === 'dithertone' ? 'flex' : 'none';
+    updateSliderVisibility();
     onParamChange();
   });
 });
@@ -725,6 +744,8 @@ function returnToStart() {
   document.querySelectorAll('#algoRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
   document.querySelector('#algoRow .toggle-btn[data-algo="dithertone"]').classList.add('active');
   document.getElementById('shapeRow').style.display = 'flex';
+  document.getElementById('spacingRow').classList.remove('hidden');
+  document.getElementById('scaleRow').classList.add('hidden');
   document.getElementById('editor').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
   document.getElementById('cameraInput').value = '';
