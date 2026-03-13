@@ -673,12 +673,12 @@ function renderOX(gray, w, h, params) {
 }
 
 // ── Angled Halftone ──
-// Classic halftone dots on a 45-degree rotated grid. Dot size is proportional
-// to darkness, producing the traditional newspaper/print halftone look.
+// Diamond-shaped dots on a 45-degree rotated grid. Dots grow with darkness
+// and merge into a connected diamond mesh at mid-tones, then invert to
+// shrink white holes in dark areas. Classic AM (amplitude-modulated) screen.
 function renderAngledHalftone(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
   var spacing = params.spacing;
-  var maxR = spacing * 0.5;
 
   output.width = w;
   output.height = h;
@@ -691,40 +691,66 @@ function renderAngledHalftone(gray, w, h, params) {
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = fg;
 
-  // 45-degree rotation: step along two diagonal axes
-  var cos45 = Math.cos(Math.PI / 4);
-  var sin45 = Math.sin(Math.PI / 4);
+  var angle = Math.PI / 4;
+  var cosA = Math.cos(angle);
+  var sinA = Math.sin(angle);
   var step = spacing;
+  var halfStep = step * 0.5;
 
-  // We need to cover the entire canvas. Iterate in rotated grid coords,
-  // then map back to pixel coords.
+  // Cover the canvas in rotated grid coordinates
   var diag = Math.sqrt(w * w + h * h);
-  var halfDiag = Math.ceil(diag / step) + 1;
+  var count = Math.ceil(diag / step) + 2;
 
-  for (var gi = -halfDiag; gi <= halfDiag; gi++) {
-    for (var gj = -halfDiag; gj <= halfDiag; gj++) {
-      // Rotated grid point to pixel coords
-      var px = w / 2 + (gi * cos45 - gj * sin45) * step;
-      var py = h / 2 + (gi * sin45 + gj * cos45) * step;
+  // Per-pixel approach: for each pixel, determine which rotated grid cell
+  // it belongs to and whether it's inside the diamond for that cell's darkness.
+  var imgData = ctx.getImageData(0, 0, w, h);
+  var pix = imgData.data;
 
-      // Skip if outside canvas
-      if (px < -maxR || px > w + maxR || py < -maxR || py > h + maxR) continue;
+  // Parse fg color
+  var fR, fG, fB, bR, bG, bB;
+  if (params.invert) {
+    fR = fG = fB = 255; bR = bG = bB = 0;
+  } else {
+    fR = fG = fB = 0; bR = bG = bB = 255;
+  }
 
-      // Sample brightness at nearest pixel
-      var sx = Math.round(Math.max(0, Math.min(w - 1, px)));
-      var sy = Math.round(Math.max(0, Math.min(h - 1, py)));
+  for (var py = 0; py < h; py++) {
+    for (var px = 0; px < w; px++) {
+      // Rotate pixel into grid space
+      var gx = px * cosA + py * sinA;
+      var gy = -px * sinA + py * cosA;
+
+      // Find nearest grid center
+      var ci = Math.round(gx / step);
+      var cj = Math.round(gy / step);
+
+      // Grid center back in pixel space for sampling
+      var centerPx = ci * step * cosA - cj * step * sinA;
+      var centerPy = ci * step * sinA + cj * step * cosA;
+
+      var sx = Math.round(Math.max(0, Math.min(w - 1, centerPx)));
+      var sy = Math.round(Math.max(0, Math.min(h - 1, centerPy)));
       var b = adjusted[sy * w + sx];
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
-      if (darkness < 0.03) continue;
 
-      var r = maxR * darkness;
-      ctx.beginPath();
-      ctx.arc(px, py, Math.max(0.5, r), 0, Math.PI * 2);
-      ctx.fill();
+      // Distance from grid center in grid space (diamond / L1 metric)
+      var dx = Math.abs(gx - ci * step);
+      var dy = Math.abs(gy - cj * step);
+      var dist = (dx + dy) / step;  // normalized 0..1, diamond shape
+
+      // Diamond radius: 0 at darkness=0, fills entire cell at darkness=1
+      var threshold = darkness;
+
+      if (dist < threshold) {
+        var idx = (py * w + px) * 4;
+        pix[idx] = fR;
+        pix[idx + 1] = fG;
+        pix[idx + 2] = fB;
+      }
     }
   }
+  ctx.putImageData(imgData, 0, 0);
 }
 
 // ── Engrave ──
