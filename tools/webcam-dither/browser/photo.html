@@ -157,8 +157,8 @@ video { display: none; }
         <button class="toggle-btn active" data-algo="dithertone">Dots</button>
         <button class="toggle-btn" data-algo="floyd">Floyd</button>
         <button class="toggle-btn" data-algo="atkinson">Atkinson</button>
-        <button class="toggle-btn" data-algo="stucki">Stucki</button>
         <button class="toggle-btn" data-algo="bayer">Bayer</button>
+        <button class="toggle-btn" data-algo="angledhalftone">Halftone</button>
         <button class="toggle-btn" data-algo="halftone">Lines</button>
         <button class="toggle-btn" data-algo="crosshatch">Hatch</button>
         <button class="toggle-btn" data-algo="engrave">Engrave</button>
@@ -300,8 +300,8 @@ function render(gray, w, h, params) {
     case 'dithertone':  renderDithertone(gray, w, h, params); break;
     case 'floyd':       renderFloydSteinberg(gray, w, h, params); break;
     case 'atkinson':    renderAtkinson(gray, w, h, params); break;
-    case 'stucki':      renderStucki(gray, w, h, params); break;
     case 'bayer':       renderBayer(gray, w, h, params); break;
+    case 'angledhalftone': renderAngledHalftone(gray, w, h, params); break;
     case 'halftone':    renderHalftone(gray, w, h, params); break;
     case 'crosshatch':  renderCrosshatch(gray, w, h, params); break;
     case 'engrave':     renderEngrave(gray, w, h, params); break;
@@ -558,54 +558,6 @@ function renderAtkinson(gray, w, h, params) {
   upsampleToCanvas(imgData, sw, sh, w, h);
 }
 
-// ── Stucki error diffusion ──
-// Wider 5-column, 3-row kernel for smoother gradients than Floyd-Steinberg.
-function renderStucki(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
-  var sw = ds.w, sh = ds.h;
-  var err = new Float32Array(ds.gray.length);
-  for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
-
-  var imgData = ctx.createImageData(sw, sh);
-  var pix = imgData.data;
-
-  for (var y = 0; y < sh; y++) {
-    for (var x = 0; x < sw; x++) {
-      var idx = y * sw + x;
-      var old = err[idx];
-      var nv = old < 128 ? 0 : 255;
-      if (params.invert) nv = 255 - nv;
-      var e = old - (old < 128 ? 0 : 255);
-
-      var pi = idx * 4;
-      pix[pi] = pix[pi + 1] = pix[pi + 2] = nv;
-      pix[pi + 3] = 255;
-
-      // Row 0 (current): x+1 = 8/42, x+2 = 4/42
-      if (x + 1 < sw) err[idx + 1] += e * 8 / 42;
-      if (x + 2 < sw) err[idx + 2] += e * 4 / 42;
-      // Row 1: -2=2, -1=4, 0=8, +1=4, +2=2
-      if (y + 1 < sh) {
-        if (x > 1) err[idx + sw - 2] += e * 2 / 42;
-        if (x > 0) err[idx + sw - 1] += e * 4 / 42;
-        err[idx + sw] += e * 8 / 42;
-        if (x + 1 < sw) err[idx + sw + 1] += e * 4 / 42;
-        if (x + 2 < sw) err[idx + sw + 2] += e * 2 / 42;
-      }
-      // Row 2: -2=1, -1=2, 0=4, +1=2, +2=1
-      if (y + 2 < sh) {
-        var r2 = idx + sw * 2;
-        if (x > 1) err[r2 - 2] += e * 1 / 42;
-        if (x > 0) err[r2 - 1] += e * 2 / 42;
-        err[r2] += e * 4 / 42;
-        if (x + 1 < sw) err[r2 + 1] += e * 2 / 42;
-        if (x + 2 < sw) err[r2 + 2] += e * 1 / 42;
-      }
-    }
-  }
-  upsampleToCanvas(imgData, sw, sh, w, h);
-}
-
 // ── Crosshatch ──
 // Layers lines at different angles based on darkness level.
 // Light areas get fewer line directions, dark areas stack up to 4 directions.
@@ -657,14 +609,15 @@ function renderCrosshatch(gray, w, h, params) {
   }
 }
 
-// ── OX (Circles + Crosses) ──
-// Circles for lighter areas, crosses for darker areas, both overlaid at mid-tones.
-// Two distinct tactile textures that encode brightness.
+// ── OX (O strokes + X strokes) ──
+// Hatch-style algorithm using two distinct stroke shapes: O (circle outlines)
+// for lighter areas and X (diagonal crosses) for darker areas. Mid-tones
+// overlay both. Line weight increases with darkness.
 function renderOX(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
   var spacing = params.spacing;
   var half = Math.floor(spacing / 2);
-  var maxR = spacing * 0.42;
+  var maxR = spacing * 0.45;
 
   output.width = w;
   output.height = h;
@@ -677,6 +630,8 @@ function renderOX(gray, w, h, params) {
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = fg;
+  ctx.lineCap = 'round';
 
   for (var cy = half; cy < h; cy += spacing) {
     for (var cx = half; cx < w; cx += spacing) {
@@ -684,36 +639,90 @@ function renderOX(gray, w, h, params) {
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
       if (darkness < 0.05) continue;
 
-      var r = maxR * darkness;
+      var r = maxR * Math.min(darkness * 1.2, 1);
+      var lw = Math.max(1, spacing * 0.1 + spacing * 0.12 * darkness);
+      ctx.lineWidth = lw;
 
       if (darkness <= 0.5) {
-        // Light areas: circle only, size grows with darkness
-        var circR = r * 2;
-        ctx.fillStyle = fg;
+        // Light areas: O only, radius grows with darkness
         ctx.beginPath();
-        ctx.arc(cx, cy, Math.max(0.8, circR), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(cx, cy, Math.max(1, r), 0, Math.PI * 2);
+        ctx.stroke();
       } else if (darkness <= 0.75) {
-        // Mid areas: circle + cross overlaid
-        ctx.strokeStyle = fg;
-        ctx.lineWidth = Math.max(1, spacing * 0.1);
+        // Mid areas: O + X overlaid
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
-        var t = r * 0.3;
-        ctx.fillStyle = fg;
-        ctx.fillRect(cx - r, cy - t, r * 2, t * 2);
-        ctx.fillRect(cx - t, cy - r, t * 2, r * 2);
-      } else {
-        // Dark areas: bold cross + filled circle
-        ctx.fillStyle = fg;
         ctx.beginPath();
-        ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
-        ctx.fill();
-        var t2 = r * 0.35;
-        ctx.fillRect(cx - r, cy - t2, r * 2, t2 * 2);
-        ctx.fillRect(cx - t2, cy - r, t2 * 2, r * 2);
+        ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r);
+        ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r);
+        ctx.stroke();
+      } else {
+        // Dark areas: bold X + bold O
+        ctx.lineWidth = lw * 1.4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r);
+        ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r);
+        ctx.stroke();
       }
+    }
+  }
+}
+
+// ── Angled Halftone ──
+// Classic halftone dots on a 45-degree rotated grid. Dot size is proportional
+// to darkness, producing the traditional newspaper/print halftone look.
+function renderAngledHalftone(gray, w, h, params) {
+  var adjusted = adjustPixels(gray, params);
+  var spacing = params.spacing;
+  var maxR = spacing * 0.5;
+
+  output.width = w;
+  output.height = h;
+
+  var fg, bg;
+  if (params.invert) {
+    bg = '#000'; fg = '#fff';
+  } else {
+    bg = '#fff'; fg = '#000';
+  }
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = fg;
+
+  // 45-degree rotation: step along two diagonal axes
+  var cos45 = Math.cos(Math.PI / 4);
+  var sin45 = Math.sin(Math.PI / 4);
+  var step = spacing;
+
+  // We need to cover the entire canvas. Iterate in rotated grid coords,
+  // then map back to pixel coords.
+  var diag = Math.sqrt(w * w + h * h);
+  var halfDiag = Math.ceil(diag / step) + 1;
+
+  for (var gi = -halfDiag; gi <= halfDiag; gi++) {
+    for (var gj = -halfDiag; gj <= halfDiag; gj++) {
+      // Rotated grid point to pixel coords
+      var px = w / 2 + (gi * cos45 - gj * sin45) * step;
+      var py = h / 2 + (gi * sin45 + gj * cos45) * step;
+
+      // Skip if outside canvas
+      if (px < -maxR || px > w + maxR || py < -maxR || py > h + maxR) continue;
+
+      // Sample brightness at nearest pixel
+      var sx = Math.round(Math.max(0, Math.min(w - 1, px)));
+      var sy = Math.round(Math.max(0, Math.min(h - 1, py)));
+      var b = adjusted[sy * w + sx];
+      var darkness = params.invert ? (b / 255) : (1 - b / 255);
+      if (darkness < 0.03) continue;
+
+      var r = maxR * darkness;
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
