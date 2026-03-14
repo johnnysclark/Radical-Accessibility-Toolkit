@@ -17,19 +17,35 @@ body {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   min-height: 100vh;
-  gap: 16px; padding: 20px;
+  gap: 14px; padding: 20px;
+  background: radial-gradient(ellipse at 50% 20%, #1a1a2e 0%, #111 70%);
 }
-#start-screen h1 { font-size: 24px; }
-#start-screen p { font-size: 14px; color: #aaa; max-width: 320px; text-align: center; }
+#start-screen h1 {
+  font-size: 36px; font-weight: 800; letter-spacing: -1px;
+  background: linear-gradient(135deg, #4af 0%, #a6f 50%, #f6a 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#start-screen .subtitle {
+  font-size: 13px; color: #888; letter-spacing: 3px; text-transform: uppercase;
+  margin-top: -8px;
+}
+#start-screen p { font-size: 14px; color: #999; max-width: 320px; text-align: center; line-height: 1.5; }
+#hero-canvas {
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 3px solid #333; margin: 8px 0;
+}
 .start-btn {
   display: block; width: 280px;
   padding: 16px; border: none; border-radius: 12px;
   font-size: 18px; font-weight: 600;
   cursor: pointer; color: #fff; text-align: center;
+  transition: transform 0.1s;
 }
-.btn-photo { background: #2a6; }
-.btn-library { background: #46a; }
-.btn-live { background: #a72; }
+.start-btn:active { transform: scale(0.97); }
+.btn-photo { background: linear-gradient(135deg, #2a6, #3b8); }
+.btn-library { background: linear-gradient(135deg, #46a, #57c); }
+.btn-live { background: linear-gradient(135deg, #a72, #c84); }
 .camera-select {
   font-size: 14px; padding: 8px 12px; border-radius: 8px;
   background: #222; color: #ccc; border: 1px solid #444;
@@ -130,16 +146,78 @@ input[type="range"]::-moz-range-thumb {
   text-align: center; font-size: 13px; color: #8f8;
   pointer-events: none; z-index: 5;
 }
+#help-screen {
+  position: fixed; inset: 0; z-index: 20;
+  background: #111; color: #ddd;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 20px 16px 60px; display: none;
+}
+#help-screen.visible { display: block; }
+#help-screen h1 { font-size: 22px; margin-bottom: 12px; }
+#help-screen h2 { font-size: 17px; color: #4af; margin: 18px 0 6px; }
+#help-screen p { font-size: 14px; line-height: 1.5; margin-bottom: 8px; color: #ccc; }
+#help-screen .algo-name { color: #fff; font-weight: 600; }
+#help-screen .close-help {
+  position: sticky; top: 0; z-index: 21;
+  display: block; width: 100%; padding: 12px;
+  background: #222; border: none; border-radius: 8px;
+  color: #4af; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-bottom: 12px;
+}
 </style>
 </head>
 <body>
 
+<div id="help-screen">
+  <button class="close-help" id="closeHelpBtn">Close Help</button>
+  <h1>Dithertone Manual</h1>
+
+  <h2>What is Dithering?</h2>
+  <p>Dithering converts a photograph with continuous shades of gray into a pattern of pure black and white marks. This is essential for PIAF tactile printing, which can only raise or not raise the paper — there are no in-between tones. Different dithering algorithms create different visual textures while preserving the impression of the original image's light and dark areas.</p>
+
+  <h2>Algorithms</h2>
+
+  <p><span class="algo-name">Dots</span> — Variable-size shapes on a regular grid. Darker areas get bigger shapes, lighter areas get smaller ones. Choose from circle, cross, dash, or diamond shapes. Good general-purpose choice for tactile printing because the dot spacing is predictable and easy to feel.</p>
+
+  <p><span class="algo-name">Floyd</span> — Floyd-Steinberg error diffusion. Each pixel is rounded to black or white, and the rounding error is spread to neighboring pixels. Produces detailed, organic-looking results that closely follow the original image. Can feel noisy on tactile prints at fine scales.</p>
+
+  <p><span class="algo-name">Atkinson</span> — Bill Atkinson's error diffusion, made famous on the original Macintosh. Like Floyd-Steinberg but intentionally discards some error, creating a lighter, more open result with more white space. Better for tactile printing when you want less clutter.</p>
+
+  <p><span class="algo-name">Bayer</span> — Ordered dithering using a 4x4 threshold matrix. Creates a regular, grid-like pattern. Has a distinctive retro/digital look. The structured pattern can be easier to read by touch because it's highly regular.</p>
+
+  <p><span class="algo-name">Halftone</span> — Diamond-shaped dots on a 45-degree rotated grid. Dots grow with darkness and merge into a connected diamond mesh at mid-tones. This is the classic amplitude-modulated screen used in newspaper and magazine printing. Very distinct tactile texture.</p>
+
+  <p><span class="algo-name">Lines</span> — Horizontal bars whose thickness varies with darkness. Light areas have thin lines, dark areas have thick bars that merge together. Simple and effective for architectural drawings and graphics with clear horizontal features.</p>
+
+  <p><span class="algo-name">Hatch</span> — Cross-hatching that layers lines at different angles based on darkness. Light areas get a single horizontal line, mid-tones add vertical, darker areas add diagonals. Mimics traditional pen-and-ink illustration technique. Rich tactile texture.</p>
+
+  <p><span class="algo-name">Engrave</span> — Continuous diagonal lines with variable thickness. Produces the look of engraved banknotes or etched illustrations. The lines follow a consistent 45-degree angle but swell and thin with the image's tones.</p>
+
+  <p><span class="algo-name">Stipple</span> — Randomly placed dots with density proportional to darkness. Unlike the regular grid of Dots, stipple places dots at random positions, creating a hand-drawn pointillist effect. Uses a deterministic random seed so the same image always produces the same output.</p>
+
+  <p><span class="algo-name">OX</span> — Uses two distinct mark shapes: O (circle outlines) for lighter areas and X (diagonal crosses) for darker areas. Mid-tones overlay both. Creates a tactile texture where you can feel the difference between light and dark by mark shape, not just density.</p>
+
+  <h2>Controls</h2>
+  <p><span class="algo-name">Spacing / Scale</span> — Controls how large the dithering pattern is. Higher values produce bigger, chunkier marks with more space between them. Lower values produce finer detail. For tactile printing, larger spacing (10-16) is usually better.</p>
+  <p><span class="algo-name">Gamma</span> — Adjusts the midtone balance. Values below 1.0 darken the image, values above 1.0 lighten it. Useful for bringing out detail in shadows or highlights.</p>
+  <p><span class="algo-name">Contrast</span> — Increases or decreases the difference between light and dark areas. Positive values make lights lighter and darks darker. Negative values flatten the tonal range.</p>
+  <p><span class="algo-name">Brightness</span> — Shifts all tones lighter (positive) or darker (negative).</p>
+  <p><span class="algo-name">Invert</span> — Swaps black and white. Useful when printing on dark paper or when you want raised marks to represent light areas instead of dark.</p>
+  <p><span class="algo-name">Bracket</span> — Saves three versions at once: tight (60% spacing), medium (current), and loose (160% spacing). Handy for testing which spacing works best on your PIAF machine.</p>
+
+  <h2>Keyboard Shortcuts</h2>
+  <p>Space: Save image. B: Bracket capture. I: Toggle invert. +/-: Adjust spacing. [/]: Adjust gamma.</p>
+</div>
+
 <div id="start-screen">
   <h1>Dithertone</h1>
-  <p>Convert photos to tactile dot patterns for PIAF printing. Multiple dithering algorithms with live preview.</p>
+  <span class="subtitle">Tactile Image Converter</span>
+  <canvas id="hero-canvas" width="200" height="200"></canvas>
+  <p>Convert photos to tactile dot patterns for PIAF printing. 10 dithering algorithms with live preview.</p>
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
   <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
+  <button class="start-btn" id="helpBtn" style="background:linear-gradient(135deg,#444,#555);">Help / Algorithm Guide</button>
   <select id="cameraSelect" class="camera-select">
     <option value="environment">Back Camera</option>
     <option value="user">Front Camera</option>
@@ -1159,6 +1237,52 @@ function toggleInvert() {
   document.getElementById('liveInvertBtn').textContent = label;
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
+
+// ── Hero canvas animation ──
+(function() {
+  var hero = document.getElementById('hero-canvas');
+  if (!hero) return;
+  var hc = hero.getContext('2d');
+  var size = 200;
+  var frame = 0;
+
+  function drawHero() {
+    if (document.getElementById('start-screen').classList.contains('hidden')) return;
+    hc.fillStyle = '#111';
+    hc.fillRect(0, 0, size, size);
+    hc.fillStyle = '#4af';
+
+    var spacing = 12;
+    var t = frame * 0.02;
+    for (var y = 6; y < size; y += spacing) {
+      for (var x = 6; x < size; x += spacing) {
+        // Radial gradient with animated wave
+        var dx = x - size / 2;
+        var dy = y - size / 2;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 94) continue; // clip to circle
+        var wave = Math.sin(dist * 0.06 - t) * 0.5 + 0.5;
+        var r = spacing * 0.45 * wave;
+        if (r > 0.5) {
+          hc.beginPath();
+          hc.arc(x, y, r, 0, Math.PI * 2);
+          hc.fill();
+        }
+      }
+    }
+    frame++;
+    requestAnimationFrame(drawHero);
+  }
+  drawHero();
+})();
+
+// ── Help screen ──
+document.getElementById('helpBtn').addEventListener('click', function() {
+  document.getElementById('help-screen').classList.add('visible');
+});
+document.getElementById('closeHelpBtn').addEventListener('click', function() {
+  document.getElementById('help-screen').classList.remove('visible');
+});
 
 // ── Button handlers ──
 document.getElementById('takePhotoBtn').addEventListener('click', function() {
