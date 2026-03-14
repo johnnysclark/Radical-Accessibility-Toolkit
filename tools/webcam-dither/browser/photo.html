@@ -61,8 +61,36 @@ video { display: none; }
   font-size: 12px; min-width: 70px; color: #aaa;
 }
 .controls-row input[type="range"] {
-  flex: 1; height: 32px; accent-color: #4af;
+  flex: 1; height: 44px; accent-color: #4af;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; cursor: pointer;
 }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px; background: #444; border-radius: 4px;
+}
+input[type="range"]::-moz-range-track {
+  height: 8px; background: #444; border-radius: 4px; border: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #4af; border: 3px solid #222;
+  margin-top: -12px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #4af; border: 3px solid #222;
+}
+.stepper {
+  display: flex; align-items: center; gap: 0;
+}
+.stepper-btn {
+  width: 36px; height: 36px; border: 1px solid #555; border-radius: 8px;
+  background: #333; color: #ddd; font-size: 20px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.stepper-btn:active { background: #555; }
 .controls-row .val {
   font-size: 12px; min-width: 36px; text-align: right;
   font-variant-numeric: tabular-nums;
@@ -89,9 +117,10 @@ video { display: none; }
   display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;
 }
 .toggle-btn {
-  flex: 1 1 auto; min-width: 60px; padding: 8px 4px; border: 2px solid #444; border-radius: 8px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
+  flex: 1 1 auto; min-width: 60px; padding: 10px 6px; border: 2px solid #444; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
   color: #aaa; background: transparent; text-align: center;
+  -webkit-tap-highlight-color: transparent;
 }
 .toggle-btn.active {
   border-color: #4af; color: #fff; background: rgba(68,170,255,0.15);
@@ -130,27 +159,37 @@ video { display: none; }
     <div id="panelContent">
       <div class="controls-row" id="spacingRow">
         <label>Spacing</label>
+        <button class="stepper-btn" data-target="spacing" data-dir="-1">&minus;</button>
         <input type="range" id="spacing" min="2" max="30" value="8" step="1">
+        <button class="stepper-btn" data-target="spacing" data-dir="1">+</button>
         <span class="val" id="spacingVal">8</span>
       </div>
       <div class="controls-row hidden" id="scaleRow">
         <label>Scale</label>
+        <button class="stepper-btn" data-target="scale" data-dir="-1">&minus;</button>
         <input type="range" id="scale" min="1" max="8" value="3" step="1">
+        <button class="stepper-btn" data-target="scale" data-dir="1">+</button>
         <span class="val" id="scaleVal">3</span>
       </div>
       <div class="controls-row">
         <label>Gamma</label>
+        <button class="stepper-btn" data-target="gamma" data-dir="-1">&minus;</button>
         <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
+        <button class="stepper-btn" data-target="gamma" data-dir="1">+</button>
         <span class="val" id="gammaVal">1.0</span>
       </div>
       <div class="controls-row">
         <label>Contrast</label>
+        <button class="stepper-btn" data-target="contrast" data-dir="-1">&minus;</button>
         <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
+        <button class="stepper-btn" data-target="contrast" data-dir="1">+</button>
         <span class="val" id="contrastVal">0</span>
       </div>
       <div class="controls-row">
         <label>Brightness</label>
+        <button class="stepper-btn" data-target="brightness" data-dir="-1">&minus;</button>
         <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
+        <button class="stepper-btn" data-target="brightness" data-dir="1">+</button>
         <span class="val" id="brightnessVal">0</span>
       </div>
       <div class="toggle-row" id="algoRow">
@@ -257,6 +296,19 @@ scaleSlider.addEventListener('input', onParamChange);
 gammaSlider.addEventListener('input', onParamChange);
 contrastSlider.addEventListener('input', onParamChange);
 brightnessSlider.addEventListener('input', onParamChange);
+
+// Stepper buttons (+/- for each slider)
+document.querySelectorAll('.stepper-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var slider = document.getElementById(btn.dataset.target);
+    var step = parseFloat(slider.step) || 1;
+    var dir = parseInt(btn.dataset.dir);
+    var val = parseFloat(slider.value) + step * dir;
+    val = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), val));
+    slider.value = val;
+    onParamChange();
+  });
+});
 
 // Panel toggle (hides entire control panel except the toggle button)
 var panelContent = document.getElementById('panelContent');
