@@ -21,25 +21,27 @@ body {
   background: #111;
 }
 #start-screen h1 {
-  font-size: 28px; font-weight: 700; color: #fff;
-  margin-bottom: -8px;
+  font-size: 30px; font-weight: 800; color: #fff;
+  margin-bottom: -6px; letter-spacing: -0.5px;
 }
 #start-screen .subtitle {
-  font-size: 13px; color: #777; line-height: 1.4;
+  font-size: 13px; color: #666; line-height: 1.4;
   max-width: 300px; text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .start-btn {
   display: block; width: 280px;
-  padding: 18px; border: none; border-radius: 12px;
+  padding: 18px; border: none; border-radius: 16px;
   font-size: 18px; font-weight: 600;
   cursor: pointer; color: #fff; text-align: center;
-  transition: transform 0.1s;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  letter-spacing: 0.3px;
 }
-.start-btn:active { transform: scale(0.97); }
-.btn-photo { background: linear-gradient(135deg, #2a6, #3b8); }
-.btn-library { background: linear-gradient(135deg, #46a, #57c); }
-.btn-live { background: linear-gradient(135deg, #a72, #c84); }
+.start-btn:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.btn-photo { background: linear-gradient(145deg, #3cb371, #2a8c57); }
+.btn-library { background: linear-gradient(145deg, #5b7fda, #4060b8); }
+.btn-live { background: linear-gradient(145deg, #d4803a, #b86520); }
 .camera-select {
   font-size: 14px; padding: 8px 12px; border-radius: 8px;
   background: #222; color: #ccc; border: 1px solid #444;
@@ -60,11 +62,12 @@ video { display: none; }
 /* ── Bottom bar ── */
 .bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(20, 20, 20, 0.97);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(18, 18, 18, 0.92);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   padding: 0 8px env(safe-area-inset-bottom, 8px);
   z-index: 10;
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
 .slider-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 4px 4px;
@@ -79,67 +82,86 @@ video { display: none; }
   background: transparent; cursor: pointer;
 }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  background: linear-gradient(90deg, #4af 0%, #333 100%);
-  border-radius: 3px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
 }
 input[type="range"]::-moz-range-track {
-  height: 6px;
-  background: linear-gradient(90deg, #4af 0%, #333 100%);
-  border-radius: 3px; border: none;
+  height: 4px;
+  background: #333;
+  border-radius: 2px; border: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #7cf, #4af);
-  border: 2px solid #222;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #adf, #4af 60%, #38e);
+  border: 2px solid #1a1a1a;
   margin-top: -11px;
-  box-shadow: 0 2px 8px rgba(68,170,255,0.4);
+  box-shadow: 0 2px 10px rgba(68,170,255,0.45), 0 0 0 3px rgba(68,170,255,0.1);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 2px 14px rgba(68,170,255,0.6), 0 0 0 5px rgba(68,170,255,0.12);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #7cf, #4af);
-  border: 2px solid #222;
-  box-shadow: 0 2px 8px rgba(68,170,255,0.4);
+  width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #adf, #4af 60%, #38e);
+  border: 2px solid #1a1a1a;
+  box-shadow: 0 2px 10px rgba(68,170,255,0.45), 0 0 0 3px rgba(68,170,255,0.1);
+}
+input[type="range"]::-moz-range-progress {
+  height: 4px; background: #4af; border-radius: 2px;
 }
 .slider-row .val {
   font-size: 15px; min-width: 36px; text-align: right;
   font-variant-numeric: tabular-nums; color: #fff; font-weight: 600;
 }
 .menu-bar {
-  display: flex; gap: 6px; padding: 4px 0 8px;
+  display: flex; gap: 7px; padding: 4px 0 8px;
 }
 .menu-btn {
-  flex: 1; padding: 14px 4px; border: 2px solid #444; border-radius: 10px;
+  flex: 1; padding: 14px 4px; border: 1.5px solid #3a3a3a; border-radius: 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;
-  color: #ccc; background: #1a1a1a; text-align: center;
+  color: #bbb; background: linear-gradient(180deg, #252525, #1a1a1a);
+  text-align: center;
   -webkit-tap-highlight-color: transparent; user-select: none;
   position: relative;
+  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.menu-btn:active { background: #333; }
-.menu-btn.has-active { border-color: #4af; color: #fff; }
+.menu-btn:active { background: #2a2a2a; transform: scale(0.96); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.menu-btn.has-active { border-color: #4af; color: #fff; box-shadow: 0 2px 10px rgba(68,170,255,0.2), inset 0 1px 0 rgba(255,255,255,0.06); }
 /* ── Popup menu ── */
 .popup-menu {
   display: none; position: fixed;
-  min-width: 160px; max-height: 60vh; overflow-y: auto;
-  background: #222; border: 2px solid #555; border-radius: 12px;
-  padding: 6px;
-  z-index: 20; box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+  min-width: 170px; max-height: 60vh; overflow-y: auto;
+  background: linear-gradient(180deg, #2a2a2a, #1e1e1e);
+  border: 1.5px solid rgba(255,255,255,0.1); border-radius: 14px;
+  padding: 5px;
+  z-index: 20; box-shadow: 0 -8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .popup-menu.visible { display: block; }
 .popup-item {
-  display: block; width: 100%; padding: 12px 14px;
-  border: none; border-radius: 8px; background: transparent;
-  color: #ccc; font-size: 15px; font-weight: 500;
+  display: block; width: 100%; padding: 11px 14px;
+  border: none; border-radius: 9px; background: transparent;
+  color: #bbb; font-size: 15px; font-weight: 500;
   cursor: pointer; text-align: left;
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, color 0.12s;
 }
-.popup-item:active { background: #333; }
+.popup-item:active { background: rgba(255,255,255,0.08); }
 .popup-item.selected {
-  background: rgba(68,170,255,0.15); color: #fff; font-weight: 600;
+  background: rgba(68,170,255,0.18); color: #fff; font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(68,170,255,0.15);
 }
 .popup-item.toggled {
   color: #4af; font-weight: 600;
+}
+.popup-item + .popup-item {
+  border-top: 1px solid rgba(255,255,255,0.04);
 }
 .popup-overlay {
   display: none; position: fixed; inset: 0; z-index: 9;
@@ -149,6 +171,7 @@ input[type="range"]::-moz-range-thumb {
   position: fixed; top: 8px; left: 8px; right: 8px;
   text-align: center; font-size: 13px; color: #8f8;
   pointer-events: none; z-index: 5;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
 }
 #help-screen {
   position: fixed; inset: 0; z-index: 20;
@@ -163,11 +186,15 @@ input[type="range"]::-moz-range-thumb {
 #help-screen .algo-name { color: #fff; font-weight: 600; }
 #help-screen .close-help {
   position: sticky; top: 0; z-index: 21;
-  display: block; width: 100%; padding: 12px;
-  background: #222; border: none; border-radius: 8px;
+  display: block; width: 100%; padding: 14px;
+  background: linear-gradient(180deg, #252525, #1e1e1e);
+  border: 1.5px solid rgba(255,255,255,0.08); border-radius: 12px;
   color: #4af; font-size: 16px; font-weight: 600;
   cursor: pointer; margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 0.12s;
 }
+#help-screen .close-help:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -221,7 +248,7 @@ input[type="range"]::-moz-range-thumb {
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
   <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
-  <button class="start-btn" id="helpBtn" style="background:linear-gradient(135deg,#444,#555);">Help</button>
+  <button class="start-btn" id="helpBtn" style="background:linear-gradient(145deg,#444,#333); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);">Help</button>
   <select id="cameraSelect" class="camera-select">
     <option value="environment">Back Camera</option>
     <option value="user">Front Camera</option>
