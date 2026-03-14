@@ -60,23 +60,25 @@ video { display: none; }
 }
 #output {
   max-width: 100%;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 120px);
   border-radius: 4px;
 }
-.controls {
+/* ── Bottom bar ── */
+.bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: rgba(20, 20, 20, 0.97);
-  padding: 8px 12px 24px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  padding: 0 8px env(safe-area-inset-bottom, 8px);
+  z-index: 10;
 }
-.controls-row {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+.slider-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 4px 2px;
 }
-.controls-row label {
-  font-size: 12px; min-width: 70px; color: #aaa;
+.slider-row label {
+  font-size: 13px; font-weight: 600; min-width: 58px; color: #4af;
 }
-.controls-row input[type="range"] {
+.slider-row input[type="range"] {
   flex: 1; height: 44px; accent-color: #4af;
   -webkit-appearance: none; appearance: none;
   background: transparent; cursor: pointer;
@@ -89,58 +91,58 @@ input[type="range"]::-moz-range-track {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   background: #4af; border: 3px solid #222;
-  margin-top: -12px;
+  margin-top: -14px;
 }
 input[type="range"]::-moz-range-thumb {
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   background: #4af; border: 3px solid #222;
 }
-.stepper {
-  display: flex; align-items: center; gap: 0;
+.slider-row .val {
+  font-size: 14px; min-width: 32px; text-align: right;
+  font-variant-numeric: tabular-nums; color: #ccc;
 }
-.stepper-btn {
-  width: 36px; height: 36px; border: 1px solid #555; border-radius: 8px;
-  background: #333; color: #ddd; font-size: 20px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  -webkit-tap-highlight-color: transparent; user-select: none;
+.menu-bar {
+  display: flex; gap: 6px; padding: 4px 0 8px;
 }
-.stepper-btn:active { background: #555; }
-.controls-row .val {
-  font-size: 12px; min-width: 36px; text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.btn-row { display: flex; gap: 8px; margin-top: 6px; }
-.btn {
-  flex: 1; padding: 12px 4px; border: none; border-radius: 8px;
-  font-size: 14px; font-weight: 600; cursor: pointer; color: #fff;
-}
-.btn-save { background: #2a2; }
-.btn-bracket { background: #c72; }
-.btn-invert { background: #555; }
-.btn-new { background: #447; }
-.btn-flip { background: #a72; }
-.controls-toggle {
-  display: block; width: 100%; padding: 6px 0; border: none;
-  background: transparent; color: #888; font-size: 12px;
-  cursor: pointer; text-align: center; letter-spacing: 1px;
-}
-.controls-toggle:active { color: #fff; }
-#panelContent { overflow: hidden; transition: max-height 0.25s ease; }
-#panelContent.collapsed { max-height: 0 !important; margin: 0; padding: 0; }
-.toggle-row {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;
-}
-.toggle-btn {
-  flex: 1 1 auto; min-width: 60px; padding: 10px 6px; border: 2px solid #444; border-radius: 8px;
+.menu-btn {
+  flex: 1; padding: 14px 4px; border: 2px solid #444; border-radius: 10px;
   font-size: 14px; font-weight: 600; cursor: pointer;
-  color: #aaa; background: transparent; text-align: center;
+  color: #ccc; background: #1a1a1a; text-align: center;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+  position: relative;
+}
+.menu-btn:active { background: #333; }
+.menu-btn.has-active { border-color: #4af; color: #fff; }
+/* ── Popup menu ── */
+.popup-menu {
+  display: none; position: absolute; bottom: 100%; left: 50%;
+  transform: translateX(-50%);
+  min-width: 160px; max-height: 70vh; overflow-y: auto;
+  background: #222; border: 2px solid #555; border-radius: 12px;
+  padding: 6px; margin-bottom: 8px;
+  z-index: 20; box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+}
+.popup-menu.visible { display: block; }
+.popup-item {
+  display: block; width: 100%; padding: 12px 14px;
+  border: none; border-radius: 8px; background: transparent;
+  color: #ccc; font-size: 15px; font-weight: 500;
+  cursor: pointer; text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
-.toggle-btn.active {
-  border-color: #4af; color: #fff; background: rgba(68,170,255,0.15);
+.popup-item:active { background: #333; }
+.popup-item.selected {
+  background: rgba(68,170,255,0.15); color: #fff; font-weight: 600;
 }
+.popup-item.toggled {
+  color: #4af; font-weight: 600;
+}
+.popup-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9;
+}
+.popup-overlay.visible { display: block; }
 #status {
   position: fixed; top: 8px; left: 8px; right: 8px;
   text-align: center; font-size: 13px; color: #8f8;
@@ -234,78 +236,68 @@ input[type="range"]::-moz-range-thumb {
   </div>
   <video id="video" playsinline autoplay muted></video>
   <div id="status"></div>
-  <div class="controls">
-    <button class="controls-toggle" id="togglePanel">&#9650; Controls</button>
-    <div id="panelContent">
-      <div class="controls-row" id="spacingRow">
-        <label>Spacing</label>
-        <button class="stepper-btn" data-target="spacing" data-dir="-1">&minus;</button>
-        <input type="range" id="spacing" min="2" max="30" value="8" step="1">
-        <button class="stepper-btn" data-target="spacing" data-dir="1">+</button>
-        <span class="val" id="spacingVal">8</span>
+
+  <!-- Hidden sliders for values not shown -->
+  <input type="hidden" id="contrast" value="0">
+  <input type="hidden" id="brightness" value="0">
+
+  <div id="popup-overlay" class="popup-overlay"></div>
+
+  <div class="bottom-bar" id="bottomBar" style="display:none">
+    <div class="slider-row">
+      <label id="sliderLabel">Spacing</label>
+      <input type="range" id="mainSlider" min="2" max="30" value="8" step="1">
+      <span class="val" id="sliderVal">8</span>
+    </div>
+    <!-- Hidden sliders that feed values -->
+    <input type="range" id="spacing" min="2" max="30" value="8" step="1" style="display:none">
+    <input type="range" id="scale" min="1" max="8" value="3" step="1" style="display:none">
+    <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1" style="display:none">
+
+    <div class="menu-bar">
+      <div class="menu-btn has-active" id="algoMenuBtn">
+        Dots
+        <div class="popup-menu" id="algoMenu">
+          <button class="popup-item selected" data-algo="dithertone">Dots</button>
+          <button class="popup-item" data-algo="floyd">Floyd</button>
+          <button class="popup-item" data-algo="atkinson">Atkinson</button>
+          <button class="popup-item" data-algo="bayer">Bayer</button>
+          <button class="popup-item" data-algo="angledhalftone">Halftone</button>
+          <button class="popup-item" data-algo="halftone">Lines</button>
+          <button class="popup-item" data-algo="crosshatch">Hatch</button>
+          <button class="popup-item" data-algo="engrave">Engrave</button>
+          <button class="popup-item" data-algo="stipple">Stipple</button>
+          <button class="popup-item" data-algo="ox">OX</button>
+        </div>
       </div>
-      <div class="controls-row hidden" id="scaleRow">
-        <label>Scale</label>
-        <button class="stepper-btn" data-target="scale" data-dir="-1">&minus;</button>
-        <input type="range" id="scale" min="1" max="8" value="3" step="1">
-        <button class="stepper-btn" data-target="scale" data-dir="1">+</button>
-        <span class="val" id="scaleVal">3</span>
+      <div class="menu-btn" id="adjustMenuBtn">
+        Adjust
+        <div class="popup-menu" id="adjustMenu">
+          <button class="popup-item selected" data-slider="spacing">Spacing</button>
+          <button class="popup-item" data-slider="gamma">Gamma</button>
+          <button class="popup-item" data-slider="contrast">Contrast</button>
+          <button class="popup-item" data-slider="brightness">Brightness</button>
+          <button class="popup-item" data-slider="shape">Shape: Circle</button>
+        </div>
       </div>
-      <div class="controls-row">
-        <label>Gamma</label>
-        <button class="stepper-btn" data-target="gamma" data-dir="-1">&minus;</button>
-        <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1">
-        <button class="stepper-btn" data-target="gamma" data-dir="1">+</button>
-        <span class="val" id="gammaVal">1.0</span>
+      <div class="menu-btn" id="optionsMenuBtn">
+        FX
+        <div class="popup-menu" id="optionsMenu">
+          <button class="popup-item" data-option="color">Color</button>
+          <button class="popup-item" data-option="edges">Edges</button>
+          <button class="popup-item" data-option="invert">Invert</button>
+        </div>
       </div>
-      <div class="controls-row">
-        <label>Contrast</label>
-        <button class="stepper-btn" data-target="contrast" data-dir="-1">&minus;</button>
-        <input type="range" id="contrast" min="-100" max="100" value="0" step="5">
-        <button class="stepper-btn" data-target="contrast" data-dir="1">+</button>
-        <span class="val" id="contrastVal">0</span>
-      </div>
-      <div class="controls-row">
-        <label>Brightness</label>
-        <button class="stepper-btn" data-target="brightness" data-dir="-1">&minus;</button>
-        <input type="range" id="brightness" min="-100" max="100" value="0" step="5">
-        <button class="stepper-btn" data-target="brightness" data-dir="1">+</button>
-        <span class="val" id="brightnessVal">0</span>
-      </div>
-      <div class="toggle-row" id="algoRow">
-        <button class="toggle-btn active" data-algo="dithertone">Dots</button>
-        <button class="toggle-btn" data-algo="floyd">Floyd</button>
-        <button class="toggle-btn" data-algo="atkinson">Atkinson</button>
-        <button class="toggle-btn" data-algo="bayer">Bayer</button>
-        <button class="toggle-btn" data-algo="angledhalftone">Halftone</button>
-        <button class="toggle-btn" data-algo="halftone">Lines</button>
-        <button class="toggle-btn" data-algo="crosshatch">Hatch</button>
-        <button class="toggle-btn" data-algo="engrave">Engrave</button>
-        <button class="toggle-btn" data-algo="stipple">Stipple</button>
-        <button class="toggle-btn" data-algo="ox">OX</button>
-      </div>
-      <div class="toggle-row" id="shapeRow">
-        <button class="toggle-btn active" data-shape="circle">Circle</button>
-        <button class="toggle-btn" data-shape="cross">Cross</button>
-        <button class="toggle-btn" data-shape="dash">Dash</button>
-        <button class="toggle-btn" data-shape="diamond">Diamond</button>
-      </div>
-      <div class="toggle-row" id="optionsRow">
-        <button class="toggle-btn" id="colorToggle">Color</button>
-        <button class="toggle-btn" id="edgesToggle">Edges</button>
-      </div>
-      <div class="btn-row" id="photoButtons">
-        <button class="btn btn-save" id="saveBtn">Save</button>
-        <button class="btn btn-bracket" id="bracketBtn">Bracket</button>
-        <button class="btn btn-invert" id="invertBtn">Invert</button>
-        <button class="btn btn-new" id="newBtn">New</button>
-      </div>
-      <div class="btn-row hidden" id="liveButtons">
-        <button class="btn btn-save" id="captureBtn">Capture</button>
-        <button class="btn btn-bracket" id="liveBracketBtn">Bracket</button>
-        <button class="btn btn-invert" id="liveInvertBtn">Invert</button>
-        <button class="btn btn-flip" id="flipBtn">Flip</button>
-        <button class="btn btn-new" id="stopBtn">Stop</button>
+      <div class="menu-btn" id="actionMenuBtn">
+        Save
+        <div class="popup-menu" id="actionMenu">
+          <button class="popup-item" data-action="save">Save PNG</button>
+          <button class="popup-item" data-action="bracket">Bracket (3x)</button>
+          <button class="popup-item" data-action="new">New Image</button>
+          <button class="popup-item" data-action="capture" style="display:none">Capture Frame</button>
+          <button class="popup-item" data-action="flip" style="display:none">Flip Camera</button>
+          <button class="popup-item" data-action="stop" style="display:none">Stop Camera</button>
+        </div>
       </div>
     </div>
   </div>
@@ -336,12 +328,22 @@ var lastFrameRGBA = null;
 var srcCanvas = document.createElement('canvas');
 var srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
 
-// Sliders
+// Sliders (hidden backing sliders + the visible mainSlider)
 var spacingSlider = document.getElementById('spacing');
 var scaleSlider = document.getElementById('scale');
 var gammaSlider = document.getElementById('gamma');
 var contrastSlider = document.getElementById('contrast');
 var brightnessSlider = document.getElementById('brightness');
+var mainSlider = document.getElementById('mainSlider');
+var sliderLabel = document.getElementById('sliderLabel');
+var sliderVal = document.getElementById('sliderVal');
+
+// Which parameter the main slider currently controls
+var currentSliderParam = 'spacing';
+
+// Shapes cycle
+var SHAPES = ['circle', 'cross', 'dash', 'diamond'];
+var shapeIndex = 0;
 
 // Pixel-level algorithms that use the scale slider instead of spacing
 var PIXEL_ALGOS = { floyd: 1, atkinson: 1, stucki: 1, bayer: 1 };
@@ -361,51 +363,44 @@ function getParams() {
   };
 }
 
-function updateDisplays() {
-  document.getElementById('spacingVal').textContent = spacingSlider.value;
-  document.getElementById('scaleVal').textContent = scaleSlider.value;
-  document.getElementById('gammaVal').textContent = parseFloat(gammaSlider.value).toFixed(1);
-  document.getElementById('contrastVal').textContent = contrastSlider.value;
-  document.getElementById('brightnessVal').textContent = brightnessSlider.value;
-}
+// Slider config per parameter
+var SLIDER_CONFIG = {
+  spacing:    { label: 'Spacing',    min: 2,    max: 30,  step: 1,   format: function(v) { return Math.round(v); } },
+  scale:      { label: 'Scale',      min: 1,    max: 8,   step: 1,   format: function(v) { return Math.round(v); } },
+  gamma:      { label: 'Gamma',      min: 0.2,  max: 4.0, step: 0.1, format: function(v) { return parseFloat(v).toFixed(1); } },
+  contrast:   { label: 'Contrast',   min: -100, max: 100, step: 5,   format: function(v) { return Math.round(v); } },
+  brightness: { label: 'Brightness', min: -100, max: 100, step: 5,   format: function(v) { return Math.round(v); } },
+};
 
-function updateSliderVisibility() {
-  var isPixel = currentAlgo in PIXEL_ALGOS;
-  document.getElementById('spacingRow').classList.toggle('hidden', isPixel);
-  document.getElementById('scaleRow').classList.toggle('hidden', !isPixel);
+function syncMainSlider() {
+  // Determine which param to show: pixel algos use scale instead of spacing
+  var param = currentSliderParam;
+  if (param === 'spacing' && currentAlgo in PIXEL_ALGOS) param = 'scale';
+
+  var cfg = SLIDER_CONFIG[param];
+  var backing = document.getElementById(param);
+
+  sliderLabel.textContent = cfg.label;
+  mainSlider.min = cfg.min;
+  mainSlider.max = cfg.max;
+  mainSlider.step = cfg.step;
+  mainSlider.value = backing.value;
+  sliderVal.textContent = cfg.format(backing.value);
 }
 
 function onParamChange() {
-  updateDisplays();
+  syncMainSlider();
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
-spacingSlider.addEventListener('input', onParamChange);
-scaleSlider.addEventListener('input', onParamChange);
-gammaSlider.addEventListener('input', onParamChange);
-contrastSlider.addEventListener('input', onParamChange);
-brightnessSlider.addEventListener('input', onParamChange);
 
-// Stepper buttons (+/- for each slider)
-document.querySelectorAll('.stepper-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var slider = document.getElementById(btn.dataset.target);
-    var step = parseFloat(slider.step) || 1;
-    var dir = parseInt(btn.dataset.dir);
-    var val = parseFloat(slider.value) + step * dir;
-    val = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), val));
-    slider.value = val;
-    onParamChange();
-  });
-});
-
-// Panel toggle (hides entire control panel except the toggle button)
-var panelContent = document.getElementById('panelContent');
-var togglePanelBtn = document.getElementById('togglePanel');
-panelContent.style.maxHeight = panelContent.scrollHeight + 'px';
-togglePanelBtn.addEventListener('click', function() {
-  var collapsed = panelContent.classList.toggle('collapsed');
-  togglePanelBtn.innerHTML = collapsed ? '&#9660; Controls' : '&#9650; Controls';
-  if (!collapsed) panelContent.style.maxHeight = panelContent.scrollHeight + 'px';
+mainSlider.addEventListener('input', function() {
+  var param = currentSliderParam;
+  if (param === 'spacing' && currentAlgo in PIXEL_ALGOS) param = 'scale';
+  var backing = document.getElementById(param);
+  backing.value = mainSlider.value;
+  var cfg = SLIDER_CONFIG[param];
+  sliderVal.textContent = cfg.format(mainSlider.value);
+  if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 });
 
 // Gamma LUT
@@ -1025,92 +1020,116 @@ function renderStipple(gray, w, h, params) {
   }
 }
 
-// ── Color mode (CMYK halftone separation) ──
-// Renders each color channel (Cyan, Magenta, Yellow) as diamond halftone dots
-// at different screen angles, then composites with subtractive color mixing.
-// Classic print process: C=15°, M=75°, Y=0°.
+// ── Color mode (per-algorithm CMY channel separation) ──
+// Renders the current algorithm 3 times — once for each CMY channel — then
+// composites with subtractive color mixing. Works with every algorithm.
+var offCanvas = document.createElement('canvas');
+var offCtx = offCanvas.getContext('2d');
+
+function extractChannel(rgba, w, h, channelIdx) {
+  // Extract a single color channel as a grayscale array.
+  // channelIdx: 0=R (→Cyan darkness), 1=G (→Magenta darkness), 2=B (→Yellow darkness)
+  // Returns inverted: dark areas in the channel = where that ink is heavy.
+  var gray = new Uint8Array(w * h);
+  for (var i = 0; i < w * h; i++) {
+    gray[i] = rgba[i * 4 + channelIdx]; // keep as-is; the algorithm will darken low values
+  }
+  return gray;
+}
+
 function renderColor(rgba, w, h, params) {
   var adjusted = adjustRGBA(rgba, params);
-  var spacing = params.spacing;
 
+  // Render the selected algorithm for each CMY channel onto offscreen canvases
+  // We temporarily swap the output canvas/context to capture each pass
+  var origCanvas = output;
+  var origCtx = ctx;
+
+  var channels = []; // [{imageData}] for C, M, Y
+
+  for (var ch = 0; ch < 3; ch++) {
+    var chanGray = extractChannel(adjusted, w, h, ch);
+
+    // Create a temporary canvas for this channel
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = w;
+    tmpCanvas.height = h;
+    var tmpCtx = tmpCanvas.getContext('2d');
+
+    // Temporarily redirect rendering to this canvas
+    output = tmpCanvas;
+    ctx = tmpCtx;
+
+    // Force non-invert for channel rendering (we handle invert in composite)
+    var chanParams = {};
+    for (var k in params) chanParams[k] = params[k];
+    chanParams.invert = false;
+    // Skip brightness/contrast/gamma — already applied via adjustRGBA
+    chanParams.brightness = 0;
+    chanParams.contrast = 0;
+    chanParams.gamma = 1.0;
+
+    // Render the selected algorithm in black-on-white
+    switch (params.algorithm) {
+      case 'dithertone':     renderDithertone(chanGray, w, h, chanParams); break;
+      case 'floyd':          renderFloydSteinberg(chanGray, w, h, chanParams); break;
+      case 'atkinson':       renderAtkinson(chanGray, w, h, chanParams); break;
+      case 'bayer':          renderBayer(chanGray, w, h, chanParams); break;
+      case 'angledhalftone': renderAngledHalftone(chanGray, w, h, chanParams); break;
+      case 'halftone':       renderHalftone(chanGray, w, h, chanParams); break;
+      case 'crosshatch':     renderCrosshatch(chanGray, w, h, chanParams); break;
+      case 'engrave':        renderEngrave(chanGray, w, h, chanParams); break;
+      case 'stipple':        renderStipple(chanGray, w, h, chanParams); break;
+      case 'ox':             renderOX(chanGray, w, h, chanParams); break;
+    }
+
+    channels.push(tmpCtx.getImageData(0, 0, w, h));
+  }
+
+  // Restore original canvas/context
+  output = origCanvas;
+  ctx = origCtx;
   output.width = w;
   output.height = h;
 
-  var imgData = ctx.createImageData(w, h);
-  var pix = imgData.data;
+  // Composite: subtractive color mixing
+  // Each channel rendered black marks on white. Black pixel = ink present.
+  // C channel: where black → subtract red (cyan ink)
+  // M channel: where black → subtract green (magenta ink)
+  // Y channel: where black → subtract blue (yellow ink)
+  var cPix = channels[0].data; // R channel → Cyan
+  var mPix = channels[1].data; // G channel → Magenta
+  var yPix = channels[2].data; // B channel → Yellow
 
-  // Classic CMYK screen angles
-  var cAngle = 15 * Math.PI / 180;
-  var mAngle = 75 * Math.PI / 180;
-  var yAngle = 0;
+  var result = ctx.createImageData(w, h);
+  var out = result.data;
 
-  var cosC = Math.cos(cAngle), sinC = Math.sin(cAngle);
-  var cosM = Math.cos(mAngle), sinM = Math.sin(mAngle);
-  var cosY = Math.cos(yAngle), sinY = Math.sin(yAngle);
+  for (var i = 0; i < w * h; i++) {
+    var pi = i * 4;
+    // Each channel: 0 = ink present (dark mark), 255 = no ink (white)
+    // Darkness = how much ink: cDark = 1 means full cyan
+    var cInk = 1 - cPix[pi] / 255; // darkness of cyan channel rendering
+    var mInk = 1 - mPix[pi] / 255; // darkness of magenta channel rendering
+    var yInk = 1 - yPix[pi] / 255; // darkness of yellow channel rendering
 
-  var step = spacing;
+    // Subtractive: start from white, subtract CMY
+    var r = 255 * (1 - cInk);
+    var g = 255 * (1 - mInk);
+    var b = 255 * (1 - yInk);
 
-  for (var py = 0; py < h; py++) {
-    for (var px = 0; px < w; px++) {
-      // Rotate pixel into each channel's grid space
-      var gcx = px * cosC + py * sinC;
-      var gcy = -px * sinC + py * cosC;
-      var gmx = px * cosM + py * sinM;
-      var gmy = -px * sinM + py * cosM;
-      var gyx = px; // cosY=1, sinY=0 for 0 degrees
-      var gyy = py;
-
-      // Nearest grid center for each channel
-      var ciC = Math.round(gcx / step), cjC = Math.round(gcy / step);
-      var ciM = Math.round(gmx / step), cjM = Math.round(gmy / step);
-      var ciY = Math.round(gyx / step), cjY = Math.round(gyy / step);
-
-      // Grid centers back to pixel space for sampling
-      var scx = Math.round(Math.max(0, Math.min(w - 1, ciC * step * cosC - cjC * step * sinC)));
-      var scy = Math.round(Math.max(0, Math.min(h - 1, ciC * step * sinC + cjC * step * cosC)));
-      var smx = Math.round(Math.max(0, Math.min(w - 1, ciM * step * cosM - cjM * step * sinM)));
-      var smy = Math.round(Math.max(0, Math.min(h - 1, ciM * step * sinM + cjM * step * cosM)));
-      var syx = Math.round(Math.max(0, Math.min(w - 1, ciY * step)));
-      var syy = Math.round(Math.max(0, Math.min(h - 1, cjY * step)));
-
-      // Sample each channel's darkness at its grid center
-      var siC = (scy * w + scx) * 4;
-      var siM = (smy * w + smx) * 4;
-      var siY = (syy * w + syx) * 4;
-
-      var cDark = 1 - adjusted[siC] / 255;       // Cyan = 1 - Red
-      var mDark = 1 - adjusted[siM + 1] / 255;   // Magenta = 1 - Green
-      var yDark = 1 - adjusted[siY + 2] / 255;   // Yellow = 1 - Blue
-
-      // Diamond distance for each channel
-      var distC = (Math.abs(gcx - ciC * step) + Math.abs(gcy - cjC * step)) / step;
-      var distM = (Math.abs(gmx - ciM * step) + Math.abs(gmy - cjM * step)) / step;
-      var distY = (Math.abs(gyx - ciY * step) + Math.abs(gyy - cjY * step)) / step;
-
-      // Check if pixel falls inside each channel's halftone dot
-      var hitC = distC < cDark ? 1 : 0;
-      var hitM = distM < mDark ? 1 : 0;
-      var hitY = distY < yDark ? 1 : 0;
-
-      // Subtractive color mixing: white minus CMY
-      var outR = hitC ? 0 : 255;
-      var outG = hitM ? 0 : 255;
-      var outB = hitY ? 0 : 255;
-
-      if (params.invert) {
-        outR = 255 - outR;
-        outG = 255 - outG;
-        outB = 255 - outB;
-      }
-
-      var di = (py * w + px) * 4;
-      pix[di] = outR;
-      pix[di + 1] = outG;
-      pix[di + 2] = outB;
-      pix[di + 3] = 255;
+    if (params.invert) {
+      r = 255 - r;
+      g = 255 - g;
+      b = 255 - b;
     }
+
+    out[pi] = r;
+    out[pi + 1] = g;
+    out[pi + 2] = b;
+    out[pi + 3] = 255;
   }
-  ctx.putImageData(imgData, 0, 0);
+
+  ctx.putImageData(result, 0, 0);
 }
 
 // ── Edge detection overlay (Sobel) ──
@@ -1142,39 +1161,132 @@ function overlayEdges(gray, w, h, params) {
   ctx.putImageData(imgData, 0, 0);
 }
 
-// ── Algorithm toggle buttons ──
-document.querySelectorAll('#algoRow .toggle-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('#algoRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
+// ── Popup menu system ──
+var popupOverlay = document.getElementById('popup-overlay');
+var openMenu = null;
+
+function closeAllMenus() {
+  document.querySelectorAll('.popup-menu').forEach(function(m) { m.classList.remove('visible'); });
+  popupOverlay.classList.remove('visible');
+  openMenu = null;
+}
+
+function toggleMenu(menuId) {
+  var menu = document.getElementById(menuId);
+  if (openMenu === menuId) {
+    closeAllMenus();
+  } else {
+    closeAllMenus();
+    menu.classList.add('visible');
+    popupOverlay.classList.add('visible');
+    openMenu = menuId;
+  }
+}
+
+popupOverlay.addEventListener('click', closeAllMenus);
+
+// Prevent menu button clicks from also triggering overlay
+document.querySelectorAll('.menu-btn').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    if (e.target.classList.contains('popup-item')) return;
+    var menuEl = btn.querySelector('.popup-menu');
+    if (menuEl) toggleMenu(menuEl.id);
+  });
+});
+
+// ── Algorithm menu ──
+document.querySelectorAll('#algoMenu .popup-item').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.querySelectorAll('#algoMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
     currentAlgo = btn.dataset.algo;
-    // Show shape row only for dithertone
-    document.getElementById('shapeRow').style.display = currentAlgo === 'dithertone' ? 'flex' : 'none';
-    updateSliderVisibility();
+    document.getElementById('algoMenuBtn').firstChild.textContent = btn.textContent;
+
+    // Auto-switch slider: pixel algos show scale, others show spacing
+    if (currentSliderParam === 'spacing' || currentSliderParam === 'scale') {
+      currentSliderParam = (currentAlgo in PIXEL_ALGOS) ? 'scale' : 'spacing';
+      // Update adjust menu selection
+      document.querySelectorAll('#adjustMenu .popup-item').forEach(function(b) {
+        b.classList.remove('selected');
+        if (b.dataset.slider === currentSliderParam) b.classList.add('selected');
+      });
+    }
+
+    // Show/hide shape option in adjust menu
+    var shapeItem = document.querySelector('#adjustMenu [data-slider="shape"]');
+    if (shapeItem) shapeItem.style.display = currentAlgo === 'dithertone' ? 'block' : 'none';
+
+    closeAllMenus();
     onParamChange();
   });
 });
 
-// ── Shape toggle buttons ──
-document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
-    currentShape = btn.dataset.shape;
+// ── Adjust menu (slider selector + shape) ──
+document.querySelectorAll('#adjustMenu .popup-item').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+
+    if (btn.dataset.slider === 'shape') {
+      // Cycle through shapes
+      shapeIndex = (shapeIndex + 1) % SHAPES.length;
+      currentShape = SHAPES[shapeIndex];
+      btn.textContent = 'Shape: ' + currentShape.charAt(0).toUpperCase() + currentShape.slice(1);
+      onParamChange();
+      return;
+    }
+
+    document.querySelectorAll('#adjustMenu .popup-item').forEach(function(b) {
+      if (b.dataset.slider !== 'shape') b.classList.remove('selected');
+    });
+    btn.classList.add('selected');
+    currentSliderParam = btn.dataset.slider;
+    closeAllMenus();
+    syncMainSlider();
+  });
+});
+
+// ── Options menu (toggles) ──
+document.querySelectorAll('#optionsMenu .popup-item').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var opt = btn.dataset.option;
+    if (opt === 'color') {
+      colorMode = !colorMode;
+      btn.classList.toggle('toggled', colorMode);
+    } else if (opt === 'edges') {
+      edgeMode = !edgeMode;
+      btn.classList.toggle('toggled', edgeMode);
+    } else if (opt === 'invert') {
+      toggleInvert();
+      btn.classList.toggle('toggled', inverted);
+    }
+    // Update FX button label to show active count
+    var activeCount = (colorMode ? 1 : 0) + (edgeMode ? 1 : 0) + (inverted ? 1 : 0);
+    var fxBtn = document.getElementById('optionsMenuBtn');
+    fxBtn.firstChild.textContent = activeCount > 0 ? 'FX (' + activeCount + ')' : 'FX';
+    fxBtn.classList.toggle('has-active', activeCount > 0);
+    closeAllMenus();
     onParamChange();
   });
 });
 
-// ── Color / Edges toggle buttons ──
-document.getElementById('colorToggle').addEventListener('click', function() {
-  colorMode = !colorMode;
-  this.classList.toggle('active', colorMode);
-  onParamChange();
-});
-document.getElementById('edgesToggle').addEventListener('click', function() {
-  edgeMode = !edgeMode;
-  this.classList.toggle('active', edgeMode);
-  onParamChange();
+// ── Action menu ──
+document.querySelectorAll('#actionMenu .popup-item').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllMenus();
+    var action = btn.dataset.action;
+    if (action === 'save') savePNG();
+    else if (action === 'bracket') {
+      if (liveMode) liveBracket();
+      else bracketCapture(sourceGray, sourceW, sourceH);
+    }
+    else if (action === 'new') returnToStart();
+    else if (action === 'capture') captureLiveFrame();
+    else if (action === 'flip') flipCamera();
+    else if (action === 'stop') returnToStart();
+  });
 });
 
 // ── Load image from file input ──
@@ -1218,16 +1330,30 @@ function enterPhotoMode() {
   liveMode = false;
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('editor').classList.remove('hidden');
-  document.getElementById('photoButtons').classList.remove('hidden');
-  document.getElementById('liveButtons').classList.add('hidden');
+  document.getElementById('bottomBar').style.display = '';
+  // Show photo actions, hide live actions
+  document.querySelector('[data-action="save"]').style.display = '';
+  document.querySelector('[data-action="bracket"]').style.display = '';
+  document.querySelector('[data-action="new"]').style.display = '';
+  document.querySelector('[data-action="capture"]').style.display = 'none';
+  document.querySelector('[data-action="flip"]').style.display = 'none';
+  document.querySelector('[data-action="stop"]').style.display = 'none';
+  syncMainSlider();
 }
 
 function enterLiveMode() {
   liveMode = true;
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('editor').classList.remove('hidden');
-  document.getElementById('photoButtons').classList.add('hidden');
-  document.getElementById('liveButtons').classList.remove('hidden');
+  document.getElementById('bottomBar').style.display = '';
+  // Show live actions, hide photo-only
+  document.querySelector('[data-action="save"]').style.display = 'none';
+  document.querySelector('[data-action="new"]').style.display = 'none';
+  document.querySelector('[data-action="capture"]').style.display = '';
+  document.querySelector('[data-action="bracket"]').style.display = '';
+  document.querySelector('[data-action="flip"]').style.display = '';
+  document.querySelector('[data-action="stop"]').style.display = '';
+  syncMainSlider();
 }
 
 function returnToStart() {
@@ -1241,19 +1367,33 @@ function returnToStart() {
   colorMode = false;
   edgeMode = false;
   liveMode = false;
+  shapeIndex = 0;
+  currentSliderParam = 'spacing';
 
   // Reset UI
-  document.getElementById('invertBtn').textContent = 'Invert';
-  document.getElementById('liveInvertBtn').textContent = 'Invert';
-  document.getElementById('colorToggle').classList.remove('active');
-  document.getElementById('edgesToggle').classList.remove('active');
-  document.querySelectorAll('#shapeRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelector('#shapeRow .toggle-btn[data-shape="circle"]').classList.add('active');
-  document.querySelectorAll('#algoRow .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelector('#algoRow .toggle-btn[data-algo="dithertone"]').classList.add('active');
-  document.getElementById('shapeRow').style.display = 'flex';
-  document.getElementById('spacingRow').classList.remove('hidden');
-  document.getElementById('scaleRow').classList.add('hidden');
+  closeAllMenus();
+  // Reset algo menu
+  document.querySelectorAll('#algoMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
+  document.querySelector('#algoMenu [data-algo="dithertone"]').classList.add('selected');
+  document.getElementById('algoMenuBtn').firstChild.textContent = 'Dots';
+  // Reset adjust menu
+  document.querySelectorAll('#adjustMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
+  document.querySelector('#adjustMenu [data-slider="spacing"]').classList.add('selected');
+  var shapeItem = document.querySelector('#adjustMenu [data-slider="shape"]');
+  if (shapeItem) { shapeItem.textContent = 'Shape: Circle'; shapeItem.style.display = 'block'; }
+  // Reset options
+  document.querySelectorAll('#optionsMenu .popup-item').forEach(function(b) { b.classList.remove('toggled'); });
+  var fxBtn = document.getElementById('optionsMenuBtn');
+  fxBtn.firstChild.textContent = 'FX';
+  fxBtn.classList.remove('has-active');
+  // Reset sliders
+  spacingSlider.value = 8;
+  scaleSlider.value = 3;
+  gammaSlider.value = 1.0;
+  contrastSlider.value = 0;
+  brightnessSlider.value = 0;
+
+  document.getElementById('bottomBar').style.display = 'none';
   document.getElementById('editor').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
   document.getElementById('cameraInput').value = '';
@@ -1405,9 +1545,6 @@ function showStatus(msg) {
 
 function toggleInvert() {
   inverted = !inverted;
-  var label = inverted ? 'Invert: ON' : 'Invert';
-  document.getElementById('invertBtn').textContent = label;
-  document.getElementById('liveInvertBtn').textContent = label;
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
 
@@ -1471,21 +1608,8 @@ document.getElementById('libraryInput').addEventListener('change', function(e) {
   if (e.target.files.length > 0) loadImage(e.target.files[0]);
 });
 
-// Photo mode buttons
-document.getElementById('saveBtn').addEventListener('click', function() { savePNG(); });
-document.getElementById('bracketBtn').addEventListener('click', function() {
-  bracketCapture(sourceGray, sourceW, sourceH);
-});
-document.getElementById('invertBtn').addEventListener('click', toggleInvert);
-document.getElementById('newBtn').addEventListener('click', returnToStart);
-
-// Live mode buttons
+// Live mode start button (on start screen)
 document.getElementById('liveBtn').addEventListener('click', startLive);
-document.getElementById('captureBtn').addEventListener('click', captureLiveFrame);
-document.getElementById('liveBracketBtn').addEventListener('click', liveBracket);
-document.getElementById('liveInvertBtn').addEventListener('click', toggleInvert);
-document.getElementById('flipBtn').addEventListener('click', flipCamera);
-document.getElementById('stopBtn').addEventListener('click', returnToStart);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
