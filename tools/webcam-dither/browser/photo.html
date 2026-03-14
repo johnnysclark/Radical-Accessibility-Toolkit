@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Dithertone</title>
+<title>GRIT</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -205,7 +205,7 @@ input[type="range"]::-moz-range-progress {
 
 <div id="help-screen">
   <button class="close-help" id="closeHelpBtn">Close Help</button>
-  <h1>Dithertone Manual</h1>
+  <h1>GRIT Manual</h1>
 
   <h2>What is Dithering?</h2>
   <p>Dithering converts a photograph with continuous shades of gray into a pattern of pure black and white marks. This is essential for PIAF tactile printing, which can only raise or not raise the paper — there are no in-between tones. Different dithering algorithms create different visual textures while preserving the impression of the original image's light and dark areas.</p>
@@ -250,8 +250,8 @@ input[type="range"]::-moz-range-progress {
 </div>
 
 <div id="start-screen">
-  <h1>Dithertone</h1>
-  <span class="subtitle">Convert photos to dithered patterns. 10 algorithms, AI depth map, color separation, live camera.</span>
+  <h1>GRIT</h1>
+  <span class="subtitle">Grayscale Rendering & Ink Toolkit. 10 dithering algorithms, AI depth map, CMYK color, live camera.</span>
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
   <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
@@ -1822,48 +1822,23 @@ function loadDepthPipeline() {
 function processDepthResult(result) {
   var depthBtnEl = document.getElementById('depthBtn');
   var depthImg = result.depth;
-  var dw = depthImg.width;
-  var dh = depthImg.height;
-  var depthData = depthImg.data;
 
-  // Find min/max for normalization
-  var dMin = Infinity, dMax = -Infinity;
-  for (var i = 0; i < depthData.length; i++) {
-    if (depthData[i] < dMin) dMin = depthData[i];
-    if (depthData[i] > dMax) dMax = depthData[i];
-  }
+  // Use RawImage.toCanvas() for reliable format conversion
+  // This handles any channel count (1, 3, or 4) automatically
+  var depthCanvas = depthImg.toCanvas();
 
-  var range = dMax - dMin || 1;
-  if (dw === sourceW && dh === sourceH) {
-    depthGray = new Uint8Array(sourceW * sourceH);
-    for (var i = 0; i < depthData.length; i++) {
-      depthGray[i] = Math.round(255 * (depthData[i] - dMin) / range);
-    }
-  } else {
-    // Resize via canvas
-    var depthCanvas = document.createElement('canvas');
-    depthCanvas.width = dw;
-    depthCanvas.height = dh;
-    var dCtx = depthCanvas.getContext('2d');
-    var dImg = dCtx.createImageData(dw, dh);
-    for (var i = 0; i < depthData.length; i++) {
-      var val = Math.round(255 * (depthData[i] - dMin) / range);
-      dImg.data[i * 4] = val;
-      dImg.data[i * 4 + 1] = val;
-      dImg.data[i * 4 + 2] = val;
-      dImg.data[i * 4 + 3] = 255;
-    }
-    dCtx.putImageData(dImg, 0, 0);
-    var resCanvas = document.createElement('canvas');
-    resCanvas.width = sourceW;
-    resCanvas.height = sourceH;
-    var resCtx = resCanvas.getContext('2d');
-    resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
-    var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
-    depthGray = new Uint8Array(sourceW * sourceH);
-    for (var i = 0; i < depthGray.length; i++) {
-      depthGray[i] = resData[i * 4];
-    }
+  // Resize to source dimensions
+  var resCanvas = document.createElement('canvas');
+  resCanvas.width = sourceW;
+  resCanvas.height = sourceH;
+  var resCtx = resCanvas.getContext('2d');
+  resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
+  var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
+
+  // Extract grayscale from RGBA canvas data (R channel — grayscale so R=G=B)
+  depthGray = new Uint8Array(sourceW * sourceH);
+  for (var i = 0; i < depthGray.length; i++) {
+    depthGray[i] = resData[i * 4];
   }
 
   originalGray = sourceGray;
