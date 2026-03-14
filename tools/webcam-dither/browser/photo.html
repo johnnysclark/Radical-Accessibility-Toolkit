@@ -268,8 +268,6 @@ input[type="range"]::-moz-range-progress {
   <input type="hidden" id="contrast" value="0">
   <input type="hidden" id="brightness" value="0">
 
-  <div id="popup-overlay" class="popup-overlay"></div>
-
   <div class="bottom-bar" id="bottomBar" style="display:none">
     <div class="slider-row">
       <label id="sliderLabel">Spacing</label>
@@ -285,55 +283,58 @@ input[type="range"]::-moz-range-progress {
     <input type="range" id="outline" min="0" max="10" value="0" step="1" style="display:none">
 
     <div class="menu-bar">
-      <div class="menu-btn has-active" id="algoMenuBtn">
+      <div class="menu-btn has-active" id="algoMenuBtn" data-menu="algoMenu">
         Dots
-        <div class="popup-menu" id="algoMenu">
-          <button class="popup-item selected" data-algo="dithertone">Dots</button>
-          <button class="popup-item" data-algo="floyd">Floyd</button>
-          <button class="popup-item" data-algo="atkinson">Atkinson</button>
-          <button class="popup-item" data-algo="bayer">Bayer</button>
-          <button class="popup-item" data-algo="angledhalftone">Halftone</button>
-          <button class="popup-item" data-algo="halftone">Lines</button>
-          <button class="popup-item" data-algo="crosshatch">Hatch</button>
-          <button class="popup-item" data-algo="engrave">Engrave</button>
-          <button class="popup-item" data-algo="stipple">Stipple</button>
-          <button class="popup-item" data-algo="ox">OX</button>
-        </div>
       </div>
-      <div class="menu-btn" id="adjustMenuBtn">
+      <div class="menu-btn" id="adjustMenuBtn" data-menu="adjustMenu">
         Adjust
-        <div class="popup-menu" id="adjustMenu">
-          <button class="popup-item selected" data-slider="spacing">Spacing</button>
-          <button class="popup-item" data-slider="weight">Weight</button>
-          <button class="popup-item" data-slider="rotation">Rotation</button>
-          <button class="popup-item" data-slider="outline">Outline</button>
-          <button class="popup-item" data-slider="gamma">Gamma</button>
-          <button class="popup-item" data-slider="contrast">Contrast</button>
-          <button class="popup-item" data-slider="brightness">Brightness</button>
-          <button class="popup-item" data-slider="shape">Shape: Circle</button>
-        </div>
       </div>
-      <div class="menu-btn" id="optionsMenuBtn">
+      <div class="menu-btn" id="optionsMenuBtn" data-menu="optionsMenu">
         FX
-        <div class="popup-menu" id="optionsMenu">
-          <button class="popup-item" data-option="color">Color</button>
-          <button class="popup-item" data-option="edges">Edges</button>
-          <button class="popup-item" data-option="invert">Invert</button>
-        </div>
       </div>
-      <div class="menu-btn" id="actionMenuBtn">
+      <div class="menu-btn" id="actionMenuBtn" data-menu="actionMenu">
         Save
-        <div class="popup-menu" id="actionMenu">
-          <button class="popup-item" data-action="save">Save PNG</button>
-          <button class="popup-item" data-action="bracket">Bracket (3x)</button>
-          <button class="popup-item" data-action="new">New Image</button>
-          <button class="popup-item" data-action="capture" style="display:none">Capture Frame</button>
-          <button class="popup-item" data-action="flip" style="display:none">Flip Camera</button>
-          <button class="popup-item" data-action="stop" style="display:none">Stop Camera</button>
-        </div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- Popup menus live outside bottom-bar to avoid backdrop-filter stacking context -->
+<div id="popup-overlay" class="popup-overlay"></div>
+<div class="popup-menu" id="algoMenu" data-btn="algoMenuBtn">
+  <button class="popup-item selected" data-algo="dithertone">Dots</button>
+  <button class="popup-item" data-algo="floyd">Floyd</button>
+  <button class="popup-item" data-algo="atkinson">Atkinson</button>
+  <button class="popup-item" data-algo="bayer">Bayer</button>
+  <button class="popup-item" data-algo="angledhalftone">Halftone</button>
+  <button class="popup-item" data-algo="halftone">Lines</button>
+  <button class="popup-item" data-algo="crosshatch">Hatch</button>
+  <button class="popup-item" data-algo="engrave">Engrave</button>
+  <button class="popup-item" data-algo="stipple">Stipple</button>
+  <button class="popup-item" data-algo="ox">OX</button>
+</div>
+<div class="popup-menu" id="adjustMenu" data-btn="adjustMenuBtn">
+  <button class="popup-item selected" data-slider="spacing">Spacing</button>
+  <button class="popup-item" data-slider="weight">Weight</button>
+  <button class="popup-item" data-slider="rotation">Rotation</button>
+  <button class="popup-item" data-slider="outline">Outline</button>
+  <button class="popup-item" data-slider="gamma">Gamma</button>
+  <button class="popup-item" data-slider="contrast">Contrast</button>
+  <button class="popup-item" data-slider="brightness">Brightness</button>
+  <button class="popup-item" data-slider="shape">Shape: Circle</button>
+</div>
+<div class="popup-menu" id="optionsMenu" data-btn="optionsMenuBtn">
+  <button class="popup-item" data-option="color">Color</button>
+  <button class="popup-item" data-option="edges">Edges</button>
+  <button class="popup-item" data-option="invert">Invert</button>
+</div>
+<div class="popup-menu" id="actionMenu" data-btn="actionMenuBtn">
+  <button class="popup-item" data-action="save">Save PNG</button>
+  <button class="popup-item" data-action="bracket">Bracket (3x)</button>
+  <button class="popup-item" data-action="new">New Image</button>
+  <button class="popup-item" data-action="capture" style="display:none">Capture Frame</button>
+  <button class="popup-item" data-action="flip" style="display:none">Flip Camera</button>
+  <button class="popup-item" data-action="stop" style="display:none">Stop Camera</button>
 </div>
 
 <script>
@@ -1304,7 +1305,7 @@ function toggleMenu(menuId) {
     openMenu = menuId;
 
     // Position menu above its parent button, clamped to viewport
-    var btn = menu.parentElement;
+    var btn = document.getElementById(menu.dataset.btn);
     var btnRect = btn.getBoundingClientRect();
     var menuRect = menu.getBoundingClientRect();
     var left = btnRect.left + btnRect.width / 2 - menuRect.width / 2;
@@ -1320,12 +1321,11 @@ function toggleMenu(menuId) {
 
 popupOverlay.addEventListener('click', closeAllMenus);
 
-// Prevent menu button clicks from also triggering overlay
+// Menu button clicks open their associated popup
 document.querySelectorAll('.menu-btn').forEach(function(btn) {
   btn.addEventListener('click', function(e) {
-    if (e.target.classList.contains('popup-item')) return;
-    var menuEl = btn.querySelector('.popup-menu');
-    if (menuEl) toggleMenu(menuEl.id);
+    var menuId = btn.dataset.menu;
+    if (menuId) toggleMenu(menuId);
   });
 });
 
