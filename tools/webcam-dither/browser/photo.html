@@ -17,27 +17,21 @@ body {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   min-height: 100vh;
-  gap: 14px; padding: 20px;
-  background: radial-gradient(ellipse at 50% 20%, #1a1a2e 0%, #111 70%);
+  gap: 16px; padding: 20px;
+  background: #111;
 }
 #start-screen h1 {
-  font-size: 36px; font-weight: 800; letter-spacing: -1px;
-  background: linear-gradient(135deg, #4af 0%, #a6f 50%, #f6a 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 28px; font-weight: 700; color: #fff;
+  margin-bottom: -8px;
 }
 #start-screen .subtitle {
-  font-size: 13px; color: #888; letter-spacing: 3px; text-transform: uppercase;
-  margin-top: -8px;
-}
-#start-screen p { font-size: 14px; color: #999; max-width: 320px; text-align: center; line-height: 1.5; }
-#hero-canvas {
-  width: 200px; height: 200px; border-radius: 50%;
-  border: 3px solid #333; margin: 8px 0;
+  font-size: 13px; color: #777; line-height: 1.4;
+  max-width: 300px; text-align: center;
+  margin-bottom: 8px;
 }
 .start-btn {
   display: block; width: 280px;
-  padding: 16px; border: none; border-radius: 12px;
+  padding: 18px; border: none; border-radius: 12px;
   font-size: 18px; font-weight: 600;
   cursor: pointer; color: #fff; text-align: center;
   transition: transform 0.1s;
@@ -73,35 +67,44 @@ video { display: none; }
   z-index: 10;
 }
 .slider-row {
-  display: flex; align-items: center; gap: 8px; padding: 6px 4px 2px;
+  display: flex; align-items: center; gap: 10px; padding: 8px 4px 4px;
 }
 .slider-row label {
-  font-size: 13px; font-weight: 600; min-width: 58px; color: #4af;
+  font-size: 11px; font-weight: 700; min-width: 54px; color: #4af;
+  text-transform: uppercase; letter-spacing: 1px;
 }
 .slider-row input[type="range"] {
-  flex: 1; height: 44px; accent-color: #4af;
+  flex: 1; height: 48px; accent-color: #4af;
   -webkit-appearance: none; appearance: none;
   background: transparent; cursor: pointer;
 }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 8px; background: #444; border-radius: 4px;
+  height: 6px;
+  background: linear-gradient(90deg, #4af 0%, #333 100%);
+  border-radius: 3px;
 }
 input[type="range"]::-moz-range-track {
-  height: 8px; background: #444; border-radius: 4px; border: none;
+  height: 6px;
+  background: linear-gradient(90deg, #4af 0%, #333 100%);
+  border-radius: 3px; border: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 36px; height: 36px; border-radius: 50%;
-  background: #4af; border: 3px solid #222;
-  margin-top: -14px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #7cf, #4af);
+  border: 2px solid #222;
+  margin-top: -11px;
+  box-shadow: 0 2px 8px rgba(68,170,255,0.4);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: #4af; border: 3px solid #222;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #7cf, #4af);
+  border: 2px solid #222;
+  box-shadow: 0 2px 8px rgba(68,170,255,0.4);
 }
 .slider-row .val {
-  font-size: 14px; min-width: 32px; text-align: right;
-  font-variant-numeric: tabular-nums; color: #ccc;
+  font-size: 15px; min-width: 36px; text-align: right;
+  font-variant-numeric: tabular-nums; color: #fff; font-weight: 600;
 }
 .menu-bar {
   display: flex; gap: 6px; padding: 4px 0 8px;
@@ -117,11 +120,10 @@ input[type="range"]::-moz-range-thumb {
 .menu-btn.has-active { border-color: #4af; color: #fff; }
 /* ── Popup menu ── */
 .popup-menu {
-  display: none; position: absolute; bottom: 100%; left: 50%;
-  transform: translateX(-50%);
-  min-width: 160px; max-height: 70vh; overflow-y: auto;
+  display: none; position: fixed;
+  min-width: 160px; max-height: 60vh; overflow-y: auto;
   background: #222; border: 2px solid #555; border-radius: 12px;
-  padding: 6px; margin-bottom: 8px;
+  padding: 6px;
   z-index: 20; box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
 }
 .popup-menu.visible { display: block; }
@@ -215,13 +217,11 @@ input[type="range"]::-moz-range-thumb {
 
 <div id="start-screen">
   <h1>Dithertone</h1>
-  <span class="subtitle">Tactile Image Converter</span>
-  <canvas id="hero-canvas" width="200" height="200"></canvas>
-  <p>Convert photos to tactile dot patterns for PIAF printing. 10 dithering algorithms with live preview.</p>
+  <span class="subtitle">Convert photos to dithered patterns. 10 algorithms, color separation, live camera.</span>
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
   <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
-  <button class="start-btn" id="helpBtn" style="background:linear-gradient(135deg,#444,#555);">Help / Algorithm Guide</button>
+  <button class="start-btn" id="helpBtn" style="background:linear-gradient(135deg,#444,#555);">Help</button>
   <select id="cameraSelect" class="camera-select">
     <option value="environment">Back Camera</option>
     <option value="user">Front Camera</option>
@@ -253,6 +253,8 @@ input[type="range"]::-moz-range-thumb {
     <input type="range" id="spacing" min="2" max="30" value="8" step="1" style="display:none">
     <input type="range" id="scale" min="1" max="8" value="3" step="1" style="display:none">
     <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1" style="display:none">
+    <input type="range" id="weight" min="0.2" max="3.0" value="1.0" step="0.1" style="display:none">
+    <input type="range" id="rotation" min="0" max="360" value="0" step="5" style="display:none">
 
     <div class="menu-bar">
       <div class="menu-btn has-active" id="algoMenuBtn">
@@ -274,6 +276,8 @@ input[type="range"]::-moz-range-thumb {
         Adjust
         <div class="popup-menu" id="adjustMenu">
           <button class="popup-item selected" data-slider="spacing">Spacing</button>
+          <button class="popup-item" data-slider="weight">Weight</button>
+          <button class="popup-item" data-slider="rotation">Rotation</button>
           <button class="popup-item" data-slider="gamma">Gamma</button>
           <button class="popup-item" data-slider="contrast">Contrast</button>
           <button class="popup-item" data-slider="brightness">Brightness</button>
@@ -334,6 +338,8 @@ var scaleSlider = document.getElementById('scale');
 var gammaSlider = document.getElementById('gamma');
 var contrastSlider = document.getElementById('contrast');
 var brightnessSlider = document.getElementById('brightness');
+var weightSlider = document.getElementById('weight');
+var rotationSlider = document.getElementById('rotation');
 var mainSlider = document.getElementById('mainSlider');
 var sliderLabel = document.getElementById('sliderLabel');
 var sliderVal = document.getElementById('sliderVal');
@@ -355,6 +361,8 @@ function getParams() {
     gamma: parseFloat(gammaSlider.value),
     contrast: parseFloat(contrastSlider.value),
     brightness: parseFloat(brightnessSlider.value),
+    weight: parseFloat(weightSlider.value),
+    rotation: parseFloat(rotationSlider.value),
     invert: inverted,
     shape: currentShape,
     algorithm: currentAlgo,
@@ -370,6 +378,8 @@ var SLIDER_CONFIG = {
   gamma:      { label: 'Gamma',      min: 0.2,  max: 4.0, step: 0.1, format: function(v) { return parseFloat(v).toFixed(1); } },
   contrast:   { label: 'Contrast',   min: -100, max: 100, step: 5,   format: function(v) { return Math.round(v); } },
   brightness: { label: 'Brightness', min: -100, max: 100, step: 5,   format: function(v) { return Math.round(v); } },
+  weight:     { label: 'Weight',     min: 0.2,  max: 3.0, step: 0.1, format: function(v) { return parseFloat(v).toFixed(1); } },
+  rotation:   { label: 'Rotation',   min: 0,    max: 360, step: 5,   format: function(v) { return Math.round(v) + '\u00B0'; } },
 };
 
 function syncMainSlider() {
@@ -446,27 +456,76 @@ function adjustRGBA(rgba, params) {
   return result;
 }
 
+// ── Rotation helper ──
+// Rotates grayscale and RGBA image data by an arbitrary angle.
+// Returns { gray, rgba, w, h } with new dimensions.
+function rotateImageData(gray, rgba, w, h, angleDeg) {
+  if (angleDeg === 0) return { gray: gray, rgba: rgba, w: w, h: h };
+  var rad = angleDeg * Math.PI / 180;
+  var cos = Math.cos(rad), sin = Math.sin(rad);
+  var aCos = Math.abs(cos), aSin = Math.abs(sin);
+  var nw = Math.round(w * aCos + h * aSin);
+  var nh = Math.round(w * aSin + h * aCos);
+  var cx = w / 2, cy = h / 2;
+  var ncx = nw / 2, ncy = nh / 2;
+
+  var newGray = new Uint8Array(nw * nh);
+  var newRGBA = rgba ? new Uint8Array(nw * nh * 4) : null;
+  // Fill with white (255)
+  for (var i = 0; i < newGray.length; i++) newGray[i] = 255;
+  if (newRGBA) for (var i = 0; i < newRGBA.length; i += 4) {
+    newRGBA[i] = newRGBA[i+1] = newRGBA[i+2] = 255; newRGBA[i+3] = 255;
+  }
+
+  for (var ny = 0; ny < nh; ny++) {
+    for (var nx = 0; nx < nw; nx++) {
+      // Map back to source
+      var dx = nx - ncx, dy = ny - ncy;
+      var sx = Math.round(cos * dx + sin * dy + cx);
+      var sy = Math.round(-sin * dx + cos * dy + cy);
+      if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
+        newGray[ny * nw + nx] = gray[sy * w + sx];
+        if (newRGBA && rgba) {
+          var si = (sy * w + sx) * 4;
+          var di = (ny * nw + nx) * 4;
+          newRGBA[di] = rgba[si]; newRGBA[di+1] = rgba[si+1];
+          newRGBA[di+2] = rgba[si+2]; newRGBA[di+3] = 255;
+        }
+      }
+    }
+  }
+  return { gray: newGray, rgba: newRGBA, w: nw, h: nh };
+}
+
 // ── Main render dispatcher ──
 function render(gray, w, h, params) {
   var rgba = liveMode ? lastFrameRGBA : sourceRGBA;
-  if (colorMode && rgba) {
-    renderColor(rgba, w, h, params);
+  var rGray = gray, rRGBA = rgba, rw = w, rh = h;
+
+  // Apply rotation to source data
+  if (params.rotation && params.rotation !== 0) {
+    var rot = rotateImageData(gray, rgba, w, h, params.rotation);
+    rGray = rot.gray; rRGBA = rot.rgba; rw = rot.w; rh = rot.h;
+  }
+
+  if (colorMode && rRGBA) {
+    renderColor(rRGBA, rw, rh, params);
   } else {
     switch (params.algorithm) {
-      case 'dithertone':  renderDithertone(gray, w, h, params); break;
-      case 'floyd':       renderFloydSteinberg(gray, w, h, params); break;
-      case 'atkinson':    renderAtkinson(gray, w, h, params); break;
-      case 'bayer':       renderBayer(gray, w, h, params); break;
-      case 'angledhalftone': renderAngledHalftone(gray, w, h, params); break;
-      case 'halftone':    renderHalftone(gray, w, h, params); break;
-      case 'crosshatch':  renderCrosshatch(gray, w, h, params); break;
-      case 'engrave':     renderEngrave(gray, w, h, params); break;
-      case 'stipple':     renderStipple(gray, w, h, params); break;
-      case 'ox':          renderOX(gray, w, h, params); break;
+      case 'dithertone':  renderDithertone(rGray, rw, rh, params); break;
+      case 'floyd':       renderFloydSteinberg(rGray, rw, rh, params); break;
+      case 'atkinson':    renderAtkinson(rGray, rw, rh, params); break;
+      case 'bayer':       renderBayer(rGray, rw, rh, params); break;
+      case 'angledhalftone': renderAngledHalftone(rGray, rw, rh, params); break;
+      case 'halftone':    renderHalftone(rGray, rw, rh, params); break;
+      case 'crosshatch':  renderCrosshatch(rGray, rw, rh, params); break;
+      case 'engrave':     renderEngrave(rGray, rw, rh, params); break;
+      case 'stipple':     renderStipple(rGray, rw, rh, params); break;
+      case 'ox':          renderOX(rGray, rw, rh, params); break;
     }
   }
   if (edgeMode) {
-    overlayEdges(gray, w, h, params);
+    overlayEdges(rGray, rw, rh, params);
   }
 }
 
@@ -474,7 +533,8 @@ function render(gray, w, h, params) {
 function renderDithertone(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
   var spacing = params.spacing;
-  var maxRadius = spacing * params.maxRadiusFactor;
+  var wt = params.weight || 1.0;
+  var maxRadius = spacing * params.maxRadiusFactor * wt;
   var minRadius = params.minRadius;
   var half = Math.floor(spacing / 2);
   var shape = params.shape || 'circle';
@@ -648,7 +708,8 @@ function renderHalftone(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
   var spacing = params.spacing;
   var half = Math.floor(spacing / 2);
-  var maxThick = spacing * 0.9;
+  var wt = params.weight || 1.0;
+  var maxThick = spacing * 0.9 * wt;
 
   output.width = w;
   output.height = h;
@@ -738,7 +799,8 @@ function renderCrosshatch(gray, w, h, params) {
     ctx.strokeStyle = '#000';
   }
 
-  ctx.lineWidth = Math.max(1, spacing * 0.15);
+  var wt = params.weight || 1.0;
+  ctx.lineWidth = Math.max(1, spacing * 0.15 * wt);
 
   var half = Math.floor(spacing / 2);
   for (var cy = half; cy < h; cy += spacing) {
@@ -799,8 +861,9 @@ function renderOX(gray, w, h, params) {
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
       if (darkness < 0.05) continue;
 
+      var wt = params.weight || 1.0;
       var r = maxR * Math.min(darkness * 1.2, 1);
-      var lw = Math.max(1, spacing * 0.1 + spacing * 0.12 * darkness);
+      var lw = Math.max(1, (spacing * 0.1 + spacing * 0.12 * darkness) * wt);
       ctx.lineWidth = lw;
 
       if (darkness <= 0.5) {
@@ -938,7 +1001,8 @@ function renderEngrave(gray, w, h, params) {
   // Draw diagonal lines (top-left to bottom-right direction)
   // Each line runs from one edge to the opposite, spaced apart by 'spacing'.
   // Line thickness varies along the line based on local brightness.
-  var maxThick = spacing * 0.85;
+  var wt = params.weight || 1.0;
+  var maxThick = spacing * 0.85 * wt;
   var step = Math.max(2, Math.floor(spacing * 0.5));
 
   // Lines go from top-right to bottom-left (perpendicular offset along y = -x direction)
@@ -991,8 +1055,9 @@ function renderStipple(gray, w, h, params) {
     ctx.fillStyle = '#000';
   }
 
-  // Dot radius scales with spacing
-  var dotRadius = Math.max(1, spacing * 0.3);
+  // Dot radius scales with spacing and weight
+  var wt = params.weight || 1.0;
+  var dotRadius = Math.max(1, spacing * 0.3 * wt);
   // Number of candidate dots — more candidates = denser coverage
   var area = w * h;
   var maxDots = Math.round(area / (spacing * spacing) * 3);
@@ -1180,6 +1245,19 @@ function toggleMenu(menuId) {
     menu.classList.add('visible');
     popupOverlay.classList.add('visible');
     openMenu = menuId;
+
+    // Position menu above its parent button, clamped to viewport
+    var btn = menu.parentElement;
+    var btnRect = btn.getBoundingClientRect();
+    var menuRect = menu.getBoundingClientRect();
+    var left = btnRect.left + btnRect.width / 2 - menuRect.width / 2;
+    // Clamp horizontal
+    left = Math.max(8, Math.min(left, window.innerWidth - menuRect.width - 8));
+    var bottom = window.innerHeight - btnRect.top + 8;
+    menu.style.left = left + 'px';
+    menu.style.bottom = bottom + 'px';
+    menu.style.right = 'auto';
+    menu.style.top = 'auto';
   }
 }
 
@@ -1392,6 +1470,8 @@ function returnToStart() {
   gammaSlider.value = 1.0;
   contrastSlider.value = 0;
   brightnessSlider.value = 0;
+  weightSlider.value = 1.0;
+  rotationSlider.value = 0;
 
   document.getElementById('bottomBar').style.display = 'none';
   document.getElementById('editor').classList.add('hidden');
@@ -1548,43 +1628,6 @@ function toggleInvert() {
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
 
-// ── Hero canvas animation ──
-(function() {
-  var hero = document.getElementById('hero-canvas');
-  if (!hero) return;
-  var hc = hero.getContext('2d');
-  var size = 200;
-  var frame = 0;
-
-  function drawHero() {
-    if (document.getElementById('start-screen').classList.contains('hidden')) return;
-    hc.fillStyle = '#111';
-    hc.fillRect(0, 0, size, size);
-    hc.fillStyle = '#4af';
-
-    var spacing = 12;
-    var t = frame * 0.02;
-    for (var y = 6; y < size; y += spacing) {
-      for (var x = 6; x < size; x += spacing) {
-        // Radial gradient with animated wave
-        var dx = x - size / 2;
-        var dy = y - size / 2;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 94) continue; // clip to circle
-        var wave = Math.sin(dist * 0.06 - t) * 0.5 + 0.5;
-        var r = spacing * 0.45 * wave;
-        if (r > 0.5) {
-          hc.beginPath();
-          hc.arc(x, y, r, 0, Math.PI * 2);
-          hc.fill();
-        }
-      }
-    }
-    frame++;
-    requestAnimationFrame(drawHero);
-  }
-  drawHero();
-})();
 
 // ── Help screen ──
 document.getElementById('helpBtn').addEventListener('click', function() {
