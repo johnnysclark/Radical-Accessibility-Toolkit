@@ -255,6 +255,7 @@ input[type="range"]::-moz-range-thumb {
     <input type="range" id="gamma" min="0.2" max="4.0" value="1.0" step="0.1" style="display:none">
     <input type="range" id="weight" min="0.2" max="3.0" value="1.0" step="0.1" style="display:none">
     <input type="range" id="rotation" min="0" max="360" value="0" step="5" style="display:none">
+    <input type="range" id="outline" min="0" max="10" value="0" step="1" style="display:none">
 
     <div class="menu-bar">
       <div class="menu-btn has-active" id="algoMenuBtn">
@@ -278,6 +279,7 @@ input[type="range"]::-moz-range-thumb {
           <button class="popup-item selected" data-slider="spacing">Spacing</button>
           <button class="popup-item" data-slider="weight">Weight</button>
           <button class="popup-item" data-slider="rotation">Rotation</button>
+          <button class="popup-item" data-slider="outline">Outline</button>
           <button class="popup-item" data-slider="gamma">Gamma</button>
           <button class="popup-item" data-slider="contrast">Contrast</button>
           <button class="popup-item" data-slider="brightness">Brightness</button>
@@ -340,6 +342,7 @@ var contrastSlider = document.getElementById('contrast');
 var brightnessSlider = document.getElementById('brightness');
 var weightSlider = document.getElementById('weight');
 var rotationSlider = document.getElementById('rotation');
+var outlineSlider = document.getElementById('outline');
 var mainSlider = document.getElementById('mainSlider');
 var sliderLabel = document.getElementById('sliderLabel');
 var sliderVal = document.getElementById('sliderVal');
@@ -363,6 +366,7 @@ function getParams() {
     brightness: parseFloat(brightnessSlider.value),
     weight: parseFloat(weightSlider.value),
     rotation: parseFloat(rotationSlider.value),
+    outline: parseInt(outlineSlider.value),
     invert: inverted,
     shape: currentShape,
     algorithm: currentAlgo,
@@ -380,6 +384,7 @@ var SLIDER_CONFIG = {
   brightness: { label: 'Brightness', min: -100, max: 100, step: 5,   format: function(v) { return Math.round(v); } },
   weight:     { label: 'Weight',     min: 0.2,  max: 3.0, step: 0.1, format: function(v) { return parseFloat(v).toFixed(1); } },
   rotation:   { label: 'Rotation',   min: 0,    max: 360, step: 5,   format: function(v) { return Math.round(v) + '\u00B0'; } },
+  outline:    { label: 'Outline',   min: 0,    max: 10,  step: 1,   format: function(v) { return v == 0 ? 'Off' : Math.round(v) + 'px'; } },
 };
 
 function syncMainSlider() {
@@ -480,16 +485,18 @@ function endGridRotation(rot) {
 }
 
 // Sample brightness from the unrotated source image given a grid position
-// in the rotated coordinate system.
+// in the rotated coordinate system. The canvas ctx.rotate() maps grid pos
+// (gx,gy) to screen pos via forward rotation, so we forward-rotate to find
+// where in the original image to sample brightness.
 function sampleRotated(adjusted, w, h, gx, gy, rot) {
   if (!rot) {
     if (gx < 0 || gx >= w || gy < 0 || gy >= h) return 255;
     return adjusted[gy * w + gx];
   }
-  // Reverse-rotate (gx, gy) around image center to get source position
+  // Forward-rotate (gx, gy) around image center to get screen position
   var dx = gx - rot.cx, dy = gy - rot.cy;
-  var sx = Math.round(rot.cos * dx + rot.sin * dy + rot.cx);
-  var sy = Math.round(-rot.sin * dx + rot.cos * dy + rot.cy);
+  var sx = Math.round(rot.cos * dx - rot.sin * dy + rot.cx);
+  var sy = Math.round(rot.sin * dx + rot.cos * dy + rot.cy);
   if (sx < 0 || sx >= w || sy < 0 || sy >= h) return 255;
   return adjusted[sy * w + sx];
 }
@@ -513,7 +520,7 @@ function render(gray, w, h, params) {
       case 'ox':          renderOX(gray, w, h, params); break;
     }
   }
-  if (edgeMode) {
+  if (edgeMode || params.outline > 0) {
     overlayEdges(gray, w, h, params);
   }
 }
@@ -1207,22 +1214,40 @@ function renderColor(rgba, w, h, params) {
 // on top of the current dithered output.
 function overlayEdges(gray, w, h, params) {
   var adjusted = adjustPixels(gray, params);
-  var imgData = ctx.getImageData(0, 0, w, h);
-  var pix = imgData.data;
   var edgeColor = params.invert ? 255 : 0;
   var threshold = 80;
+  var thickness = params.outline || 1;
 
+  // Build edge magnitude map
+  var edges = new Uint8Array(w * h);
   for (var y = 1; y < h - 1; y++) {
     for (var x = 1; x < w - 1; x++) {
-      // Sobel X kernel
       var gx = -adjusted[(y-1)*w+(x-1)] - 2*adjusted[y*w+(x-1)] - adjusted[(y+1)*w+(x-1)]
               + adjusted[(y-1)*w+(x+1)] + 2*adjusted[y*w+(x+1)] + adjusted[(y+1)*w+(x+1)];
-      // Sobel Y kernel
       var gy = -adjusted[(y-1)*w+(x-1)] - 2*adjusted[(y-1)*w+x] - adjusted[(y-1)*w+(x+1)]
               + adjusted[(y+1)*w+(x-1)] + 2*adjusted[(y+1)*w+x] + adjusted[(y+1)*w+(x+1)];
       var mag = Math.sqrt(gx * gx + gy * gy);
+      if (mag > threshold) edges[y * w + x] = 1;
+    }
+  }
 
-      if (mag > threshold) {
+  // Dilate edges by thickness and paint onto canvas
+  var imgData = ctx.getImageData(0, 0, w, h);
+  var pix = imgData.data;
+  var rad = Math.floor(thickness / 2);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      // Check if any edge pixel is within radius
+      var found = false;
+      for (var dy = -rad; dy <= rad && !found; dy++) {
+        for (var dx = -rad; dx <= rad && !found; dx++) {
+          var ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < h && nx >= 0 && nx < w && edges[ny * w + nx]) {
+            found = true;
+          }
+        }
+      }
+      if (found) {
         var pi = (y * w + x) * 4;
         pix[pi] = pix[pi + 1] = pix[pi + 2] = edgeColor;
       }
@@ -1477,6 +1502,7 @@ function returnToStart() {
   brightnessSlider.value = 0;
   weightSlider.value = 1.0;
   rotationSlider.value = 0;
+  outlineSlider.value = 0;
 
   document.getElementById('bottomBar').style.display = 'none';
   document.getElementById('editor').classList.add('hidden');
