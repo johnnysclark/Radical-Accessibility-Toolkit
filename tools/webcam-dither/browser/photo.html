@@ -1797,27 +1797,84 @@ function toggleInvert() {
 }
 
 // ── Depth estimation (Transformers.js) ──
-async function loadDepthPipeline() {
-  if (depthPipeline) return depthPipeline;
-  if (depthLoading) return null;
+function loadDepthPipeline() {
+  if (depthPipeline) return Promise.resolve(depthPipeline);
+  if (depthLoading) return Promise.resolve(null);
   depthLoading = true;
   showStatus('Loading depth model (~40MB first time)...', true);
-  try {
-    var mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
-    depthPipeline = await mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
+  return import('https://cdn.jsdelivr.net/npm/@huggingface/transformers/+esm').then(function(mod) {
+    showStatus('Model downloaded, initializing...', true);
+    return mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
       dtype: 'fp32',
     });
+  }).then(function(pipe) {
+    depthPipeline = pipe;
     depthLoading = false;
     showStatus('Depth model ready.');
     return depthPipeline;
-  } catch (err) {
+  }).catch(function(err) {
     depthLoading = false;
-    showStatus('Depth error: ' + err.message);
+    showStatus('Depth load error: ' + err.message);
     return null;
-  }
+  });
 }
 
-async function runDepthEstimation() {
+function processDepthResult(result) {
+  var depthBtnEl = document.getElementById('depthBtn');
+  var depthImg = result.depth;
+  var dw = depthImg.width;
+  var dh = depthImg.height;
+  var depthData = depthImg.data;
+
+  // Find min/max for normalization
+  var dMin = Infinity, dMax = -Infinity;
+  for (var i = 0; i < depthData.length; i++) {
+    if (depthData[i] < dMin) dMin = depthData[i];
+    if (depthData[i] > dMax) dMax = depthData[i];
+  }
+
+  var range = dMax - dMin || 1;
+  if (dw === sourceW && dh === sourceH) {
+    depthGray = new Uint8Array(sourceW * sourceH);
+    for (var i = 0; i < depthData.length; i++) {
+      depthGray[i] = Math.round(255 * (depthData[i] - dMin) / range);
+    }
+  } else {
+    // Resize via canvas
+    var depthCanvas = document.createElement('canvas');
+    depthCanvas.width = dw;
+    depthCanvas.height = dh;
+    var dCtx = depthCanvas.getContext('2d');
+    var dImg = dCtx.createImageData(dw, dh);
+    for (var i = 0; i < depthData.length; i++) {
+      var val = Math.round(255 * (depthData[i] - dMin) / range);
+      dImg.data[i * 4] = val;
+      dImg.data[i * 4 + 1] = val;
+      dImg.data[i * 4 + 2] = val;
+      dImg.data[i * 4 + 3] = 255;
+    }
+    dCtx.putImageData(dImg, 0, 0);
+    var resCanvas = document.createElement('canvas');
+    resCanvas.width = sourceW;
+    resCanvas.height = sourceH;
+    var resCtx = resCanvas.getContext('2d');
+    resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
+    var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
+    depthGray = new Uint8Array(sourceW * sourceH);
+    for (var i = 0; i < depthGray.length; i++) {
+      depthGray[i] = resData[i * 4];
+    }
+  }
+
+  originalGray = sourceGray;
+  sourceGray = depthGray;
+  depthActive = true;
+  depthBtnEl.classList.add('toggled');
+  showStatus('Depth map active.');
+  render(sourceGray, sourceW, sourceH, getParams());
+}
+
+function runDepthEstimation() {
   if (liveMode) {
     showStatus('Depth not available in live mode. Capture first.');
     return;
@@ -1851,12 +1908,11 @@ async function runDepthEstimation() {
   }
 
   // Run depth estimation
-  var pipe = await loadDepthPipeline();
-  if (!pipe) return;
+  showStatus('Starting depth estimation...', true);
+  loadDepthPipeline().then(function(pipe) {
+    if (!pipe) return;
+    showStatus('Estimating depth...', true);
 
-  showStatus('Estimating depth...', true);
-
-  try {
     // Create data URL from sourceRGBA
     var tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = sourceW;
@@ -1867,69 +1923,17 @@ async function runDepthEstimation() {
     tmpCtx.putImageData(imgData, 0, 0);
     var dataURL = tmpCanvas.toDataURL('image/png');
 
-    var result = await pipe(dataURL);
-
-    // result.depth is a RawImage; extract and normalize
-    var depthImg = result.depth;
-    var dw = depthImg.width;
-    var dh = depthImg.height;
-    var depthData = depthImg.data; // Float32Array or similar
-
-    // Find min/max for normalization
-    var dMin = Infinity, dMax = -Infinity;
-    for (var i = 0; i < depthData.length; i++) {
-      if (depthData[i] < dMin) dMin = depthData[i];
-      if (depthData[i] > dMax) dMax = depthData[i];
-    }
-
-    // Normalize to 0-255 and resize to source dimensions if needed
-    var range = dMax - dMin || 1;
-    if (dw === sourceW && dh === sourceH) {
-      depthGray = new Uint8Array(sourceW * sourceH);
-      for (var i = 0; i < depthData.length; i++) {
-        depthGray[i] = Math.round(255 * (depthData[i] - dMin) / range);
-      }
-    } else {
-      // Resize via canvas
-      var depthCanvas = document.createElement('canvas');
-      depthCanvas.width = dw;
-      depthCanvas.height = dh;
-      var dCtx = depthCanvas.getContext('2d');
-      var dImg = dCtx.createImageData(dw, dh);
-      for (var i = 0; i < depthData.length; i++) {
-        var val = Math.round(255 * (depthData[i] - dMin) / range);
-        dImg.data[i * 4] = val;
-        dImg.data[i * 4 + 1] = val;
-        dImg.data[i * 4 + 2] = val;
-        dImg.data[i * 4 + 3] = 255;
-      }
-      dCtx.putImageData(dImg, 0, 0);
-      // Resize to source dims
-      var resCanvas = document.createElement('canvas');
-      resCanvas.width = sourceW;
-      resCanvas.height = sourceH;
-      var resCtx = resCanvas.getContext('2d');
-      resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
-      var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
-      depthGray = new Uint8Array(sourceW * sourceH);
-      for (var i = 0; i < depthGray.length; i++) {
-        depthGray[i] = resData[i * 4];
-      }
-    }
-
-    originalGray = sourceGray;
-    sourceGray = depthGray;
-    depthActive = true;
-    depthBtnEl.classList.add('toggled');
-    showStatus('Depth map active.');
-    render(sourceGray, sourceW, sourceH, getParams());
-  } catch (err) {
+    return pipe(dataURL);
+  }).then(function(result) {
+    if (result) processDepthResult(result);
+  }).catch(function(err) {
     showStatus('Depth error: ' + err.message);
-  }
+  });
 }
 
 // Depth button handler
-document.getElementById('depthBtn').addEventListener('click', function() {
+document.getElementById('depthBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
   runDepthEstimation();
 });
 
