@@ -118,20 +118,24 @@ input[type="range"]::-moz-range-progress {
   font-variant-numeric: tabular-nums; color: #fff; font-weight: 600;
 }
 .menu-bar {
-  display: flex; gap: 7px; padding: 4px 0 8px;
+  display: flex; gap: 6px; padding: 4px 8px 8px;
 }
 .menu-btn {
-  flex: 1; padding: 14px 4px; border: 1.5px solid #3a3a3a; border-radius: 12px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
+  flex: 1; aspect-ratio: 1; border: 1.5px solid #3a3a3a; border-radius: 12px;
+  font-size: 10px; font-weight: 600; cursor: pointer;
   color: #bbb; background: linear-gradient(180deg, #252525, #1a1a1a);
-  text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   -webkit-tap-highlight-color: transparent; user-select: none;
   position: relative;
   transition: all 0.15s;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+  padding: 0;
 }
+.menu-btn .btn-icon { font-size: 20px; line-height: 1; }
+.menu-btn .btn-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1; }
 .menu-btn:active { background: #2a2a2a; transform: scale(0.96); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 .menu-btn.has-active { border-color: #4af; color: #fff; box-shadow: 0 2px 10px rgba(68,170,255,0.2), inset 0 1px 0 rgba(255,255,255,0.06); }
+.menu-btn.toggled { border-color: #4af; color: #4af; background: linear-gradient(180deg, #1a2a3a, #0f1f2f); }
 /* ── Popup menu ── */
 .popup-menu {
   display: none; position: fixed;
@@ -236,6 +240,9 @@ input[type="range"]::-moz-range-progress {
   <p><span class="algo-name">Invert</span> — Swaps black and white. Useful when printing on dark paper or when you want raised marks to represent light areas instead of dark.</p>
   <p><span class="algo-name">Color</span> — Enables CMYK color halftone mode. Separates the image into Cyan, Magenta, and Yellow channels, each rendered as diamond halftone dots at classic print screen angles (C=15°, M=75°, Y=0°). Overlapping dots mix subtractively to reproduce the full color spectrum, just like newspaper and magazine color printing.</p>
   <p><span class="algo-name">Edges</span> — Overlays detected edges on top of the dithered image. Uses a Sobel filter to find areas of high contrast (object boundaries, architectural lines) and draws them as thin lines. Works with any algorithm and with color mode. Especially useful for architectural images where you want structural lines to remain crisp.</p>
+  <p><span class="algo-name">Blur/Sharp</span> — Pre-processing filter applied before dithering. Negative values blur (soften), positive values sharpen (enhance edges). Useful for reducing noise before dithering or emphasizing detail.</p>
+  <p><span class="algo-name">Posterize</span> — Reduces the number of tonal levels before dithering. Low values (2-4) create dramatic banding effects. Set to 32 for off.</p>
+  <p><span class="algo-name">Depth</span> — Uses an AI model (Depth Anything V2) to estimate distance from camera. Bright areas are close, dark areas are far. First use downloads ~40MB model (cached afterward). Tap to toggle between depth map and original photo. All algorithms work on the depth data.</p>
   <p><span class="algo-name">Bracket</span> — Saves three versions at once: tight (60% spacing), medium (current), and loose (160% spacing). Handy for testing which spacing works best on your PIAF machine.</p>
 
   <h2>Keyboard Shortcuts</h2>
@@ -244,7 +251,7 @@ input[type="range"]::-moz-range-progress {
 
 <div id="start-screen">
   <h1>Dithertone</h1>
-  <span class="subtitle">Convert photos to dithered patterns. 10 algorithms, color separation, live camera.</span>
+  <span class="subtitle">Convert photos to dithered patterns. 10 algorithms, AI depth map, color separation, live camera.</span>
   <button class="start-btn btn-photo" id="takePhotoBtn">Take Photo</button>
   <button class="start-btn btn-library" id="choosePhotoBtn">Choose from Library</button>
   <button class="start-btn btn-live" id="liveBtn">Live Camera</button>
@@ -281,19 +288,24 @@ input[type="range"]::-moz-range-progress {
     <input type="range" id="weight" min="0.2" max="3.0" value="1.0" step="0.1" style="display:none">
     <input type="range" id="rotation" min="0" max="360" value="0" step="5" style="display:none">
     <input type="range" id="outline" min="0" max="10" value="0" step="1" style="display:none">
+    <input type="range" id="blur" min="-5" max="5" value="0" step="1" style="display:none">
+    <input type="range" id="posterize" min="2" max="32" value="32" step="1" style="display:none">
 
     <div class="menu-bar">
       <div class="menu-btn has-active" id="algoMenuBtn" data-menu="algoMenu">
-        Dots
+        <span class="btn-icon">&#9670;</span><span class="btn-label">Dots</span>
       </div>
       <div class="menu-btn" id="adjustMenuBtn" data-menu="adjustMenu">
-        Adjust
+        <span class="btn-icon">&#9703;</span><span class="btn-label">Tune</span>
       </div>
       <div class="menu-btn" id="optionsMenuBtn" data-menu="optionsMenu">
-        FX
+        <span class="btn-icon">&#10022;</span><span class="btn-label">FX</span>
+      </div>
+      <div class="menu-btn" id="depthBtn">
+        <span class="btn-icon">&#9680;</span><span class="btn-label">Depth</span>
       </div>
       <div class="menu-btn" id="actionMenuBtn" data-menu="actionMenu">
-        Save
+        <span class="btn-icon">&#9660;</span><span class="btn-label">Save</span>
       </div>
     </div>
   </div>
@@ -321,6 +333,8 @@ input[type="range"]::-moz-range-progress {
   <button class="popup-item" data-slider="gamma">Gamma</button>
   <button class="popup-item" data-slider="contrast">Contrast</button>
   <button class="popup-item" data-slider="brightness">Brightness</button>
+  <button class="popup-item" data-slider="blur">Blur/Sharp</button>
+  <button class="popup-item" data-slider="posterize">Posterize</button>
   <button class="popup-item" data-slider="shape">Shape: Circle</button>
 </div>
 <div class="popup-menu" id="optionsMenu" data-btn="optionsMenuBtn">
@@ -358,6 +372,13 @@ var colorMode = false;
 var edgeMode = false;
 var lastFrameRGBA = null;
 
+// Depth map state
+var depthActive = false;
+var depthGray = null;
+var depthPipeline = null;
+var depthLoading = false;
+var originalGray = null; // saved copy of sourceGray before depth replaces it
+
 // Hidden canvas for grabbing video frames
 var srcCanvas = document.createElement('canvas');
 var srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
@@ -371,6 +392,8 @@ var brightnessSlider = document.getElementById('brightness');
 var weightSlider = document.getElementById('weight');
 var rotationSlider = document.getElementById('rotation');
 var outlineSlider = document.getElementById('outline');
+var blurSlider = document.getElementById('blur');
+var posterizeSlider = document.getElementById('posterize');
 var mainSlider = document.getElementById('mainSlider');
 var sliderLabel = document.getElementById('sliderLabel');
 var sliderVal = document.getElementById('sliderVal');
@@ -395,6 +418,8 @@ function getParams() {
     weight: parseFloat(weightSlider.value),
     rotation: parseFloat(rotationSlider.value),
     outline: parseInt(outlineSlider.value),
+    blur: parseInt(blurSlider.value),
+    posterize: parseInt(posterizeSlider.value),
     invert: inverted,
     shape: currentShape,
     algorithm: currentAlgo,
@@ -413,6 +438,8 @@ var SLIDER_CONFIG = {
   weight:     { label: 'Weight',     min: 0.2,  max: 3.0, step: 0.1, format: function(v) { return parseFloat(v).toFixed(1); } },
   rotation:   { label: 'Rotation',   min: 0,    max: 360, step: 5,   format: function(v) { return Math.round(v) + '\u00B0'; } },
   outline:    { label: 'Outline',   min: 0,    max: 10,  step: 1,   format: function(v) { return v == 0 ? 'Off' : Math.round(v) + 'px'; } },
+  blur:       { label: 'Blur/Sharp', min: -5,  max: 5,   step: 1,   format: function(v) { var n = Math.round(v); return n < 0 ? 'Blur ' + Math.abs(n) : n > 0 ? 'Sharp ' + n : 'Off'; } },
+  posterize:  { label: 'Posterize', min: 2,    max: 32,  step: 1,   format: function(v) { return v >= 32 ? 'Off' : Math.round(v) + ' lvl'; } },
 };
 
 function syncMainSlider() {
@@ -458,7 +485,43 @@ function buildGammaLUT(gamma) {
   lastGamma = gamma;
 }
 
-function adjustPixels(gray, params) {
+function applyConvolution3x3(gray, w, h, kernel, divisor) {
+  var result = new Uint8Array(gray.length);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      if (y === 0 || y === h - 1 || x === 0 || x === w - 1) {
+        result[y * w + x] = gray[y * w + x];
+        continue;
+      }
+      var sum = 0;
+      for (var ky = -1; ky <= 1; ky++) {
+        for (var kx = -1; kx <= 1; kx++) {
+          sum += gray[(y + ky) * w + (x + kx)] * kernel[(ky + 1) * 3 + (kx + 1)];
+        }
+      }
+      result[y * w + x] = Math.max(0, Math.min(255, Math.round(sum / divisor)));
+    }
+  }
+  return result;
+}
+
+function applyBlurSharpen(gray, w, h, amount) {
+  if (amount === 0) return gray;
+  var blurKernel = [1,2,1, 2,4,2, 1,2,1];
+  var sharpKernel = [0,-1,0, -1,5,-1, 0,-1,0];
+  var iterations = Math.abs(amount);
+  var result = gray;
+  for (var i = 0; i < iterations; i++) {
+    if (amount < 0) {
+      result = applyConvolution3x3(result, w, h, blurKernel, 16);
+    } else {
+      result = applyConvolution3x3(result, w, h, sharpKernel, 1);
+    }
+  }
+  return result;
+}
+
+function adjustPixels(gray, w, h, params) {
   var result = new Uint8Array(gray.length);
   var factor = (100 + params.contrast) / 100;
   buildGammaLUT(params.gamma);
@@ -469,10 +532,22 @@ function adjustPixels(gray, params) {
     if (params.gamma !== 1.0) v = gammaLUT[Math.round(v)];
     result[i] = v;
   }
+  // Blur/sharpen
+  if (params.blur && params.blur !== 0 && w && h) {
+    result = applyBlurSharpen(result, w, h, params.blur);
+  }
+  // Posterize
+  if (params.posterize && params.posterize < 32 && params.posterize >= 2) {
+    var levels = params.posterize;
+    var step = 255 / (levels - 1);
+    for (var i = 0; i < result.length; i++) {
+      result[i] = Math.round(Math.round(result[i] / step) * step);
+    }
+  }
   return result;
 }
 
-function adjustRGBA(rgba, params) {
+function adjustRGBA(rgba, w, h, params) {
   var result = new Uint8Array(rgba.length);
   var factor = (100 + params.contrast) / 100;
   buildGammaLUT(params.gamma);
@@ -485,6 +560,26 @@ function adjustRGBA(rgba, params) {
       result[i + c] = v;
     }
     result[i + 3] = 255;
+  }
+  // Apply blur/sharpen per channel
+  if (params.blur && params.blur !== 0 && w && h) {
+    var numPixels = w * h;
+    for (var ch = 0; ch < 3; ch++) {
+      var chan = new Uint8Array(numPixels);
+      for (var p = 0; p < numPixels; p++) chan[p] = result[p * 4 + ch];
+      chan = applyBlurSharpen(chan, w, h, params.blur);
+      for (var p = 0; p < numPixels; p++) result[p * 4 + ch] = chan[p];
+    }
+  }
+  // Posterize per channel
+  if (params.posterize && params.posterize < 32 && params.posterize >= 2) {
+    var levels = params.posterize;
+    var step = 255 / (levels - 1);
+    for (var i = 0; i < rgba.length; i += 4) {
+      for (var c = 0; c < 3; c++) {
+        result[i + c] = Math.round(Math.round(result[i + c] / step) * step);
+      }
+    }
   }
   return result;
 }
@@ -555,7 +650,7 @@ function render(gray, w, h, params) {
 
 // ── Dithertone (variable-size shapes on grid) ──
 function renderDithertone(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
   var wt = params.weight || 1.0;
   var maxRadius = spacing * params.maxRadiusFactor * wt;
@@ -663,7 +758,7 @@ function upsampleToCanvas(imgData, sw, sh, w, h) {
 
 // ── Floyd-Steinberg error diffusion ──
 function renderFloydSteinberg(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
+  var ds = downsampleGray(adjustPixels(gray, w, h, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
   var err = new Float32Array(ds.gray.length);
   for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
@@ -708,7 +803,7 @@ for (var i = 0; i < 16; i++) {
 }
 
 function renderBayer(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
+  var ds = downsampleGray(adjustPixels(gray, w, h, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
 
   var imgData = ctx.createImageData(sw, sh);
@@ -740,7 +835,7 @@ function renderBayer(gray, w, h, params) {
 
 // ── Halftone lines ──
 function renderHalftone(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
   var half = Math.floor(spacing / 2);
   var wt = params.weight || 1.0;
@@ -783,7 +878,7 @@ function renderHalftone(gray, w, h, params) {
 // Distributes only 6/8 of quantization error, giving a lighter, more open look.
 // Classic original Macintosh algorithm.
 function renderAtkinson(gray, w, h, params) {
-  var ds = downsampleGray(adjustPixels(gray, params), w, h, params.scale);
+  var ds = downsampleGray(adjustPixels(gray, w, h, params), w, h, params.scale);
   var sw = ds.w, sh = ds.h;
   var err = new Float32Array(ds.gray.length);
   for (var i = 0; i < ds.gray.length; i++) err[i] = ds.gray[i];
@@ -821,7 +916,7 @@ function renderAtkinson(gray, w, h, params) {
 // Layers lines at different angles based on darkness level.
 // Light areas get fewer line directions, dark areas stack up to 4 directions.
 function renderCrosshatch(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
 
   output.width = w;
@@ -876,7 +971,7 @@ function renderCrosshatch(gray, w, h, params) {
 // for lighter areas and X (diagonal crosses) for darker areas. Mid-tones
 // overlay both. Line weight increases with darkness.
 function renderOX(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
   var half = Math.floor(spacing / 2);
   var maxR = spacing * 0.45;
@@ -941,7 +1036,7 @@ function renderOX(gray, w, h, params) {
 // and merge into a connected diamond mesh at mid-tones, then invert to
 // shrink white holes in dark areas. Classic AM (amplitude-modulated) screen.
 function renderAngledHalftone(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
 
   output.width = w;
@@ -1021,7 +1116,7 @@ function renderAngledHalftone(gray, w, h, params) {
 // Continuous diagonal lines with variable thickness based on brightness.
 // Produces an engraving / banknote etching look.
 function renderEngrave(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
 
   output.width = w;
@@ -1079,7 +1174,7 @@ function renderEngrave(gray, w, h, params) {
 // Random dot placement with density proportional to darkness.
 // Uses a seeded PRNG so output is deterministic for the same image.
 function renderStipple(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var spacing = params.spacing;
 
   output.width = w;
@@ -1143,7 +1238,7 @@ function extractChannel(rgba, w, h, channelIdx) {
 }
 
 function renderColor(rgba, w, h, params) {
-  var adjusted = adjustRGBA(rgba, params);
+  var adjusted = adjustRGBA(rgba, w, h, params);
 
   // Render the selected algorithm for each CMY channel onto offscreen canvases
   // We temporarily swap the output canvas/context to capture each pass
@@ -1241,7 +1336,7 @@ function renderColor(rgba, w, h, params) {
 // Computes gradient magnitude at each pixel and overlays detected edges
 // on top of the current dithered output.
 function overlayEdges(gray, w, h, params) {
-  var adjusted = adjustPixels(gray, params);
+  var adjusted = adjustPixels(gray, w, h, params);
   var edgeColor = params.invert ? 255 : 0;
   var threshold = 80;
   var thickness = params.outline || 1;
@@ -1336,7 +1431,7 @@ document.querySelectorAll('#algoMenu .popup-item').forEach(function(btn) {
     document.querySelectorAll('#algoMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
     btn.classList.add('selected');
     currentAlgo = btn.dataset.algo;
-    document.getElementById('algoMenuBtn').firstChild.textContent = btn.textContent;
+    document.getElementById('algoMenuBtn').querySelector('.btn-label').textContent = btn.textContent;
 
     // Auto-switch slider: pixel algos show scale, others show spacing
     if (currentSliderParam === 'spacing' || currentSliderParam === 'scale') {
@@ -1399,7 +1494,7 @@ document.querySelectorAll('#optionsMenu .popup-item').forEach(function(btn) {
     // Update FX button label to show active count
     var activeCount = (colorMode ? 1 : 0) + (edgeMode ? 1 : 0) + (inverted ? 1 : 0);
     var fxBtn = document.getElementById('optionsMenuBtn');
-    fxBtn.firstChild.textContent = activeCount > 0 ? 'FX (' + activeCount + ')' : 'FX';
+    fxBtn.querySelector('.btn-label').textContent = activeCount > 0 ? 'FX (' + activeCount + ')' : 'FX';
     fxBtn.classList.toggle('has-active', activeCount > 0);
     closeAllMenus();
     onParamChange();
@@ -1442,6 +1537,13 @@ function loadImage(file) {
       tmpCtx.drawImage(img, 0, 0, sourceW, sourceH);
       var imageData = tmpCtx.getImageData(0, 0, sourceW, sourceH);
       var data = imageData.data;
+
+      // Clear depth cache on new image
+      depthActive = false;
+      depthGray = null;
+      originalGray = null;
+      var depthBtnEl = document.getElementById('depthBtn');
+      if (depthBtnEl) depthBtnEl.classList.remove('toggled');
 
       sourceRGBA = new Uint8Array(data);
       sourceGray = new Uint8Array(sourceW * sourceH);
@@ -1510,7 +1612,7 @@ function returnToStart() {
   // Reset algo menu
   document.querySelectorAll('#algoMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
   document.querySelector('#algoMenu [data-algo="dithertone"]').classList.add('selected');
-  document.getElementById('algoMenuBtn').firstChild.textContent = 'Dots';
+  document.getElementById('algoMenuBtn').querySelector('.btn-label').textContent = 'Dots';
   // Reset adjust menu
   document.querySelectorAll('#adjustMenu .popup-item').forEach(function(b) { b.classList.remove('selected'); });
   document.querySelector('#adjustMenu [data-slider="spacing"]').classList.add('selected');
@@ -1519,7 +1621,7 @@ function returnToStart() {
   // Reset options
   document.querySelectorAll('#optionsMenu .popup-item').forEach(function(b) { b.classList.remove('toggled'); });
   var fxBtn = document.getElementById('optionsMenuBtn');
-  fxBtn.firstChild.textContent = 'FX';
+  fxBtn.querySelector('.btn-label').textContent = 'FX';
   fxBtn.classList.remove('has-active');
   // Reset sliders
   spacingSlider.value = 8;
@@ -1530,6 +1632,14 @@ function returnToStart() {
   weightSlider.value = 1.0;
   rotationSlider.value = 0;
   outlineSlider.value = 0;
+  blurSlider.value = 0;
+  posterizeSlider.value = 32;
+  // Reset depth state
+  depthActive = false;
+  depthGray = null;
+  originalGray = null;
+  var depthBtnEl = document.getElementById('depthBtn');
+  if (depthBtnEl) depthBtnEl.classList.remove('toggled');
 
   document.getElementById('bottomBar').style.display = 'none';
   document.getElementById('editor').classList.add('hidden');
@@ -1676,15 +1786,152 @@ function liveBracket() {
   bracketCapture(gray, w, h);
 }
 
-function showStatus(msg) {
+function showStatus(msg, persistent) {
   statusEl.textContent = msg;
-  setTimeout(function() { statusEl.textContent = ''; }, 4000);
+  if (!persistent) setTimeout(function() { statusEl.textContent = ''; }, 4000);
 }
 
 function toggleInvert() {
   inverted = !inverted;
   if (sourceGray && !liveMode) render(sourceGray, sourceW, sourceH, getParams());
 }
+
+// ── Depth estimation (Transformers.js) ──
+async function loadDepthPipeline() {
+  if (depthPipeline) return depthPipeline;
+  if (depthLoading) return null;
+  depthLoading = true;
+  showStatus('Loading depth model (~40MB first time)...', true);
+  try {
+    var mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
+    depthPipeline = await mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
+      dtype: 'fp32',
+    });
+    depthLoading = false;
+    showStatus('Depth model ready.');
+    return depthPipeline;
+  } catch (err) {
+    depthLoading = false;
+    showStatus('Depth error: ' + err.message);
+    return null;
+  }
+}
+
+async function runDepthEstimation() {
+  if (liveMode) {
+    showStatus('Depth not available in live mode. Capture first.');
+    return;
+  }
+  if (!sourceGray || !sourceRGBA) {
+    showStatus('Load an image first.');
+    return;
+  }
+
+  var depthBtnEl = document.getElementById('depthBtn');
+
+  // Toggle off
+  if (depthActive && originalGray) {
+    depthActive = false;
+    sourceGray = originalGray;
+    depthBtnEl.classList.remove('toggled');
+    showStatus('Depth off — original restored.');
+    render(sourceGray, sourceW, sourceH, getParams());
+    return;
+  }
+
+  // Use cached depth if available
+  if (depthGray) {
+    depthActive = true;
+    if (!originalGray) originalGray = sourceGray;
+    sourceGray = depthGray;
+    depthBtnEl.classList.add('toggled');
+    showStatus('Depth map active.');
+    render(sourceGray, sourceW, sourceH, getParams());
+    return;
+  }
+
+  // Run depth estimation
+  var pipe = await loadDepthPipeline();
+  if (!pipe) return;
+
+  showStatus('Estimating depth...', true);
+
+  try {
+    // Create data URL from sourceRGBA
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = sourceW;
+    tmpCanvas.height = sourceH;
+    var tmpCtx = tmpCanvas.getContext('2d');
+    var imgData = tmpCtx.createImageData(sourceW, sourceH);
+    imgData.data.set(sourceRGBA);
+    tmpCtx.putImageData(imgData, 0, 0);
+    var dataURL = tmpCanvas.toDataURL('image/png');
+
+    var result = await pipe(dataURL);
+
+    // result.depth is a RawImage; extract and normalize
+    var depthImg = result.depth;
+    var dw = depthImg.width;
+    var dh = depthImg.height;
+    var depthData = depthImg.data; // Float32Array or similar
+
+    // Find min/max for normalization
+    var dMin = Infinity, dMax = -Infinity;
+    for (var i = 0; i < depthData.length; i++) {
+      if (depthData[i] < dMin) dMin = depthData[i];
+      if (depthData[i] > dMax) dMax = depthData[i];
+    }
+
+    // Normalize to 0-255 and resize to source dimensions if needed
+    var range = dMax - dMin || 1;
+    if (dw === sourceW && dh === sourceH) {
+      depthGray = new Uint8Array(sourceW * sourceH);
+      for (var i = 0; i < depthData.length; i++) {
+        depthGray[i] = Math.round(255 * (depthData[i] - dMin) / range);
+      }
+    } else {
+      // Resize via canvas
+      var depthCanvas = document.createElement('canvas');
+      depthCanvas.width = dw;
+      depthCanvas.height = dh;
+      var dCtx = depthCanvas.getContext('2d');
+      var dImg = dCtx.createImageData(dw, dh);
+      for (var i = 0; i < depthData.length; i++) {
+        var val = Math.round(255 * (depthData[i] - dMin) / range);
+        dImg.data[i * 4] = val;
+        dImg.data[i * 4 + 1] = val;
+        dImg.data[i * 4 + 2] = val;
+        dImg.data[i * 4 + 3] = 255;
+      }
+      dCtx.putImageData(dImg, 0, 0);
+      // Resize to source dims
+      var resCanvas = document.createElement('canvas');
+      resCanvas.width = sourceW;
+      resCanvas.height = sourceH;
+      var resCtx = resCanvas.getContext('2d');
+      resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
+      var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
+      depthGray = new Uint8Array(sourceW * sourceH);
+      for (var i = 0; i < depthGray.length; i++) {
+        depthGray[i] = resData[i * 4];
+      }
+    }
+
+    originalGray = sourceGray;
+    sourceGray = depthGray;
+    depthActive = true;
+    depthBtnEl.classList.add('toggled');
+    showStatus('Depth map active.');
+    render(sourceGray, sourceW, sourceH, getParams());
+  } catch (err) {
+    showStatus('Depth error: ' + err.message);
+  }
+}
+
+// Depth button handler
+document.getElementById('depthBtn').addEventListener('click', function() {
+  runDepthEstimation();
+});
 
 
 // ── Help screen ──
