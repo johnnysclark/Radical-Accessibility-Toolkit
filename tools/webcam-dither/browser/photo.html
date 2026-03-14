@@ -456,76 +456,65 @@ function adjustRGBA(rgba, params) {
   return result;
 }
 
-// ── Rotation helper ──
-// Rotates grayscale and RGBA image data by an arbitrary angle.
-// Returns { gray, rgba, w, h } with new dimensions.
-function rotateImageData(gray, rgba, w, h, angleDeg) {
-  if (angleDeg === 0) return { gray: gray, rgba: rgba, w: w, h: h };
-  var rad = angleDeg * Math.PI / 180;
+// ── Grid rotation helpers ──
+// For canvas-drawing algorithms: sets up a rotated canvas context and
+// returns expanded iteration bounds so the rotated grid covers the full canvas.
+// Brightness is sampled by reverse-rotating grid coords back to image space.
+function setupGridRotation(w, h, params) {
+  var deg = params.rotation || 0;
+  if (deg === 0) return null;
+  var rad = deg * Math.PI / 180;
   var cos = Math.cos(rad), sin = Math.sin(rad);
-  var aCos = Math.abs(cos), aSin = Math.abs(sin);
-  var nw = Math.round(w * aCos + h * aSin);
-  var nh = Math.round(w * aSin + h * aCos);
-  var cx = w / 2, cy = h / 2;
-  var ncx = nw / 2, ncy = nh / 2;
+  // Extra margin so rotated grid covers corners
+  var diag = Math.sqrt(w * w + h * h);
+  var extend = Math.ceil((diag - Math.min(w, h)) / 2) + 20;
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(rad);
+  ctx.translate(-w / 2, -h / 2);
+  return { cos: cos, sin: sin, extend: extend, cx: w / 2, cy: h / 2 };
+}
 
-  var newGray = new Uint8Array(nw * nh);
-  var newRGBA = rgba ? new Uint8Array(nw * nh * 4) : null;
-  // Fill with white (255)
-  for (var i = 0; i < newGray.length; i++) newGray[i] = 255;
-  if (newRGBA) for (var i = 0; i < newRGBA.length; i += 4) {
-    newRGBA[i] = newRGBA[i+1] = newRGBA[i+2] = 255; newRGBA[i+3] = 255;
-  }
+function endGridRotation(rot) {
+  if (rot) ctx.restore();
+}
 
-  for (var ny = 0; ny < nh; ny++) {
-    for (var nx = 0; nx < nw; nx++) {
-      // Map back to source
-      var dx = nx - ncx, dy = ny - ncy;
-      var sx = Math.round(cos * dx + sin * dy + cx);
-      var sy = Math.round(-sin * dx + cos * dy + cy);
-      if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
-        newGray[ny * nw + nx] = gray[sy * w + sx];
-        if (newRGBA && rgba) {
-          var si = (sy * w + sx) * 4;
-          var di = (ny * nw + nx) * 4;
-          newRGBA[di] = rgba[si]; newRGBA[di+1] = rgba[si+1];
-          newRGBA[di+2] = rgba[si+2]; newRGBA[di+3] = 255;
-        }
-      }
-    }
+// Sample brightness from the unrotated source image given a grid position
+// in the rotated coordinate system.
+function sampleRotated(adjusted, w, h, gx, gy, rot) {
+  if (!rot) {
+    if (gx < 0 || gx >= w || gy < 0 || gy >= h) return 255;
+    return adjusted[gy * w + gx];
   }
-  return { gray: newGray, rgba: newRGBA, w: nw, h: nh };
+  // Reverse-rotate (gx, gy) around image center to get source position
+  var dx = gx - rot.cx, dy = gy - rot.cy;
+  var sx = Math.round(rot.cos * dx + rot.sin * dy + rot.cx);
+  var sy = Math.round(-rot.sin * dx + rot.cos * dy + rot.cy);
+  if (sx < 0 || sx >= w || sy < 0 || sy >= h) return 255;
+  return adjusted[sy * w + sx];
 }
 
 // ── Main render dispatcher ──
 function render(gray, w, h, params) {
   var rgba = liveMode ? lastFrameRGBA : sourceRGBA;
-  var rGray = gray, rRGBA = rgba, rw = w, rh = h;
-
-  // Apply rotation to source data
-  if (params.rotation && params.rotation !== 0) {
-    var rot = rotateImageData(gray, rgba, w, h, params.rotation);
-    rGray = rot.gray; rRGBA = rot.rgba; rw = rot.w; rh = rot.h;
-  }
-
-  if (colorMode && rRGBA) {
-    renderColor(rRGBA, rw, rh, params);
+  if (colorMode && rgba) {
+    renderColor(rgba, w, h, params);
   } else {
     switch (params.algorithm) {
-      case 'dithertone':  renderDithertone(rGray, rw, rh, params); break;
-      case 'floyd':       renderFloydSteinberg(rGray, rw, rh, params); break;
-      case 'atkinson':    renderAtkinson(rGray, rw, rh, params); break;
-      case 'bayer':       renderBayer(rGray, rw, rh, params); break;
-      case 'angledhalftone': renderAngledHalftone(rGray, rw, rh, params); break;
-      case 'halftone':    renderHalftone(rGray, rw, rh, params); break;
-      case 'crosshatch':  renderCrosshatch(rGray, rw, rh, params); break;
-      case 'engrave':     renderEngrave(rGray, rw, rh, params); break;
-      case 'stipple':     renderStipple(rGray, rw, rh, params); break;
-      case 'ox':          renderOX(rGray, rw, rh, params); break;
+      case 'dithertone':  renderDithertone(gray, w, h, params); break;
+      case 'floyd':       renderFloydSteinberg(gray, w, h, params); break;
+      case 'atkinson':    renderAtkinson(gray, w, h, params); break;
+      case 'bayer':       renderBayer(gray, w, h, params); break;
+      case 'angledhalftone': renderAngledHalftone(gray, w, h, params); break;
+      case 'halftone':    renderHalftone(gray, w, h, params); break;
+      case 'crosshatch':  renderCrosshatch(gray, w, h, params); break;
+      case 'engrave':     renderEngrave(gray, w, h, params); break;
+      case 'stipple':     renderStipple(gray, w, h, params); break;
+      case 'ox':          renderOX(gray, w, h, params); break;
     }
   }
   if (edgeMode) {
-    overlayEdges(rGray, rw, rh, params);
+    overlayEdges(gray, w, h, params);
   }
 }
 
@@ -545,16 +534,18 @@ function renderDithertone(gray, w, h, params) {
   if (params.invert) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#fff';
   } else {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#000';
   }
 
-  for (var y = half; y < h; y += spacing) {
-    for (var x = half; x < w; x += spacing) {
-      var b = adjusted[y * w + x];
+  var rot = setupGridRotation(w, h, params);
+  ctx.fillStyle = params.invert ? '#fff' : '#000';
+  var ext = rot ? rot.extend : 0;
+
+  for (var y = half - ext; y < h + ext; y += spacing) {
+    for (var x = half - ext; x < w + ext; x += spacing) {
+      var b = sampleRotated(adjusted, w, h, x, y, rot);
       var radius;
       if (params.invert) {
         radius = maxRadius * (b / 255);
@@ -566,6 +557,7 @@ function renderDithertone(gray, w, h, params) {
       }
     }
   }
+  endGridRotation(rot);
 }
 
 function drawShape(c, x, y, r, shape) {
@@ -691,7 +683,15 @@ function renderBayer(gray, w, h, params) {
     for (var x = 0; x < sw; x++) {
       var idx = y * sw + x;
       var v = ds.gray[idx];
-      var thresh = bayerThreshold[(y % 4) * 4 + (x % 4)];
+      // Rotate the threshold sampling coordinates for pattern rotation
+      var tx = x, ty = y;
+      if (params.rotation) {
+        var rad = params.rotation * Math.PI / 180;
+        var rc = Math.cos(rad), rs = Math.sin(rad);
+        tx = Math.round(rc * x + rs * y);
+        ty = Math.round(-rs * x + rc * y);
+      }
+      var thresh = bayerThreshold[((ty % 4 + 4) % 4) * 4 + ((tx % 4 + 4) % 4)];
       var nv = v > thresh ? 255 : 0;
       if (params.invert) nv = 255 - nv;
 
@@ -717,16 +717,18 @@ function renderHalftone(gray, w, h, params) {
   if (params.invert) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#fff';
   } else {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#000';
   }
 
-  for (var y = half; y < h; y += spacing) {
-    for (var x = half; x < w; x += spacing) {
-      var b = adjusted[y * w + x];
+  var rot = setupGridRotation(w, h, params);
+  ctx.fillStyle = params.invert ? '#fff' : '#000';
+  var ext = rot ? rot.extend : 0;
+
+  for (var y = half - ext; y < h + ext; y += spacing) {
+    for (var x = half - ext; x < w + ext; x += spacing) {
+      var b = sampleRotated(adjusted, w, h, x, y, rot);
       var thick;
       if (params.invert) {
         thick = maxThick * (b / 255);
@@ -739,6 +741,7 @@ function renderHalftone(gray, w, h, params) {
       }
     }
   }
+  endGridRotation(rot);
 }
 
 // ── Atkinson error diffusion ──
@@ -792,20 +795,21 @@ function renderCrosshatch(gray, w, h, params) {
   if (params.invert) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#fff';
   } else {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#000';
   }
 
+  var rot = setupGridRotation(w, h, params);
+  ctx.strokeStyle = params.invert ? '#fff' : '#000';
   var wt = params.weight || 1.0;
   ctx.lineWidth = Math.max(1, spacing * 0.15 * wt);
+  var ext = rot ? rot.extend : 0;
 
   var half = Math.floor(spacing / 2);
-  for (var cy = half; cy < h; cy += spacing) {
-    for (var cx = half; cx < w; cx += spacing) {
-      var b = adjusted[cy * w + cx];
+  for (var cy = half - ext; cy < h + ext; cy += spacing) {
+    for (var cx = half - ext; cx < w + ext; cx += spacing) {
+      var b = sampleRotated(adjusted, w, h, cx, cy, rot);
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
 
       var level = 0;
@@ -829,6 +833,7 @@ function renderCrosshatch(gray, w, h, params) {
       ctx.stroke();
     }
   }
+  endGridRotation(rot);
 }
 
 // ── OX (O strokes + X strokes) ──
@@ -852,12 +857,15 @@ function renderOX(gray, w, h, params) {
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
+
+  var rot = setupGridRotation(w, h, params);
   ctx.strokeStyle = fg;
   ctx.lineCap = 'round';
+  var ext = rot ? rot.extend : 0;
 
-  for (var cy = half; cy < h; cy += spacing) {
-    for (var cx = half; cx < w; cx += spacing) {
-      var b = adjusted[cy * w + cx];
+  for (var cy = half - ext; cy < h + ext; cy += spacing) {
+    for (var cx = half - ext; cx < w + ext; cx += spacing) {
+      var b = sampleRotated(adjusted, w, h, cx, cy, rot);
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
       if (darkness < 0.05) continue;
 
@@ -867,12 +875,10 @@ function renderOX(gray, w, h, params) {
       ctx.lineWidth = lw;
 
       if (darkness <= 0.5) {
-        // Light areas: O only, radius grows with darkness
         ctx.beginPath();
         ctx.arc(cx, cy, Math.max(1, r), 0, Math.PI * 2);
         ctx.stroke();
       } else if (darkness <= 0.75) {
-        // Mid areas: O + X overlaid
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
@@ -881,7 +887,6 @@ function renderOX(gray, w, h, params) {
         ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r);
         ctx.stroke();
       } else {
-        // Dark areas: bold X + bold O
         ctx.lineWidth = lw * 1.4;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -893,6 +898,7 @@ function renderOX(gray, w, h, params) {
       }
     }
   }
+  endGridRotation(rot);
 }
 
 // ── Angled Halftone ──
@@ -915,7 +921,7 @@ function renderAngledHalftone(gray, w, h, params) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  var angle = Math.PI / 4;
+  var angle = Math.PI / 4 + (params.rotation || 0) * Math.PI / 180;
   var cosA = Math.cos(angle);
   var sinA = Math.sin(angle);
   var step = spacing;
@@ -989,30 +995,28 @@ function renderEngrave(gray, w, h, params) {
   if (params.invert) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#fff';
   } else {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#000';
   }
 
+  var rot = setupGridRotation(w, h, params);
+  ctx.strokeStyle = params.invert ? '#fff' : '#000';
   ctx.lineCap = 'butt';
 
-  // Draw diagonal lines (top-left to bottom-right direction)
-  // Each line runs from one edge to the opposite, spaced apart by 'spacing'.
-  // Line thickness varies along the line based on local brightness.
   var wt = params.weight || 1.0;
   var maxThick = spacing * 0.85 * wt;
   var step = Math.max(2, Math.floor(spacing * 0.5));
+  var ext = rot ? rot.extend : 0;
 
   // Lines go from top-right to bottom-left (perpendicular offset along y = -x direction)
-  for (var d = -h; d < w + h; d += spacing) {
+  for (var d = -(h + ext); d < w + h + ext * 2; d += spacing) {
     ctx.beginPath();
     var started = false;
-    for (var x = Math.max(0, d); x < Math.min(w, d + h); x += step) {
+    for (var x = Math.max(-ext, d); x < Math.min(w + ext, d + h + ext * 2); x += step) {
       var y = x - d;
-      if (y < 0 || y >= h) continue;
-      var b = adjusted[y * w + x];
+      if (y < -ext || y >= h + ext) continue;
+      var b = sampleRotated(adjusted, w, h, x, y, rot);
       var darkness = params.invert ? (b / 255) : (1 - b / 255);
       var thick = maxThick * darkness;
       if (thick < 0.3) {
@@ -1033,6 +1037,7 @@ function renderEngrave(gray, w, h, params) {
     if (started) ctx.stroke();
   }
   ctx.lineCap = 'butt';
+  endGridRotation(rot);
 }
 
 // ── Stipple ──
