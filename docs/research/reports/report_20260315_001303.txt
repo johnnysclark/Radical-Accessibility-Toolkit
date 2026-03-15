@@ -1,0 +1,17 @@
+OK: Acadia Research Report
+Date: 2026-03-15 00:13
+
+Summary:
+- Total entries: 225
+- New this run: 0
+- Sources: local_docs (207), seed (18)
+- Decades: 1940s (1), 1950s (3), 1970s (2), 1980s (5), 1990s (23), 2000s (28), 2010s (80), 2020s (83)
+
+Top cited in database:
+  1. Voice-driven interfaces enable speech-to-geometry workflows (Atakan et al (2026) - 0 citations
+  2. AI Copilot for Grasshopper (2026) - 0 citations
+  3. Intelligent Tools on the Loose: Reasoning Models for Exploratory Computational Design (2025) - 0 citations
+  4. AIDL: A Solver-Aided Hierarchical Language for LLM-Driven CAD Design (2025) - 0 citations
+  5. Kakadoo: LLM Enabled Speech Interface for Enhanced Human-Computer Interaction (2025) - 0 citations
+
+READY:

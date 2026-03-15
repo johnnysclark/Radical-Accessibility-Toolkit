@@ -1,0 +1,50 @@
+OK: Acadia Research Report
+Date: 2026-03-15 00:24
+
+Summary:
+- Total entries: 225
+- New this run: 0
+- Sources: local_docs (207), seed (18)
+- Decades: 1940s (1), 1950s (3), 1970s (2), 1980s (5), 1990s (23), 2000s (28), 2010s (80), 2020s (83)
+
+Queries run:
+  1. "SS: accessible architecture education blind" - 0 results
+  2. "SS: tactile graphics architectural drawings" - 0 results
+  3. "SS: blind spatial cognition wayfinding" - 0 results
+  4. "SS: command line CAD interface accessibility" - 0 results
+  5. "SS: PIAF swell paper tactile maps" - 0 results
+  6. "SS: screen reader design tools" - 0 results
+  7. "SS: AI assisted architectural development" - 0 results
+  8. "SS: inclusive design pedagogy architecture" - 0 results
+  9. "SS: ACADIA computational design accessibility" - 0 results
+  10. "SS: braille architectural plans" - 0 results
+  11. "SS: 3D printing tactile models blind" - 0 results
+  12. "SS: non-visual design tools" - 0 results
+  13. "SS: universal design architecture studio" - 0 results
+  14. "SS: haptic feedback architectural design" - 0 results
+  15. "SS: MCP model context protocol tools" - 0 results
+  16. "arXiv: accessible architecture education blind" - 0 results
+  17. "arXiv: tactile graphics architectural drawings" - 0 results
+  18. "arXiv: blind spatial cognition wayfinding" - 0 results
+  19. "arXiv: command line CAD interface accessibility" - 0 results
+  20. "arXiv: PIAF swell paper tactile maps" - 0 results
+  21. "arXiv: screen reader design tools" - 0 results
+  22. "arXiv: AI assisted architectural development" - 0 results
+  23. "arXiv: inclusive design pedagogy architecture" - 0 results
+  24. "arXiv: ACADIA computational design accessibility" - 0 results
+  25. "arXiv: braille architectural plans" - 0 results
+  26. "arXiv: 3D printing tactile models blind" - 0 results
+  27. "arXiv: non-visual design tools" - 0 results
+  28. "arXiv: universal design architecture studio" - 0 results
+  29. "arXiv: haptic feedback architectural design" - 0 results
+  30. "arXiv: MCP model context protocol tools" - 0 results
+  31. "local_docs" - 210 results
+
+Top cited in database:
+  1. Voice-driven interfaces enable speech-to-geometry workflows (Atakan et al (2026) - 0 citations
+  2. AI Copilot for Grasshopper (2026) - 0 citations
+  3. Intelligent Tools on the Loose: Reasoning Models for Exploratory Computational Design (2025) - 0 citations
+  4. AIDL: A Solver-Aided Hierarchical Language for LLM-Driven CAD Design (2025) - 0 citations
+  5. Kakadoo: LLM Enabled Speech Interface for Enhanced Human-Computer Interaction (2025) - 0 citations
+
+READY:

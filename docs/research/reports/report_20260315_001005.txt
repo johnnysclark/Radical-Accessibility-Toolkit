@@ -1,0 +1,82 @@
+OK: Acadia Research Report
+Date: 2026-03-15 00:10
+
+Summary:
+- Total entries: 207
+- New this run: 207
+- Sources: local_docs (207)
+- Decades: 1940s (1), 1950s (3), 1970s (2), 1980s (4), 1990s (22), 2000s (21), 2010s (75), 2020s (79)
+
+Queries run:
+  1. "SS: accessible architecture education blind" - 0 results
+  2. "SS: tactile graphics architectural drawings" - 0 results
+  3. "SS: blind spatial cognition wayfinding" - 0 results
+  4. "SS: command line CAD interface accessibility" - 0 results
+  5. "SS: PIAF swell paper tactile maps" - 0 results
+  6. "SS: screen reader design tools" - 0 results
+  7. "SS: AI assisted architectural development" - 0 results
+  8. "SS: inclusive design pedagogy architecture" - 0 results
+  9. "SS: ACADIA computational design accessibility" - 0 results
+  10. "SS: braille architectural plans" - 0 results
+  11. "SS: 3D printing tactile models blind" - 0 results
+  12. "SS: non-visual design tools" - 0 results
+  13. "SS: universal design architecture studio" - 0 results
+  14. "SS: haptic feedback architectural design" - 0 results
+  15. "SS: MCP model context protocol tools" - 0 results
+  16. "arXiv: accessible architecture education blind" - 0 results
+  17. "arXiv: tactile graphics architectural drawings" - 0 results
+  18. "arXiv: blind spatial cognition wayfinding" - 0 results
+  19. "arXiv: command line CAD interface accessibility" - 0 results
+  20. "arXiv: PIAF swell paper tactile maps" - 0 results
+  21. "arXiv: screen reader design tools" - 0 results
+  22. "arXiv: AI assisted architectural development" - 0 results
+  23. "arXiv: inclusive design pedagogy architecture" - 0 results
+  24. "arXiv: ACADIA computational design accessibility" - 0 results
+  25. "arXiv: braille architectural plans" - 0 results
+  26. "arXiv: 3D printing tactile models blind" - 0 results
+  27. "arXiv: non-visual design tools" - 0 results
+  28. "arXiv: universal design architecture studio" - 0 results
+  29. "arXiv: haptic feedback architectural design" - 0 results
+  30. "arXiv: MCP model context protocol tools" - 0 results
+  31. "local_docs" - 210 results
+
+Notable new entries:
+  1. reflective practice over routine production (Schon 1983), process as a first-class artifact alongside product (Kalay 2004), embodied making as a mode of design thinking (Sass 2024; Sennett 2008), and  (2008)
+     Authors: Oxman
+     Source: local_docs
+  2. in his ACADIA Teaching Award address, argued for fabrication as a mode of design thinking — not fabrication as a final output step but physical making as a cognitive partner in the design process (2024)
+     Authors: Sass
+     Source: local_docs
+  3. voice to Grasshopper (Atakan et al (2024)
+     Authors: Hizmi et al.
+     Source: local_docs
+  4. Every one of these systems assumes the user verifies output visually (2024)
+     Authors: Rietschel et al.
+     Source: local_docs
+  5. haptic notations, and other text-based approaches — to identify which productive properties are specific to the CMA and which generalize to non-visual notation as a category (2007)
+     Authors: Blesser and Salter
+     Source: local_docs
+  6. reflection-in-action as a feedback loop between designer and situation (1983)
+     Authors: Schon
+     Source: local_docs
+  7. fabrication as a feedback modality — physical making as cognitive partner (2024)
+     Authors: Sass
+     Source: local_docs
+  8. the hand as thinking organ (2008)
+     Authors: Sennett
+     Source: local_docs
+  9. Giudice (2018): blind spatial cognition as sequential, landmark-based, language-mediated (1994)
+     Authors: Millar
+     Source: local_docs
+  10. "Nothing about us without us" — disability rights principle (1998)
+     Authors: Charlton
+     Source: local_docs
+
+Top cited in database:
+  1. Voice-driven interfaces enable speech-to-geometry workflows (Atakan et al (2026) - 0 citations
+  2. ** ["AI Copilot for Grasshopper (2026) - 0 citations
+  3. ** "Intelligent Tools on the Loose: Reasoning Models for Exploratory Computational Design (2025) - 0 citations
+  4. ** ["AIDL: A Solver-Aided Hierarchical Language for LLM-Driven CAD Design (2025) - 0 citations
+  5. ** ["Kakadoo: LLM Enabled Speech Interface for Enhanced Human-Computer Interaction (2025) - 0 citations
+
+READY:
