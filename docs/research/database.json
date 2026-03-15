@@ -1,0 +1,4519 @@
+{
+  "schema": "acadia_research_db_v1",
+  "meta": {
+    "project": "Radical Accessibility Project",
+    "description": "Research database for ACADIA and accessibility-in-architecture papers",
+    "created": "2026-03-14",
+    "last_updated": "2026-03-15",
+    "total_entries": 225
+  },
+  "topics": [
+    "accessible_architecture",
+    "blind_spatial_cognition",
+    "tactile_graphics",
+    "cli_cad",
+    "ai_assisted_development",
+    "inclusive_pedagogy",
+    "screen_reader_design",
+    "physical_digital_roundtrip",
+    "computational_design",
+    "acadia_proceedings"
+  ],
+  "entries": [
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "reflective practice over routine production (Schon 1983), process as a first-class artifact alongside product (Kalay 2004), embodied making as a mode of design thinking (Sass 2024; Sennett 2008), and",
+      "authors": [
+        "Oxman"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V2.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "in his ACADIA Teaching Award address, argued for fabrication as a mode of design thinking — not fabrication as a final output step but physical making as a cognitive partner in the design process",
+      "authors": [
+        "Sass"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V2.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy",
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "voice to Grasshopper (Atakan et al",
+      "authors": [
+        "Hizmi et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V2.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Every one of these systems assumes the user verifies output visually",
+      "authors": [
+        "Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V2.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "haptic notations, and other text-based approaches — to identify which productive properties are specific to the CMA and which generalize to non-visual notation as a category",
+      "authors": [
+        "Blesser and Salter"
+      ],
+      "year": 2007,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V4.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics",
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "reflection-in-action as a feedback loop between designer and situation",
+      "authors": [
+        "Schon"
+      ],
+      "year": 1983,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "fabrication as a feedback modality — physical making as cognitive partner",
+      "authors": [
+        "Sass"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "the hand as thinking organ",
+      "authors": [
+        "Sennett"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Giudice (2018): blind spatial cognition as sequential, landmark-based, language-mediated",
+      "authors": [
+        "Millar"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Nothing about us without us\" — disability rights principle",
+      "authors": [
+        "Charlton"
+      ],
+      "year": 1998,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "2025) — user studies with blind participants, but participants are evaluators, not co-designers",
+      "authors": [
+        "Siu et al."
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "crip technoscience; disabled people as knowers and makers",
+      "authors": [
+        "Disability-centered co-design: Hamraie & Fritsch"
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_OUTLINES.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "His weekly feedback reshapes the tool ecosystem not because we accommodate his needs but because his needs expose design requirements that sighted developers cannot identify from their own experience",
+      "authors": [
+        "Heylighen and Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V3.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "2008) demonstrated that spatial cognition operates through multiple modalities and that blind individuals develop effective spatial representations when provided with appropriate reference frames and",
+      "authors": [
+        "Millar"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V3.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "which seeks to produce products usable by the widest range of people",
+      "authors": [
+        "Mace"
+      ],
+      "year": 1985,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V3.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The CMA's text-based representation enables version-controlled design processes that no visual CAD supports",
+      "authors": [
+        "Piaget and Inhelder"
+      ],
+      "year": 1956,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V5.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "LLM-powered plugins generate and modify Grasshopper definitions from conversational prompts (Rietschel et al",
+      "authors": [
+        "Khan et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Voice-driven interfaces enable speech-to-geometry workflows (Atakan et al",
+      "authors": [
+        "Ant"
+      ],
+      "year": 2026,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "When a tool can only be operated by looking at it, it does not merely exclude blind users — it enforces a particular model of design cognition",
+      "authors": [
+        "Heylighen and Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "explicit reflective dialogue (Schon 1983), version-controlled design process, and embodied physical-digital fluency (Sass 2024",
+      "authors": [
+        "Millar"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "But this critique has rarely descended into the tools",
+      "authors": [
+        "Heylighen and Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "2008) showed that spatial cognition is modality-independent when adequate reference frames are provided",
+      "authors": [
+        "Millar"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The physical artifact is not a representation of the design; it is a medium through which the student thinks about the design",
+      "authors": [
+        "Sass"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "a crip technoscientist — a disabled person who is a knower and maker, not merely a consumer",
+      "authors": [
+        "Hamraie and Fritsch"
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_EXAMPLE_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Millar 1994) and how blind spatial reasoning works (Loomis et al",
+      "authors": [
+        "Piaget & Inhelder"
+      ],
+      "year": 1956,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_PAPER_IDEAS_V1.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Kennedy, John M",
+      "authors": [
+        "Wiley"
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/WORKING_DOCUMENT_Summer2025.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Gipe-Lazarou, A",
+      "authors": [
+        "Press"
+      ],
+      "year": 1993,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/WORKING_DOCUMENT_Summer2025.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "in A Guide to Digital Accessibility: Policies, Practices, and Professional Development",
+      "authors": [
+        "March"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/WORKING_DOCUMENT_Summer2025.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Bob has participated in multiple audio description efforts on campus including the writing and production of descriptions for several Chancellor communications sent to all faculty, staff, students and",
+      "authors": [
+        "Since"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/WORKING_DOCUMENT_Summer2025.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Mediating Modes of Thought: LLMs for Design Scripting",
+      "authors": [
+        "Guo & Steinfeld"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "LLMto3D: Generating Parametric Objects from Text Prompts",
+      "authors": [
+        "Austern & Sterman"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Intelligent Tools on the Loose: Reasoning Models for Exploratory Computational Design",
+      "authors": [
+        "Rietschel & Steinfeld"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Raven: AI Plugin for Grasshopper",
+      "authors": [
+        "Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "AI Copilot for Grasshopper",
+      "authors": [
+        "Ant"
+      ],
+      "year": 2026,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "AIDL: A Solver-Aided Hierarchical Language for LLM-Driven CAD Design",
+      "authors": [
+        "Jones et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Text2CAD: Generating Sequential CAD Designs from Beginner-to-Expert Level Text Prompts",
+      "authors": [
+        "Khan et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Kakadoo: LLM Enabled Speech Interface for Enhanced Human-Computer Interaction",
+      "authors": [
+        "Atakan et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Ankara",
+      "authors": [
+        "De"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Agentic, Multimodal LLM for Conversational Architectural Design",
+      "authors": [
+        "Marco"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "A Multimodal LLM-Powered Conversational Assistant for Intuitive Parametric CAD Modeling",
+      "authors": [
+        "Dialogue"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "lobehub",
+      "authors": [
+        "Server"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "CAD-LLM: Large Language Model for CAD Generation",
+      "authors": [
+        "Wu et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "AI, Architecture, Accessibility, and Data Justice",
+      "authors": [
+        "Campo & Claypool"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Question of Access: Toward an Equitable Future of Computational Design",
+      "authors": [
+        "Boeva & Dortdivanlioglu"
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Bridging Pixels and Fabrication: Enhancing Accessibility in CNC Knitting",
+      "authors": [
+        "Karastathi et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Inclusion, Diversity, Equity and Accessibility in the Built Environment",
+      "authors": [
+        "Zallio & Clarkson"
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Challenges Designing Inclusive and Accessible Buildings",
+      "authors": [
+        "Zallio & Clarkson"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "— Establishes ACADIA's deep engagement with AI-architecture integration",
+      "authors": [
+        "Wiley"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "A11yShape: AI-Assisted 3-D Modeling for Blind and Low-Vision Programmers",
+      "authors": [
+        "Siu et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "shapeCAD: An Accessible 3D Modelling Workflow for the Blind",
+      "authors": [
+        "Kim et al."
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designing While Blind",
+      "authors": [
+        "Billah et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "What Would I Want to Make? Probably Everything",
+      "authors": [
+        "Clepper et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Co-designing a 3D-Printed Tactile Campus Map",
+      "authors": [
+        "Crawford et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Impact of Generative AI Coding Assistants on Developers Who Are Visually Impaired",
+      "authors": [
+        "Saviaga et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "I look at it as the king of knowledge",
+      "authors": [
+        "Das et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designing Born-Accessible Courses in Data Science",
+      "authors": [
+        "Seo et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "When LLM-Generated Code Perpetuates UI Accessibility Barriers",
+      "authors": [
+        "Gurita & Vatavu"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Creating Accessible Online Floor Plans for Visually Impaired Readers",
+      "authors": [
+        "Madugalla et al."
+      ],
+      "year": 2020,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Accessible Visualization via Natural Language Descriptions: A Four-Level Model",
+      "authors": [
+        "Lundgard & Satyanarayan"
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Going Beyond One-Size-Fits-All Image Descriptions",
+      "authors": [
+        "Stangl et al."
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "CodeTalk",
+      "authors": [
+        "Potluri et al."
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "CodeWalk",
+      "authors": [
+        "Potluri et al."
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Programming In the Model",
+      "authors": [
+        "Maleki & Woodbury"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "CAD Scripting and Visual Programming Languages",
+      "authors": [
+        "Celani & Vaz"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Programming Languages for Generative Design",
+      "authors": [
+        "Santos & Lopes"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Natural Voice-Enabled CAD",
+      "authors": [
+        "Xue & Yen"
+      ],
+      "year": 2009,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Digital Modeling for Everyone: Voice-Based 3D Modeling",
+      "authors": [
+        "Desolda et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Shape Recognition: A Script-Based Approach",
+      "authors": [
+        "Nagakura"
+      ],
+      "year": 1990,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Source Studio",
+      "authors": [
+        "Nembrini et al."
+      ],
+      "year": 2009,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Translations from Drawing to Building",
+      "authors": [
+        "Evans"
+      ],
+      "year": 1997,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Alphabet and the Algorithm",
+      "authors": [
+        "Carpo"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Second Digital Turn",
+      "authors": [
+        "Carpo"
+      ],
+      "year": 2017,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Practice: Architecture, Technique and Representation",
+      "authors": [
+        "Allen"
+      ],
+      "year": 2009,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Scripting Cultures",
+      "authors": [
+        "Burry"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Digital Culture in Architecture",
+      "authors": [
+        "Picon"
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Architecture in the Digital Age",
+      "authors": [
+        "Kolarevic"
+      ],
+      "year": 2003,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Animate Form",
+      "authors": [
+        "Lynn"
+      ],
+      "year": 1999,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Extrastatecraft",
+      "authors": [
+        "Easterling"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Understanding and Representing Space",
+      "authors": [
+        "Millar"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Space and Sense",
+      "authors": [
+        "Millar"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Cognitive Mapping and Wayfinding by Adults Without Vision",
+      "authors": [
+        "Klatzky & Golledge"
+      ],
+      "year": 2001,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Representation of space in blind persons",
+      "authors": [
+        "Blanc & Gaunet"
+      ],
+      "year": 1997,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Child's Conception of Space",
+      "authors": [
+        "Piaget & Inhelder"
+      ],
+      "year": 1956,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Just go straight ahead",
+      "authors": [
+        "Saerberg"
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Navigating without Vision",
+      "authors": [
+        "Giudice"
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Blind Vision",
+      "authors": [
+        "Cattaneo & Vecchi"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Perception beyond sight",
+      "authors": [
+        "Chen et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Touching for Knowing",
+      "authors": [
+        "Streri & Gentaz"
+      ],
+      "year": 2003,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Downcast Eyes",
+      "authors": [
+        "Jay"
+      ],
+      "year": 1993,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Atmospheres",
+      "authors": [
+        "Zumthor"
+      ],
+      "year": 2006,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Ecological Approach to Visual Perception",
+      "authors": [
+        "Gibson"
+      ],
+      "year": 1979,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Building Access",
+      "authors": [
+        "Hamraie"
+      ],
+      "year": 2017,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Crip Technoscience Manifesto",
+      "authors": [
+        "Hamraie & Fritsch"
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Architecture of Disability",
+      "authors": [
+        "Gissen"
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Do Artifacts Have Politics?\"](https://www",
+      "authors": [
+        "Winner"
+      ],
+      "year": 1980,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Design Justice",
+      "authors": [
+        "Chock"
+      ],
+      "year": 2020,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Design Meets Disability",
+      "authors": [
+        "Pullin"
+      ],
+      "year": 2009,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Doing Disability Differently",
+      "authors": [
+        "Boys"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "World-Creating Blindness",
+      "authors": [
+        "Reynolds"
+      ],
+      "year": 2017,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Nothing About Us Without Us",
+      "authors": [
+        "Charlton"
+      ],
+      "year": 1998,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Accessible America",
+      "authors": [
+        "Williamson"
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Why are there so few disabled architects?\"](https://www",
+      "authors": [
+        "Gissen"
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Rethinking Architecture",
+      "authors": [
+        "Lifchez"
+      ],
+      "year": 1987,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Where Are My People?\"](https://www",
+      "authors": [
+        "Nicholson"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Embodied Mind",
+      "authors": [
+        "Thompson & Rosch"
+      ],
+      "year": 1991,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Extended Mind",
+      "authors": [
+        "Clark & Chalmers"
+      ],
+      "year": 1998,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Craftsman",
+      "authors": [
+        "Sennett"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Making",
+      "authors": [
+        "Ingold"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Spaces Speak, Are You Listening?*](https://mitpress",
+      "authors": [
+        "Blesser & Salter"
+      ],
+      "year": 2007,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Soundscape",
+      "authors": [
+        "Schafer"
+      ],
+      "year": 1977,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Sound Structure",
+      "authors": [
+        "Garcia"
+      ],
+      "year": 1996,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Understanding Spatial Information with Integrated 3D Visual and Aural Design Applications",
+      "authors": [
+        "More et al."
+      ],
+      "year": 2002,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designing Spatial Sounds for Spatial Information Environments",
+      "authors": [
+        "More et al."
+      ],
+      "year": 2004,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Architecture as the Computer Interface: 4D Gestural Interaction with Socio-Spatial Sonification",
+      "authors": [
+        "Beilharz"
+      ],
+      "year": 2005,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Data Visualization Methods for the Blind Using Force Feedback and Sonification",
+      "authors": [
+        "Grabowski & Barner"
+      ],
+      "year": 1998,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Sensing the Invisible",
+      "authors": [
+        "Villacampa et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Accessible Maps for the Blind",
+      "authors": [
+        "Holloway & Marriott"
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "TactIcons",
+      "authors": [
+        "Butler et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Beyond 3D Printers",
+      "authors": [
+        "Bailly"
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Haptic Paintings",
+      "authors": [
+        "Koch et al."
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Seeing' with the Hands",
+      "authors": [
+        "Celani et al."
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "— 3D for blind education",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Talking TMAP",
+      "authors": [
+        "Miele et al."
+      ],
+      "year": 2006,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Sustainability, MDPI",
+      "authors": [
+        "Typology"
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Multimodal Technologies and Interaction, MDPI, Vol",
+      "authors": [
+        "Board"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "PUSH: Generating Structural Form with Haptic Feedback",
+      "authors": [
+        "Garcia"
+      ],
+      "year": 1999,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Non-Visual Haptic Interaction Design",
+      "authors": [
+        "Sjostrom"
+      ],
+      "year": 2002,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Sensitive Voxel",
+      "authors": [
+        "Pohl & Hirschberg"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "— Reactive tangible surface",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Haptic Design Parameters",
+      "authors": [
+        "Herssens & Heylighen"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "— Texture, temperature, weight, compliance",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Carlos Mourao Pereira",
+      "authors": [
+        "Vermeersch & Heylighen"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designerly Ways of Not Knowing",
+      "authors": [
+        "Heylighen & Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designing from Disability Experience",
+      "authors": [
+        "Vermeersch et al."
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "If buildings were invisible, what of architecture would remain?\"](https://soa",
+      "authors": [
+        "Austin"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "ACADIA Teaching Award",
+      "authors": [
+        "Sass"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy",
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "make]SHIFT",
+      "authors": [
+        "Miller"
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Democratizing the Designer's Toolbox",
+      "authors": [
+        "Akbar et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Computational Design Pedagogy",
+      "authors": [
+        "Fricker et al."
+      ],
+      "year": 2020,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Visual Dataflow Modelling",
+      "authors": [
+        "Janssen & Chen"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "— Comparing visual dataflow systems implicitly reveals what is lost when the only interface is visual",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "In the Shadow of Misperception",
+      "authors": [
+        "Shinohara & Wobbrock"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Ability-Based Design",
+      "authors": [
+        "Wobbrock et al."
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Disability Studies as Critical Inquiry for AT",
+      "authors": [
+        "Mankoff et al."
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Design for User Empowerment",
+      "authors": [
+        "Ladner"
+      ],
+      "year": 2015,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Universalism, Universal Design and Equitable Access",
+      "authors": [
+        "Imrie"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Universal Design: Creating Inclusive Environments",
+      "authors": [
+        "Steinfeld & Maisel"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The Multisensory Museum",
+      "authors": [
+        "Leone"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Inclusive Design in Architectural Education",
+      "authors": [
+        "Mulligan et al."
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Screen-Reader Users + Online Data Viz",
+      "authors": [
+        "Sharif et al."
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Flores-Saviaga 2025, Crawford 2024",
+      "authors": [
+        "Gurita"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Ingold (2013), Varela et al",
+      "authors": [
+        "Sennett"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/ACADIA_BRAINSTORM_REARRANGED.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **URL:** https://archive",
+      "authors": [
+        "French"
+      ],
+      "year": 1948,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Shanghai, China",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **URL:** https://dl",
+      "authors": [
+        "Award"
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Liege, Belgium",
+      "authors": [
+        "Futures"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **Venue:** Sustainability, MDPI, Vol",
+      "authors": [
+        "Typology"
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Tangible and Tactile Graphics for People with Vision Impairments",
+      "authors": [
+        "Board"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **URL:** https://lobehub",
+      "authors": [
+        "Server"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "MIT CSAIL / U",
+      "authors": [
+        "Graphics"
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **Venue:** Universal Access in Human-Computer Interaction, Springer (LNCS",
+      "authors": [
+        "Impaired"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "If buildings were invisible, what of architecture would remain?",
+      "authors": [
+        "Architecture"
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Co-creating the Future\" | 2022 | eCAADe | D |",
+      "authors": [
+        "De"
+      ],
+      "year": 2022,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "; Psychology Press / Routledge (2008",
+      "authors": [
+        "**Publisher:** Oxford University Press"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "https://global.oup.com/academic/product/understanding-and-representing-space-9780198521426",
+      "authors": [
+        "**URL"
+      ],
+      "year": 1994,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "https://www.routledge.com/Space-and-Sense/Millar/p/book/9780415651882",
+      "authors": [
+        "**URL"
+      ],
+      "year": 2008,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **URL:** https://www.sciencedirect.com/science/article/pii/S2095263524000281",
+      "authors": [
+        "**Venue:** ScienceDirect"
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- **URL:** https://www.ted.com/speakers/chris_downey",
+      "authors": [
+        "**TED Talk:** \"Design with the Blind in Mind\""
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "; Routledge (2020",
+      "authors": [
+        "**Publisher:** Bloomsbury Academic"
+      ],
+      "year": 2015,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_LITERATURE_REVIEW.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Extends the ocularcentrism critique from buildings to tools",
+      "authors": [
+        "Pallasmaa"
+      ],
+      "year": 1996,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designerly ways of not knowing\" applied to software design, not just building design",
+      "authors": [
+        "Heylighen & Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The \"question of access\" made concrete and operational",
+      "authors": [
+        "Noel et al."
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Responds directly to ACADIA's AI/accessibility/justice call",
+      "authors": [
+        "Cupkova et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Their finding that scripting is more powerful for generative systems gains new meaning when the alternative (visual programming) is completely inaccessible",
+      "authors": [
+        "Celani & Vaz"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "PIM's live script-model link prefigures the CMA, but assumes visual primacy",
+      "authors": [
+        "Maleki & Woodbury"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Their text-to-JSON-to-Grasshopper pipeline parallels the project's architecture but was built for convenience, not necessity",
+      "authors": [
+        "Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Their comparison of visual dataflow systems implicitly reveals what is lost when the only interface is visual",
+      "authors": [
+        "Janssen & Chen"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The CMA is the shared artifact in a non-standard collaborative workflow",
+      "authors": [
+        "Miller"
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Carlos Pereira as individual precedent; the project extends from practitioner to tool ecosystem",
+      "authors": [
+        "Vermeersch & Heylighen"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designerly ways of not knowing\" reframed as \"designerly ways of not seeing the tool's assumptions",
+      "authors": [
+        "Heylighen & Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Disability experience as generative knowledge, applied here to software design",
+      "authors": [
+        "Vermeersch et al."
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Their call for platform-agnostic, coordinates-based pedagogy is realized in the CLI approach",
+      "authors": [
+        "Akbar et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "cli_cad",
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The intent/projection split in software mirrors the designed/experienced split in buildings",
+      "authors": [
+        "Pallasmaa"
+      ],
+      "year": 1996,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "PIM links script and model but assumes visual primacy for both",
+      "authors": [
+        "Maleki & Woodbury"
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Text-to-JSON-to-Grasshopper is a one-directional version of the controller/viewer pattern",
+      "authors": [
+        "Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "The CMA as shared artifact in a heterogeneous workflow",
+      "authors": [
+        "Miller"
+      ],
+      "year": 2010,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Comparison of visual dataflow systems -- what if the dataflow were not visual?",
+      "authors": [
+        "Janssen & Chen"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Text vs",
+      "authors": [
+        "Celani & Vaz"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "LLM-to-Grasshopper as evidence that text-to-geometry is viable; the project cuts out the visual middleman",
+      "authors": [
+        "Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Kakadoo's speech interface for Grasshopper still depends on visual feedback; the project does not",
+      "authors": [
+        "Atakan et al."
+      ],
+      "year": 2025,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Democratizing the toolbox\" via platform-agnostic, coordinates-based tools aligns with the CLI approach",
+      "authors": [
+        "Akbar et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Computational design thinking\" does not require visual cognition",
+      "authors": [
+        "Fricker et al."
+      ],
+      "year": 2020,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Extends tactile models from output (receiving) to round-trip (authoring + receiving",
+      "authors": [
+        "Celani et al."
+      ],
+      "year": 2013,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Rapid prototyping for tactile access; the project adds the CLI-to-fabrication automation",
+      "authors": [
+        "Koch et al."
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics",
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Haptic design parameters as design variables, not just output qualities",
+      "authors": [
+        "Herssens & Heylighen"
+      ],
+      "year": 2011,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Participatory design methodology aligns with Daniel as co-designer",
+      "authors": [
+        "Vermeersch et al."
+      ],
+      "year": 2018,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Equity in computational design -- the project moves from call to implementation",
+      "authors": [
+        "Noel et al."
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "AI, accessibility, and data justice -- the project instantiates this",
+      "authors": [
+        "Cupkova et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Carlos Pereira as individual precedent for transformative model",
+      "authors": [
+        "Vermeersch & Heylighen"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Designerly ways of not knowing\" as the mechanism by which visual tools encode exclusion",
+      "authors": [
+        "Heylighen & Herssens"
+      ],
+      "year": 2014,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Kakadoo (Atakan et al",
+      "authors": [
+        "Siu et al."
+      ],
+      "year": 2019,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Karastathi et al",
+      "authors": [
+        "Cupkova et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "- Use the most architecturally specific framing (1, 2, or 4) rather than the most accessibility-specific framing (7",
+      "authors": [
+        "Noel et al."
+      ],
+      "year": 2021,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Text vs. visual CAD comparison, now with accessibility as a deciding criterion",
+      "authors": [
+        "Celani & Vaz"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "Carlos Pereira case study, which ACADIA accepts as a valid contribution with n=1.",
+      "authors": [
+        "Cite Vermeersch and Heylighen's"
+      ],
+      "year": 2012,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": ", Karastathi et al. (2024 Vanguard Award), Noel et al. (2021).",
+      "authors": [
+        "Cite ACADIA's own engagement with accessibility: Cupkova et al."
+      ],
+      "year": 2023,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "local_docs",
+      "paper_id": "",
+      "title": "as evidence that LLM-mediated text-to-geometry is viable for complex tasks.",
+      "authors": [
+        "Point to Rietschel et al."
+      ],
+      "year": 2024,
+      "abstract": "",
+      "citation_count": 0,
+      "venue": "",
+      "url": "",
+      "doi": "",
+      "local_file": "docs/archive/ACADIA_PAPER_IDEAS.md",
+      "added_date": "2026-03-15",
+      "tags": [
+        "ai_assisted_development"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "The Reflective Practitioner: How Professionals Think in Action",
+      "authors": [
+        "Donald Schon"
+      ],
+      "year": 1983,
+      "abstract": "Foundational text on reflective practice in professional work. The CLI's OK:/ERROR: protocol operationalizes Schon's reflective conversation with the situation.",
+      "citation_count": 0,
+      "venue": "Basic Books",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Understanding the Blind: An Integrative Approach to Visual Impairment",
+      "authors": [
+        "Susanna Millar"
+      ],
+      "year": 1994,
+      "abstract": "Comprehensive account of blind spatial cognition, sequential landmark-based reasoning, and language-mediated spatial understanding.",
+      "citation_count": 0,
+      "venue": "Lawrence Erlbaum",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Spatial representations and navigation in blind people",
+      "authors": [
+        "Jack Loomis",
+        "Reginald Golledge",
+        "Roberta Klatzky"
+      ],
+      "year": 2001,
+      "abstract": "Review of blind spatial cognition research including mental maps, wayfinding strategies, and non-visual spatial representation.",
+      "citation_count": 0,
+      "venue": "Handbook of Neuropsychology",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "blind_spatial_cognition"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Spatial learning and navigation in blindness",
+      "authors": [
+        "Nicholas Giudice"
+      ],
+      "year": 2018,
+      "abstract": "Updated framework for blind spatial cognition. Key reference for the project's semantic-over-geometric approach.",
+      "citation_count": 0,
+      "venue": "Oxford Handbook of Cognitive Psychology",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "blind_spatial_cognition",
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Architecture's New Media: Principles, Theories, and Methods of Computer-Aided Design",
+      "authors": [
+        "Yehuda Kalay"
+      ],
+      "year": 2004,
+      "abstract": "Process as first-class artifact alongside product. Relevant to version-controlled, auditable design workflows.",
+      "citation_count": 0,
+      "venue": "MIT Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Digital Design and Manufacturing: CAD/CAM Applications in Architecture and Design",
+      "authors": [
+        "Larry Sass"
+      ],
+      "year": 2024,
+      "abstract": "ACADIA 2024 Teaching Award work. Fabrication-centered pedagogy, physical making as cognitive partner.",
+      "citation_count": 0,
+      "venue": "ACADIA",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy",
+        "acadia_proceedings"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Theory of Design in the Age of Computation",
+      "authors": [
+        "Rivka Oxman"
+      ],
+      "year": 2006,
+      "abstract": "Reflective practice over routine production. Framework for understanding computational design pedagogy.",
+      "citation_count": 0,
+      "venue": "Design Studies",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "inclusive_pedagogy",
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "The Space Between: Architecture and Disability",
+      "authors": [
+        "David Gissen"
+      ],
+      "year": 2022,
+      "abstract": "Beyond access: disability as architectural knowledge. Challenges accommodation-as-minimum-compliance.",
+      "citation_count": 0,
+      "venue": "University of Minnesota Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Guidelines and Standards for Tactile Graphics",
+      "authors": [
+        "Braille Authority of North America"
+      ],
+      "year": 2010,
+      "abstract": "BANA guidelines for tactile graphic production. Standards for braille labels, line weights, density ranges used in PIAF output.",
+      "citation_count": 0,
+      "venue": "BANA",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Universal Design in Higher Education: From Principles to Practice",
+      "authors": [
+        "Sheryl Burgstahler",
+        "Rebecca Cory"
+      ],
+      "year": 2008,
+      "abstract": "Framework for universal design in educational settings. Background for inclusive studio pedagogy.",
+      "citation_count": 0,
+      "venue": "Harvard Education Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "inclusive_pedagogy"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Disability, Architecture, and Infrastructure",
+      "authors": [
+        "Aimi Hamraie"
+      ],
+      "year": 2017,
+      "abstract": "Building Access: Universal Design and the Politics of Disability. Critical disability studies framework for architectural accessibility.",
+      "citation_count": 0,
+      "venue": "University of Minnesota Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Towards a Critical Technical Practice: Accessible Design in Architecture",
+      "authors": [
+        "Beth Tauke",
+        "Korydon Smith",
+        "Charles Davis"
+      ],
+      "year": 2015,
+      "abstract": "Diversity and Design: Understanding Hidden Consequences. Critical approach to inclusive design practice.",
+      "citation_count": 0,
+      "venue": "Routledge",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Tactile maps for the blind: A case study in multisensory design",
+      "authors": [
+        "Joshua Miele"
+      ],
+      "year": 2006,
+      "abstract": "Research on tactile map design for blind users. Methods for translating visual spatial information to tactile form.",
+      "citation_count": 0,
+      "venue": "Smith-Kettlewell Eye Research Institute",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Haptic perception of spatial relations by blind and sighted participants",
+      "authors": [
+        "Morton Heller",
+        "Soledad Ballesteros"
+      ],
+      "year": 2012,
+      "abstract": "Touch, Blindness, and Neuroscience. Research on haptic spatial reasoning relevant to tactile architectural models.",
+      "citation_count": 0,
+      "venue": "Oxford University Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "accessible_architecture",
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Design for Architecture in the Digital Era",
+      "authors": [
+        "Branko Kolarevic"
+      ],
+      "year": 2003,
+      "abstract": "Architecture in the Digital Age: Design and Manufacturing. Foundational text on computational design workflows.",
+      "citation_count": 0,
+      "venue": "Spon Press",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "computational_design"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Model Context Protocol: Connecting AI to tools",
+      "authors": [
+        "Anthropic"
+      ],
+      "year": 2024,
+      "abstract": "MCP protocol specification for connecting AI assistants to external tools and data sources. Used for the Layout Jig MCP server.",
+      "citation_count": 0,
+      "venue": "Anthropic",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Exploring Expressive Tactile Design: Tactile Graphics Beyond Utility",
+      "authors": [
+        "Emeline Brulé",
+        "Gilles Bailly",
+        "Annie Gentes"
+      ],
+      "year": 2020,
+      "abstract": "Research on tactile graphics as expressive medium beyond purely functional representation.",
+      "citation_count": 0,
+      "venue": "ACM CHI",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    },
+    {
+      "source": "seed",
+      "paper_id": "",
+      "title": "Non-Visual Access to Computing",
+      "authors": [
+        "Chieko Asakawa"
+      ],
+      "year": 2005,
+      "abstract": "Overview of non-visual computing interfaces including screen readers, tactile displays, and auditory interfaces.",
+      "citation_count": 0,
+      "venue": "IBM Research",
+      "url": "",
+      "doi": "",
+      "added_date": "2026-03-15",
+      "tags": [
+        "tactile_graphics",
+        "cli_cad"
+      ],
+      "notes": "",
+      "relevance_score": 0
+    }
+  ]
+}

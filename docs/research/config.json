@@ -1,0 +1,47 @@
+{
+  "schema": "acadia_research_config_v1",
+  "search_queries": [
+    "accessible architecture education blind",
+    "tactile graphics architectural drawings",
+    "blind spatial cognition wayfinding",
+    "command line CAD interface accessibility",
+    "PIAF swell paper tactile maps",
+    "screen reader design tools",
+    "AI assisted architectural development",
+    "inclusive design pedagogy architecture",
+    "ACADIA computational design accessibility",
+    "braille architectural plans",
+    "3D printing tactile models blind",
+    "non-visual design tools",
+    "universal design architecture studio",
+    "haptic feedback architectural design",
+    "MCP model context protocol tools"
+  ],
+  "sources": {
+    "semantic_scholar": {
+      "enabled": true,
+      "base_url": "https://api.semanticscholar.org/graph/v1",
+      "fields": "title,abstract,authors,year,citationCount,externalIds,url,venue",
+      "max_results_per_query": 10
+    },
+    "arxiv": {
+      "enabled": true,
+      "base_url": "http://export.arxiv.org/api/query",
+      "max_results_per_query": 10
+    },
+    "local_docs": {
+      "enabled": true,
+      "scan_paths": [
+        "docs/",
+        "docs/references/",
+        "docs/archive/"
+      ]
+    }
+  },
+  "report": {
+    "max_new_per_report": 20,
+    "format": "screen_reader_friendly",
+    "output_dir": "docs/research/reports"
+  },
+  "loop_interval_minutes": 10
+}
