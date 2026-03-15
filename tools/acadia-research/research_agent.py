@@ -34,7 +34,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from database import ResearchDatabase
 from sources import search_semantic_scholar, search_arxiv, scan_local_docs
-from reporter import generate_report, save_report
+from reporter import generate_report, generate_markdown_report, save_report
 
 
 def load_config():
@@ -138,6 +138,15 @@ def cmd_report(args):
     print("OK: Report saved to {}".format(os.path.relpath(filepath, PROJECT_ROOT)))
     print("")
     print(report)
+
+
+def cmd_md(args):
+    """Generate full markdown report of the database."""
+    db = ResearchDatabase(DB_PATH)
+    md = generate_markdown_report(db)
+    filepath = save_report(md, REPORT_DIR, extension="md")
+    print("OK: Markdown report saved to {}".format(os.path.relpath(filepath, PROJECT_ROOT)))
+    print("READY:")
 
 
 def cmd_stats(args):
@@ -260,6 +269,10 @@ def main():
     # report
     report_parser = subparsers.add_parser("report", help="Generate report")
     report_parser.set_defaults(func=cmd_report)
+
+    # md
+    md_parser = subparsers.add_parser("md", help="Generate full markdown report")
+    md_parser.set_defaults(func=cmd_md)
 
     # stats
     stats_parser = subparsers.add_parser("stats", help="Print DB stats")
