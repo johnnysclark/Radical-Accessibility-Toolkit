@@ -1797,14 +1797,18 @@ function toggleInvert() {
 }
 
 // ── Depth estimation (Transformers.js) ──
+var depthTransformers = null; // cached module reference
+
 function loadDepthPipeline() {
   if (depthPipeline) return Promise.resolve(depthPipeline);
   if (depthLoading) return Promise.resolve(null);
   depthLoading = true;
-  showStatus('Loading depth model (~40MB first time)...', true);
-  return import('https://cdn.jsdelivr.net/npm/@huggingface/transformers/+esm').then(function(mod) {
-    showStatus('Model downloaded, initializing...', true);
+  showStatus('Loading depth model...', true);
+  return import('https://cdn.jsdelivr.net/npm/@huggingface/transformers').then(function(mod) {
+    depthTransformers = mod;
+    showStatus('Initializing depth model...', true);
     return mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
+      device: 'wasm',
       dtype: 'fp32',
     });
   }).then(function(pipe) {
@@ -1814,39 +1818,73 @@ function loadDepthPipeline() {
     return depthPipeline;
   }).catch(function(err) {
     depthLoading = false;
-    showStatus('Depth load error: ' + err.message);
+    showStatus('Depth load error: ' + (err.message || err));
     return null;
   });
 }
 
 function processDepthResult(result) {
-  var depthBtnEl = document.getElementById('depthBtn');
-  var depthImg = result.depth;
+  try {
+    var depthBtnEl = document.getElementById('depthBtn');
+    if (!result || !result.depth) {
+      showStatus('Depth: no result returned');
+      return;
+    }
+    var depthImg = result.depth;
+    var dw = depthImg.width;
+    var dh = depthImg.height;
+    var channels = depthImg.channels || 1;
+    var depthData = depthImg.data;
 
-  // Use RawImage.toCanvas() for reliable format conversion
-  // This handles any channel count (1, 3, or 4) automatically
-  var depthCanvas = depthImg.toCanvas();
+    if (!depthData || !dw || !dh) {
+      showStatus('Depth: invalid result format');
+      return;
+    }
 
-  // Resize to source dimensions
-  var resCanvas = document.createElement('canvas');
-  resCanvas.width = sourceW;
-  resCanvas.height = sourceH;
-  var resCtx = resCanvas.getContext('2d');
-  resCtx.drawImage(depthCanvas, 0, 0, sourceW, sourceH);
-  var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
+    // Extract first channel as grayscale (data is Uint8Array, already 0-255)
+    var rawGray = new Uint8Array(dw * dh);
+    for (var i = 0; i < dw * dh; i++) {
+      rawGray[i] = depthData[i * channels];
+    }
 
-  // Extract grayscale from RGBA canvas data (R channel — grayscale so R=G=B)
-  depthGray = new Uint8Array(sourceW * sourceH);
-  for (var i = 0; i < depthGray.length; i++) {
-    depthGray[i] = resData[i * 4];
+    // Resize to source dimensions via canvas
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = dw;
+    tmpCanvas.height = dh;
+    var tmpCtx = tmpCanvas.getContext('2d');
+    var imgData = tmpCtx.createImageData(dw, dh);
+    for (var i = 0; i < dw * dh; i++) {
+      imgData.data[i * 4] = rawGray[i];
+      imgData.data[i * 4 + 1] = rawGray[i];
+      imgData.data[i * 4 + 2] = rawGray[i];
+      imgData.data[i * 4 + 3] = 255;
+    }
+    tmpCtx.putImageData(imgData, 0, 0);
+
+    var resCanvas = document.createElement('canvas');
+    resCanvas.width = sourceW;
+    resCanvas.height = sourceH;
+    var resCtx = resCanvas.getContext('2d');
+    resCtx.drawImage(tmpCanvas, 0, 0, sourceW, sourceH);
+    var resData = resCtx.getImageData(0, 0, sourceW, sourceH).data;
+    depthGray = new Uint8Array(sourceW * sourceH);
+    for (var i = 0; i < depthGray.length; i++) {
+      depthGray[i] = resData[i * 4];
+    }
+
+    // Clean up temp canvases
+    tmpCanvas.width = 0;
+    resCanvas.width = 0;
+
+    originalGray = sourceGray;
+    sourceGray = depthGray;
+    depthActive = true;
+    depthBtnEl.classList.add('toggled');
+    showStatus('Depth map active.');
+    render(sourceGray, sourceW, sourceH, getParams());
+  } catch (err) {
+    showStatus('Depth process error: ' + (err.message || err));
   }
-
-  originalGray = sourceGray;
-  sourceGray = depthGray;
-  depthActive = true;
-  depthBtnEl.classList.add('toggled');
-  showStatus('Depth map active.');
-  render(sourceGray, sourceW, sourceH, getParams());
 }
 
 function runDepthEstimation() {
@@ -1888,21 +1926,48 @@ function runDepthEstimation() {
     if (!pipe) return;
     showStatus('Estimating depth...', true);
 
-    // Create data URL from sourceRGBA
-    var tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = sourceW;
-    tmpCanvas.height = sourceH;
-    var tmpCtx = tmpCanvas.getContext('2d');
-    var imgData = tmpCtx.createImageData(sourceW, sourceH);
-    imgData.data.set(sourceRGBA);
-    tmpCtx.putImageData(imgData, 0, 0);
-    var dataURL = tmpCanvas.toDataURL('image/png');
+    // Scale down for depth estimation to save memory (max 384px)
+    var maxDepthDim = 384;
+    var depthScale = Math.min(1, maxDepthDim / Math.max(sourceW, sourceH));
+    var dw = Math.round(sourceW * depthScale);
+    var dh = Math.round(sourceH * depthScale);
 
-    return pipe(dataURL);
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = dw;
+    tmpCanvas.height = dh;
+    var tmpCtx = tmpCanvas.getContext('2d');
+    var fullImg = tmpCtx.createImageData(dw, dh);
+
+    // Downsample sourceRGBA to smaller size
+    if (dw === sourceW && dh === sourceH) {
+      fullImg.data.set(sourceRGBA);
+    } else {
+      // Use a full-size canvas to draw then scale
+      var srcCvs = document.createElement('canvas');
+      srcCvs.width = sourceW;
+      srcCvs.height = sourceH;
+      var srcC = srcCvs.getContext('2d');
+      var srcImg = srcC.createImageData(sourceW, sourceH);
+      srcImg.data.set(sourceRGBA);
+      srcC.putImageData(srcImg, 0, 0);
+      tmpCtx.drawImage(srcCvs, 0, 0, dw, dh);
+      srcCvs.width = 0; // free memory
+    }
+
+    // Use RawImage if available, otherwise fall back to data URL
+    var input;
+    if (depthTransformers && depthTransformers.RawImage) {
+      input = depthTransformers.RawImage.fromCanvas(tmpCanvas);
+    } else {
+      input = tmpCanvas.toDataURL('image/jpeg', 0.85);
+    }
+    tmpCanvas.width = 0; // free memory
+
+    return pipe(input);
   }).then(function(result) {
     if (result) processDepthResult(result);
   }).catch(function(err) {
-    showStatus('Depth error: ' + err.message);
+    showStatus('Depth error: ' + (err.message || err));
   });
 }
 
