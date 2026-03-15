@@ -167,7 +167,12 @@ def generate_markdown_report(db):
             cites = entry.get("citation_count", 0)
             source = entry.get("source", "")
 
-            lines.append("### {} ({})".format(title, year))
+            # Title as link if URL or DOI available
+            link = _entry_link(entry)
+            if link:
+                lines.append("### [{}]({}) ({})".format(title, link, year))
+            else:
+                lines.append("### {} ({})".format(title, year))
             lines.append("")
             if authors:
                 lines.append("**Authors:** {}".format(authors))
@@ -182,7 +187,7 @@ def generate_markdown_report(db):
             if cites > 0:
                 detail_parts.append("Citations: {}".format(cites))
             if doi:
-                detail_parts.append("DOI: {}".format(doi))
+                detail_parts.append("DOI: [{}](https://doi.org/{})".format(doi, doi))
             if source:
                 detail_parts.append("Source: {}".format(source))
             if detail_parts:
@@ -200,8 +205,13 @@ def generate_markdown_report(db):
             title = entry.get("title", "Untitled")
             year = entry.get("year", "n.d.")
             authors = _format_authors(entry.get("authors", []))
+            link = _entry_link(entry)
+            if link:
+                title_part = "[{}]({})".format(title, link)
+            else:
+                title_part = title
             lines.append("- **{}** ({}){}".format(
-                title, year,
+                title_part, year,
                 " -- {}".format(authors) if authors else ""
             ))
         lines.append("")
@@ -219,6 +229,20 @@ def _format_authors(authors_list):
     if len(authors_list) <= 3:
         return ", ".join(authors_list)
     return ", ".join(authors_list[:3]) + " et al."
+
+
+def _entry_link(entry):
+    """Return the best available URL for an entry.
+
+    Prefers direct URL, falls back to DOI link.
+    """
+    url = entry.get("url", "")
+    if url and url.startswith("http"):
+        return url
+    doi = entry.get("doi", "")
+    if doi:
+        return "https://doi.org/{}".format(doi)
+    return ""
 
 
 def save_report(report_text, output_dir, extension="txt"):
