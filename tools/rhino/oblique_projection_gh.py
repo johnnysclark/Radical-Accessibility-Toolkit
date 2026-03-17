@@ -293,6 +293,10 @@ else:
     # TRANSFORM COPIES — build output DataTree
     # ========================================================
     out_tree = DataTree[rg.GeometryBase]()
+    # Ensure all input branches exist in output even if cut removes everything.
+    # Without this, Explode Tree outputs shift when a branch is fully cut away.
+    for path in input_paths:
+        out_tree.EnsurePath(path)
     total = 0
     branch_counts = {}  # path string -> count
     for g, path in work:
