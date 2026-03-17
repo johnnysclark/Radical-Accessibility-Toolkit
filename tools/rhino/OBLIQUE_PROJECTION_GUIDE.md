@@ -13,25 +13,32 @@ Open Grasshopper. Drop a GhPython Script component onto the canvas. Double-click
 
 Right-click the left edge of the component to add inputs. You need these, in this order:
 
-1. geo — right-click, set Type Hint to GeometryBase, set Access to List. Connect a Geometry parameter containing your 3D model.
-2. preset — connect an Integer slider, range -1 to 3.
-3. angle — connect a Number Slider, range -90 to 90.
-4. depth — connect a Number Slider, range 0.1 to 1.0.
-5. rotation — connect a Number Slider, range 0 to 360.
-6. plan_ob — connect a Boolean Toggle.
-7. cut — connect a Boolean Toggle.
-8. cut_axis — connect an Integer slider, range 0 to 2.
-9. cut_h — connect a Number Slider, range 0 to 50.
-10. grid_on — connect a Boolean Toggle.
-11. grid_sp — connect a Number Slider, range 0.5 to 10.
+1. geo_arch — right-click, set Type Hint to GeometryBase, set Access to List. Connect architecture geometry.
+2. geo_ground — same setup. Connect ground/site geometry.
+3. geo_foliage — same setup. Connect foliage/landscape geometry.
+4. preset — connect an Integer slider, range -1 to 3.
+5. angle — connect a Number Slider, range -90 to 90.
+6. depth — connect a Number Slider, range 0.1 to 1.0.
+7. rotation — connect a Number Slider, range 0 to 360.
+8. plan_ob — connect a Boolean Toggle.
+9. cut — connect a Boolean Toggle.
+10. cut_axis — connect an Integer slider, range 0 to 2.
+11. cut_h — connect a Number Slider, range 0 to 50.
+12. worms_eye — connect a Boolean Toggle.
+13. grid_on — connect a Boolean Toggle.
+14. grid_sp — connect a Number Slider, range 0.5 to 10.
+
+Any of the three geometry inputs can be left empty. All three share the same projection, cut, and grid settings. Block instances are automatically exploded into individual pieces so the section cut works on each piece separately.
 
 ### Setting up outputs
 
 Right-click the right edge and rename the outputs:
 
-1. a — the projected geometry (connect to a preview or bake)
-2. b — ground grid lines
-3. info — text panel showing current settings
+1. a — projected architecture (connect to Custom Preview with your arch material)
+2. b — projected ground (connect to Custom Preview with your ground material)
+3. c — projected foliage (connect to Custom Preview with your foliage material)
+4. d — ground grid lines
+5. info — text panel showing current settings
 
 ### What each input does
 
