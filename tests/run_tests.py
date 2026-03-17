@@ -981,6 +981,42 @@ if _style_ok:
 
 
 # ══════════════════════════════════════════════════
+print("")
+print("=" * 60)
+print("PHASE 15c: Oblique Projection (Sonsbeek Pavilion)")
+print("=" * 60)
+
+if _swell_ok:
+    try:
+        from test_oblique import _sonsbeek_state
+        _obl_state = _sonsbeek_state()
+        test("oblique: sonsbeek state has 10 bays",
+             lambda: None if len(_obl_state["bays"]) == 10 else
+             "Expected 10, got {}".format(len(_obl_state["bays"])))
+
+        _obl_img = state_renderer.render_oblique(_obl_state, cut_height=10.0, dpi=72)
+        test("oblique: render_oblique returns Image",
+             lambda: None if hasattr(_obl_img, 'mode') else "not an image")
+        test("oblique: render is mode '1' (B&W)",
+             lambda: None if _obl_img.mode == '1' else "mode: " + _obl_img.mode)
+        _obl_d = state_renderer.density(_obl_img)
+        test("oblique: density is reasonable",
+             lambda: None if 2 <= _obl_d <= 70 else
+             "density out of range: {:.1f}".format(_obl_d))
+
+        # Test view oblique CLI command
+        reset_state()
+        _s = cli.load_state(STATE)
+        _s, _msg = cli.apply_command(_s, cli.tokenize("view oblique 10"), state_file=STATE)
+        test("view CLI: view oblique 10",
+             lambda: None if "Rendered" in _msg and "oblique" in _msg.lower() else _msg[:100])
+    except Exception as _e:
+        test("oblique: render_oblique", lambda: "ERROR: {}".format(_e))
+else:
+    print("SKIP: Swell-print not available, skipping oblique tests")
+
+
+# ══════════════════════════════════════════════════
 # FINAL RESET AND SUMMARY
 # ══════════════════════════════════════════════════
 
