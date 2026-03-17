@@ -8,30 +8,35 @@
 #   2. Zoom in and use +/- on component edges to add inputs/outputs
 #   3. Right-click each input to rename and set type hints:
 #
-# INPUTS (3 geometry categories — use Merge before if needed):
-#   geo_arch    — List Access, type hint: GeometryBase  (architecture)
-#   geo_ground  — List Access, type hint: GeometryBase  (ground / site)
-#   geo_foliage — List Access, type hint: GeometryBase  (foliage / landscape)
-#   preset      — Item Access, type hint: int
-#   angle       — Item Access, type hint: float
-#   depth       — Item Access, type hint: float
-#   rotation    — Item Access, type hint: float
-#   plan_ob     — Item Access, type hint: bool
-#   cut         — Item Access, type hint: bool
-#   cut_axis    — Item Access, type hint: int
-#   cut_h       — Item Access, type hint: float
-#   worms_eye   — Item Access, type hint: bool  (flip cut: keep above instead of below)
-#   grid_on     — Item Access, type hint: bool
-#   grid_sp     — Item Access, type hint: float
+# WORKFLOW:
+#   Use a Merge component before to combine geometry sources.
+#   Each Merge input becomes a branch: {0}=arch, {1}=ground, {2}=foliage, etc.
+#   Use Explode Tree after to split branches into separate Custom Previews.
+#
+# INPUTS:
+#   geo      — Tree Access, type hint: GeometryBase  (merged geometry tree)
+#   preset   — Item Access, type hint: int
+#   angle    — Item Access, type hint: float
+#   depth    — Item Access, type hint: float
+#   rotation — Item Access, type hint: float
+#   plan_ob  — Item Access, type hint: bool
+#   cut      — Item Access, type hint: bool
+#   cut_axis — Item Access, type hint: int
+#   cut_h    — Item Access, type hint: float
+#   worms_eye — Item Access, type hint: bool  (flip cut: keep above instead of below)
+#   grid_on  — Item Access, type hint: bool
+#   grid_sp  — Item Access, type hint: float
 #
 # OUTPUTS (rename via right-click):
-#   a    — projected architecture
-#   b    — projected ground
-#   c    — projected foliage
-#   d    — ground grid lines (when grid_on=True)
+#   a    — projected geometry (DataTree — same branches as input)
+#   b    — ground grid lines (when grid_on=True)
 #   info — text summary
 #
-# Each output feeds a separate Custom Preview for different materials.
+# Canvas wiring:
+#   [Arch] --\                                     /--> {0} --> Custom Preview (arch material)
+#   [Ground] --> Merge --> geo --> [This] --> a --> Explode Tree --> {1} --> Custom Preview (ground)
+#   [Foliage]-/                                    \--> {2} --> Custom Preview (foliage)
+#
 # After baking, run Make2D:
 #   Plan oblique     — Make2D from Top view
 #   Elevation oblique — Make2D from Front view
@@ -40,6 +45,8 @@ import math
 import System
 import Rhino
 import Rhino.Geometry as rg
+from Grasshopper import DataTree
+from Grasshopper.Kernel.Data import GH_Path
 
 
 def resolve_geo(item):
@@ -168,20 +175,6 @@ def center_on_kept_side(bbox, axis, threshold, tolerance, keep_above=False):
         return vals[axis] >= threshold - tolerance
     return vals[axis] <= threshold + tolerance
 
-def prepare_input(raw_list):
-    """Resolve, explode blocks, and filter a raw geometry input list."""
-    if raw_list is None:
-        return []
-    if not hasattr(raw_list, '__iter__'):
-        raw_list = [raw_list]
-    out = []
-    for item in raw_list:
-        for piece in explode_block(item):
-            resolved = resolve_geo(piece)
-            if resolved is not None:
-                out.append(resolved)
-    return out
-
 def convert_geo(g):
     """Convert a single geometry to a shear-safe type."""
     converted = to_brep(g)
@@ -191,34 +184,46 @@ def convert_geo(g):
     return g
 
 # ================================================================
-# MAIN — gather 3 inputs, tag by category
+# MAIN — read tree, process, output tree
 # ================================================================
-cat_arch = prepare_input(geo_arch)
-cat_ground = prepare_input(geo_ground)
-cat_foliage = prepare_input(geo_foliage)
 
-# tagged list: (geometry, category_index)
-#   0 = architecture, 1 = ground, 2 = foliage
-tagged = []
-for g in cat_arch:
-    tagged.append((convert_geo(g), 0))
-for g in cat_ground:
-    tagged.append((convert_geo(g), 1))
-for g in cat_foliage:
-    tagged.append((convert_geo(g), 2))
+# Read input data tree — supports both Tree Access and List/Item fallback
+tagged = []  # list of (geometry, GH_Path)
+input_paths = []
+
+if geo is not None:
+    if hasattr(geo, 'Paths'):
+        # Tree Access — iterate branches
+        for path in geo.Paths:
+            branch = geo.Branch(path)
+            for item in branch:
+                for piece in explode_block(item):
+                    resolved = resolve_geo(piece)
+                    if resolved is not None:
+                        tagged.append((convert_geo(resolved), path))
+                        if path not in input_paths:
+                            input_paths.append(path)
+    else:
+        # Fallback: plain list (List Access) — treat as single branch {0}
+        items = geo if hasattr(geo, '__iter__') else [geo]
+        fallback_path = GH_Path(0)
+        input_paths.append(fallback_path)
+        for item in items:
+            for piece in explode_block(item):
+                resolved = resolve_geo(piece)
+                if resolved is not None:
+                    tagged.append((convert_geo(resolved), fallback_path))
 
 if len(tagged) == 0:
-    a = None
+    a = DataTree[rg.GeometryBase]()
     b = None
-    c = None
-    d = None
     info = "No geometry connected."
 else:
     tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance
 
-    # -- bounding box center as pivot (union of all categories) --
+    # -- bounding box center as pivot (union of all branches) --
     all_pts = []
-    for g, cat in tagged:
+    for g, path in tagged:
         gbb = g.GetBoundingBox(True)
         all_pts.append(gbb.Min)
         all_pts.append(gbb.Max)
@@ -238,27 +243,27 @@ else:
     cut_normal = -axis_vectors[cut_axis] if worms_eye else axis_vectors[cut_axis]
     cut_plane = rg.Plane(cut_origin, cut_normal)
 
-    work = []  # list of (geometry, category_index)
+    work = []  # list of (geometry, GH_Path)
     if cut:
-        for g, cat in tagged:
+        for g, path in tagged:
             if isinstance(g, rg.Brep):
                 trimmed = g.Trim(cut_plane, tol)
                 if trimmed and len(trimmed) > 0:
                     for t in trimmed:
-                        work.append((t, cat))
+                        work.append((t, path))
                 elif not_entirely_wrong_side(g.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
-                    work.append((g, cat))
+                    work.append((g, path))
             elif isinstance(g, rg.Mesh):
                 split_plane = rg.Plane(cut_origin, axis_vectors[cut_axis])
                 parts = g.Split(split_plane)
                 if parts and len(parts) > 0:
                     for part in parts:
                         if center_on_kept_side(part.GetBoundingBox(True), cut_axis, cut_h, tol, worms_eye):
-                            work.append((part, cat))
+                            work.append((part, path))
                 else:
-                    work.append((g, cat))
+                    work.append((g, path))
             else:
-                work.append((g, cat))
+                work.append((g, path))
     else:
         work = list(tagged)
 
@@ -285,26 +290,20 @@ else:
     combined = shear_xform * rot_xform
 
     # ========================================================
-    # TRANSFORM COPIES — split by category
+    # TRANSFORM COPIES — build output DataTree
     # ========================================================
-    result_arch = []
-    result_ground = []
-    result_foliage = []
-    all_result = []
-    for g, cat in work:
+    out_tree = DataTree[rg.GeometryBase]()
+    total = 0
+    branch_counts = {}  # path string -> count
+    for g, path in work:
         copy = g.Duplicate()
         copy.Transform(combined)
-        all_result.append(copy)
-        if cat == 0:
-            result_arch.append(copy)
-        elif cat == 1:
-            result_ground.append(copy)
-        else:
-            result_foliage.append(copy)
+        out_tree.Add(copy, path)
+        total += 1
+        key = path.ToString()
+        branch_counts[key] = branch_counts.get(key, 0) + 1
 
-    a = result_arch if len(result_arch) > 0 else None
-    b = result_ground if len(result_ground) > 0 else None
-    c = result_foliage if len(result_foliage) > 0 else None
+    a = out_tree
 
     # ========================================================
     # GROUND PLANE GRID
@@ -349,9 +348,9 @@ else:
                 grid_lines.append(ln)
                 z += grid_sp
 
-        d = grid_lines
+        b = grid_lines
     else:
-        d = None
+        b = None
 
     # ========================================================
     # INFO
@@ -362,13 +361,19 @@ else:
         view = "Back" if worms_eye else "Front"
     # type summary for diagnostics
     type_counts = {}
-    for g in all_result:
-        tn = type(g).__name__
-        type_counts[tn] = type_counts.get(tn, 0) + 1
+    for path in out_tree.Paths:
+        for g in out_tree.Branch(path):
+            tn = type(g).__name__
+            type_counts[tn] = type_counts.get(tn, 0) + 1
     type_str = ", ".join("{0}x{1}".format(v, k) for k, v in type_counts.items())
 
-    counts = "arch={0} ground={1} foliage={2}".format(
-        len(result_arch), len(result_ground), len(result_foliage))
+    # per-branch counts
+    branch_strs = []
+    for path in input_paths:
+        key = path.ToString()
+        cnt = branch_counts.get(key, 0)
+        branch_strs.append("{0}={1}".format(key, cnt))
+    counts = " ".join(branch_strs)
 
     parts = [mode_name]
     parts.append("Angle={0} deg".format(ang))
@@ -377,7 +382,7 @@ else:
     if cut:
         eye = "worm's eye" if worms_eye else "bird's eye"
         parts.append("Cut {0}={1} ({2})".format(axis_names[cut_axis], cut_h, eye))
-    parts.append("{0} objects ({1})".format(len(all_result), type_str))
-    parts.append(counts)
+    parts.append("{0} objects ({1})".format(total, type_str))
+    parts.append("{0} branches [{1}]".format(len(input_paths), counts))
     parts.append("Make2D: {0} view".format(view))
     info = " | ".join(parts)
