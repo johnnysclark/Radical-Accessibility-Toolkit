@@ -1136,6 +1136,265 @@ class AxonRenderer:
 
 
 # ---------------------------------------------------------------------------
+# Oblique Projection Renderer (Military / Plan Oblique)
+# ---------------------------------------------------------------------------
+
+class ObliqueRenderer:
+    """Renders a cut military oblique (plan oblique) projection.
+
+    The plan (XY) is drawn true — no distortion. Wall heights project
+    at a 45-degree angle from the cut plane upward. Walls intersected
+    by the cut plane are shown as solid poché. Above-cut wall tops
+    project as lighter lines.
+    """
+
+    def __init__(self, state, cut_height=10.0, z_angle=45, z_scale=1.0,
+                 dpi=DEFAULT_DPI, paper_size="letter", style_manager=None):
+        self.state = state
+        self.cut_height = cut_height
+        self.z_angle = math.radians(z_angle)
+        self.z_scale = z_scale
+        self.dpi = dpi
+        self.sm = style_manager
+
+        pw, ph = PAPER_SIZES.get(paper_size, PAPER_SIZES["letter"])
+        self.paper_w_px = int(pw * dpi)
+        self.paper_h_px = int(ph * dpi)
+        self.margin_px = int(0.5 * dpi)
+
+    def _project(self, x, y, z):
+        """Military oblique: plan true, Z projects at angle."""
+        px = x + z * self.z_scale * math.cos(self.z_angle)
+        py = y + z * self.z_scale * math.sin(self.z_angle)
+        return (px, py)
+
+    def _collect_wall_data(self):
+        """Collect wall segment geometry from state.
+
+        Returns list of dicts, each with:
+            p1, p2:  world-coord endpoints of the wall centreline
+            half_t:  half-thickness
+            axis:    'x' or 'y'
+            wall_h:  full wall height
+            rot:     rotation in degrees
+            origin:  bay origin
+            is_ext:  True if exterior wall
+        """
+        walls = []
+        for name, bay in sorted(self.state.get("bays", {}).items()):
+            if bay.get("grid_type", "rectangular") != "rectangular":
+                continue
+            w = bay.get("walls", {})
+            if not w.get("enabled"):
+                continue
+            t = w.get("thickness", 0.5)
+            half_t = t / 2.0
+            ox, oy = bay["origin"]
+            rot = bay.get("rotation_deg", 0)
+            cx_arr, cy_arr = _get_spacing_arrays(bay)
+            aps = bay.get("apertures", [])
+            wall_h = bay.get("wall_height", 10.0)
+
+            # Horizontal walls (x-axis gridlines)
+            for j, y_val in enumerate(cy_arr):
+                is_ext = (j == 0 or j == len(cy_arr) - 1)
+                wall_aps = sorted(
+                    [a for a in aps if a.get("axis") == "x" and a.get("gridline") == j],
+                    key=lambda a: a.get("corner", 0))
+                for s, e in _calc_wall_segments(cx_arr[-1], wall_aps):
+                    p1 = _local_to_world(s, y_val, (ox, oy), rot)
+                    p2 = _local_to_world(e, y_val, (ox, oy), rot)
+                    walls.append({
+                        "p1": p1, "p2": p2, "half_t": half_t,
+                        "axis": "x", "wall_h": wall_h, "rot": rot,
+                        "origin": (ox, oy), "is_ext": is_ext,
+                        "y_val": y_val, "s": s, "e": e,
+                    })
+
+            # Vertical walls (y-axis gridlines)
+            for i, x_val in enumerate(cx_arr):
+                is_ext = (i == 0 or i == len(cx_arr) - 1)
+                wall_aps = sorted(
+                    [a for a in aps if a.get("axis") == "y" and a.get("gridline") == i],
+                    key=lambda a: a.get("corner", 0))
+                for s, e in _calc_wall_segments(cy_arr[-1], wall_aps):
+                    p1 = _local_to_world(x_val, s, (ox, oy), rot)
+                    p2 = _local_to_world(x_val, e, (ox, oy), rot)
+                    walls.append({
+                        "p1": p1, "p2": p2, "half_t": half_t,
+                        "axis": "y", "wall_h": wall_h, "rot": rot,
+                        "origin": (ox, oy), "is_ext": is_ext,
+                        "x_val": x_val, "s": s, "e": e,
+                    })
+
+        return walls
+
+    def render(self):
+        """Render cut oblique projection and return B&W PIL Image."""
+        img = Image.new('1', (self.paper_w_px, self.paper_h_px), 1)
+        draw = ImageDraw.Draw(img)
+
+        walls = self._collect_wall_data()
+        if not walls:
+            return img
+
+        # Determine bounding box including projected wall tops
+        all_pts = []
+        for w in walls:
+            for p in [w["p1"], w["p2"]]:
+                # Ground-level point
+                all_pts.append(self._project(p[0], p[1], 0))
+                # Projected wall top (above cut)
+                above = w["wall_h"] - self.cut_height
+                if above > 0:
+                    all_pts.append(self._project(p[0], p[1], above))
+
+        # Add column positions
+        for name, bay in self.state.get("bays", {}).items():
+            if bay.get("grid_type") != "rectangular":
+                continue
+            ox, oy = bay["origin"]
+            rot = bay.get("rotation_deg", 0)
+            cx_arr, cy_arr = _get_spacing_arrays(bay)
+            for x in cx_arr:
+                for y in cy_arr:
+                    wp = _local_to_world(x, y, (ox, oy), rot)
+                    all_pts.append((wp[0], wp[1]))
+
+        if not all_pts:
+            return img
+
+        xs = [p[0] for p in all_pts]
+        ys = [p[1] for p in all_pts]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        span_x = max_x - min_x or 1
+        span_y = max_y - min_y or 1
+
+        draw_w = self.paper_w_px - 2 * self.margin_px
+        draw_h = self.paper_h_px - 2 * self.margin_px
+        scale = min(draw_w / span_x, draw_h / span_y) * 0.85
+
+        cx = self.margin_px + draw_w / 2
+        cy = self.margin_px + draw_h / 2
+        mid_x = (min_x + max_x) / 2
+        mid_y = (min_y + max_y) / 2
+
+        def to_px(proj_pt):
+            px = cx + (proj_pt[0] - mid_x) * scale
+            py = cy - (proj_pt[1] - mid_y) * scale
+            return (int(round(px)), int(round(py)))
+
+        def world_to_px(wx, wy):
+            proj = self._project(wx, wy, 0)
+            return to_px(proj)
+
+        def ft_to_px(feet):
+            return max(1, int(round(abs(feet) * scale)))
+
+        # Resolve lineweights
+        if self.sm:
+            wall_w = max(MIN_LINE_PX, _pt_to_px(self.sm.get("lineweights.wall_exterior", 2.5), self.dpi))
+            wall_int_w = max(1, _pt_to_px(self.sm.get("lineweights.wall_interior", 1.5), self.dpi))
+            col_w = max(MIN_LINE_PX, _pt_to_px(self.sm.get("lineweights.column", 3.0), self.dpi))
+            proj_w = max(1, _pt_to_px(self.sm.get("lineweights.grid_line", 0.3), self.dpi))
+        else:
+            wall_w = max(MIN_LINE_PX, _mm_to_px(0.8, self.dpi))
+            wall_int_w = max(1, _mm_to_px(0.5, self.dpi))
+            col_w = max(MIN_LINE_PX, _mm_to_px(1.0, self.dpi))
+            proj_w = max(1, _mm_to_px(0.2, self.dpi))
+
+        # -- Layer 1: Above-cut projection (light lines) --
+        for w in walls:
+            above = w["wall_h"] - self.cut_height
+            if above <= 0:
+                continue
+            ht = w["half_t"]
+            ox, oy = w["origin"]
+            rot = w["rot"]
+
+            if w["axis"] == "x":
+                y_val = w["y_val"]
+                s, e = w["s"], w["e"]
+                corners_base = [
+                    _local_to_world(s, y_val - ht, (ox, oy), rot),
+                    _local_to_world(e, y_val - ht, (ox, oy), rot),
+                    _local_to_world(e, y_val + ht, (ox, oy), rot),
+                    _local_to_world(s, y_val + ht, (ox, oy), rot),
+                ]
+            else:
+                x_val = w["x_val"]
+                s, e = w["s"], w["e"]
+                corners_base = [
+                    _local_to_world(x_val - ht, s, (ox, oy), rot),
+                    _local_to_world(x_val - ht, e, (ox, oy), rot),
+                    _local_to_world(x_val + ht, e, (ox, oy), rot),
+                    _local_to_world(x_val + ht, s, (ox, oy), rot),
+                ]
+
+            # Project top corners at full wall height above cut
+            top_pts = [to_px(self._project(c[0], c[1], above)) for c in corners_base]
+            # Draw projected top rectangle outline
+            for i in range(4):
+                draw.line([top_pts[i], top_pts[(i + 1) % 4]], fill=0, width=proj_w)
+
+            # Draw vertical projection lines from cut to top at corners
+            base_pts = [to_px(self._project(c[0], c[1], 0)) for c in corners_base]
+            for i in range(4):
+                draw.line([base_pts[i], top_pts[i]], fill=0, width=proj_w)
+
+        # -- Layer 2: Cut plane poché (filled walls) --
+        for w in walls:
+            if w["wall_h"] < self.cut_height:
+                continue  # wall doesn't reach cut — skip poché
+            ht = w["half_t"]
+            ox, oy = w["origin"]
+            rot = w["rot"]
+            lw = wall_w if w["is_ext"] else wall_int_w
+
+            if w["axis"] == "x":
+                y_val = w["y_val"]
+                s, e = w["s"], w["e"]
+                corners = [
+                    _local_to_world(s, y_val - ht, (ox, oy), rot),
+                    _local_to_world(e, y_val - ht, (ox, oy), rot),
+                    _local_to_world(e, y_val + ht, (ox, oy), rot),
+                    _local_to_world(s, y_val + ht, (ox, oy), rot),
+                ]
+            else:
+                x_val = w["x_val"]
+                s, e = w["s"], w["e"]
+                corners = [
+                    _local_to_world(x_val - ht, s, (ox, oy), rot),
+                    _local_to_world(x_val - ht, e, (ox, oy), rot),
+                    _local_to_world(x_val + ht, e, (ox, oy), rot),
+                    _local_to_world(x_val + ht, s, (ox, oy), rot),
+                ]
+
+            px_corners = [world_to_px(c[0], c[1]) for c in corners]
+            # Fill poché
+            draw.polygon(px_corners, fill=0)
+
+        # -- Layer 3: Below-cut elements (columns) --
+        col_size = self.state.get("style", {}).get("column_size", 1.5)
+        for name, bay in sorted(self.state.get("bays", {}).items()):
+            if bay.get("grid_type") != "rectangular":
+                continue
+            ox, oy = bay["origin"]
+            rot = bay.get("rotation_deg", 0)
+            cx_arr, cy_arr = _get_spacing_arrays(bay)
+            for x in cx_arr:
+                for y in cy_arr:
+                    wp = _local_to_world(x, y, (ox, oy), rot)
+                    cpx, cpy = world_to_px(wp[0], wp[1])
+                    r = ft_to_px(col_size / 2.0)
+                    bbox = [cpx - r, cpy - r, cpx + r, cpy + r]
+                    draw.ellipse(bbox, fill=0)
+
+        return img
+
+
+# ---------------------------------------------------------------------------
 # Elevation Renderer
 # ---------------------------------------------------------------------------
 
@@ -1325,6 +1584,33 @@ def render_elevation(state, direction, dpi=DEFAULT_DPI,
     renderer = ElevationRenderer(state, direction, dpi=dpi,
                                  paper_size=paper_size,
                                  style_manager=style_manager)
+    return renderer.render()
+
+
+def render_oblique(state, cut_height=10.0, z_angle=45, z_scale=1.0,
+                   dpi=DEFAULT_DPI, paper_size="letter", style_manager=None):
+    """Render a cut military oblique (plan oblique) projection.
+
+    The plan (XY) is drawn true. Wall heights project at z_angle.
+    Walls cut at cut_height show solid poché; above-cut tops project
+    as lighter lines.
+
+    Args:
+        state:         Parsed state.json dict.
+        cut_height:    Height of the section cut plane (feet).
+        z_angle:       Projection angle for Z axis in degrees (default 45).
+        z_scale:       Foreshortening of Z axis (1.0 = military, 0.5 = cabinet).
+        dpi:           Output resolution (default 300).
+        paper_size:    "letter" or "tabloid".
+        style_manager: Optional StyleManager instance.
+
+    Returns:
+        PIL.Image in mode '1' (1-bit B&W).
+    """
+    renderer = ObliqueRenderer(state, cut_height=cut_height,
+                                z_angle=z_angle, z_scale=z_scale,
+                                dpi=dpi, paper_size=paper_size,
+                                style_manager=style_manager)
     return renderer.render()
 
 
