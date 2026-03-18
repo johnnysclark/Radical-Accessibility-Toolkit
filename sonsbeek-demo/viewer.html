@@ -642,16 +642,7 @@ function renderOutlineShadedMode() {
   var h = renderer.domElement.height;
   if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
 
-  // Pass 1: render surfaces to depth target (for hidden-line edge comparison)
-  camera.layers.set(0);
-  renderer.setRenderTarget(depthTarget);
-  renderer.clear();
-  renderer.render(scene, camera);
-
-  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
-
-  // Pass 2: render shaded scene to screen — identical to standard/shaded
+  // Pass 1: render shaded scene to screen FIRST (shadows work here)
   renderer.setRenderTarget(null);
   renderer.clear();
   camera.layers.enable(0);
@@ -659,7 +650,27 @@ function renderOutlineShadedMode() {
   camera.layers.disable(1);
   renderer.render(scene, camera);
 
+  // Pass 2: render surfaces to depth target (for hidden-line edge comparison)
+  // Use MeshBasicMaterial temporarily so shadow state isn't touched
+  var savedMats = [];
+  var depthMat = new THREE.MeshBasicMaterial({side: THREE.DoubleSide});
+  allSurfaces.forEach(function(s) {
+    savedMats.push(s.mesh.material);
+    s.mesh.material = depthMat;
+  });
+  camera.layers.set(0);
+  renderer.setRenderTarget(depthTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+  allSurfaces.forEach(function(s, i) {
+    s.mesh.material = savedMats[i];
+  });
+
+  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
+
   // Pass 3: overlay edges with hidden-line shader
+  renderer.setRenderTarget(null);
   renderer.autoClear = false;
   camera.layers.set(1);
   renderer.render(scene, camera);
