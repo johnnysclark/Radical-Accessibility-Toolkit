@@ -64,7 +64,7 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
 <div id="info">Sonsbeek Pavilion &middot; Aldo van Eyck, 1966</div>
 
 <div id="modes">
-  <button class="pill active" data-mode="pen">Pen</button>
+  <button class="pill active" data-mode="outlineShaded">Outline+Shaded</button>
   <button class="pill" data-mode="shaded">Shaded</button>
   <button class="pill" data-mode="arctic">Arctic</button>
   <button class="pill" data-mode="ghosted">Ghosted</button>
@@ -133,7 +133,7 @@ var hiddenLineEdgeMat, standardEdgeMat, outlineMat, sectionLineMat;
 var sectionLinesGroup;
 var currentSectionHeight = 100;
 var dirLight;
-var currentMode = 'pen';
+var currentMode = 'outlineShaded';
 var isOrtho = false;
 var isDark = false;
 var sunAngle = 45;
@@ -152,12 +152,12 @@ var SUN_HEIGHT = 15;
 var modeMats = {};
 function createModeMaterials() {
   var DS = THREE.DoubleSide;
-  modeMats.pen = {
-    wall: new THREE.MeshStandardMaterial({color:0xe8e4de, roughness:0.80, side:DS}),
-    disc: new THREE.MeshStandardMaterial({color:0xddd8d0, roughness:0.75, side:DS}),
-    bench: new THREE.MeshStandardMaterial({color:0xe0dbd4, roughness:0.80, side:DS}),
-    ground: new THREE.MeshStandardMaterial({color:0xeae6e0, roughness:0.90, side:DS}),
-    edges:true, shadows:true, bg:0xf5f3f0, bgDark:0x1a1a1a, outline:true,
+  modeMats.outlineShaded = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
+    bench: new THREE.MeshStandardMaterial({color:0xb8b0a0, roughness:0.85, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, roughness:0.95, side:DS}),
+    edges:true, shadows:true, bg:0xf0ede8, bgDark:0x1e1c1a, outline:true,
   };
   modeMats.shaded = {
     wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
@@ -628,8 +628,8 @@ function applyMode(mode) {
    RENDER
    =================================================================== */
 function render() {
-  if (currentMode === 'pen') {
-    renderPenMode();
+  if (currentMode === 'outlineShaded') {
+    renderOutlineShadedMode();
   } else if (currentMode === 'ghosted') {
     renderGhostedMode();
   } else {
@@ -637,15 +637,12 @@ function render() {
   }
 }
 
-function renderPenMode() {
+function renderOutlineShadedMode() {
   var w = renderer.domElement.width;
   var h = renderer.domElement.height;
   if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
 
-  // Force shadow map update
-  renderer.shadowMap.needsUpdate = true;
-
-  // Pass 1: surfaces to depth target (for edge depth comparison)
+  // Pass 1: render surfaces to depth target (for hidden-line edge comparison)
   camera.layers.set(0);
   renderer.setRenderTarget(depthTarget);
   renderer.clear();
@@ -654,18 +651,16 @@ function renderPenMode() {
   hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
   hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
 
-  // Pass 2: outlines to screen
+  // Pass 2: render shaded scene to screen — identical to standard/shaded
   renderer.setRenderTarget(null);
   renderer.clear();
-  camera.layers.set(2);
+  camera.layers.enable(0);
+  camera.layers.enable(2);
+  camera.layers.disable(1);
   renderer.render(scene, camera);
 
-  // Pass 3: shaded surfaces with shadows
+  // Pass 3: overlay edges with hidden-line shader
   renderer.autoClear = false;
-  camera.layers.set(0);
-  renderer.render(scene, camera);
-
-  // Pass 4: edges with hidden-line shader
   camera.layers.set(1);
   renderer.render(scene, camera);
 
@@ -860,7 +855,7 @@ function init() {
   setupLighting();
   buildModel(SONSBEEK);
   fitCamera();
-  applyMode('pen');
+  applyMode('outlineShaded');
 
   window.addEventListener('resize', onResize);
   setupUI();
