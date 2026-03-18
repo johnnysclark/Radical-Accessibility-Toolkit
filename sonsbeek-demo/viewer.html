@@ -69,7 +69,6 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
   <button class="pill" data-mode="arctic">Arctic</button>
   <button class="pill" data-mode="ghosted">Ghosted</button>
   <button class="pill" data-mode="wire">Wire</button>
-  <button class="pill" data-mode="xray">X-Ray</button>
 </div>
 
 <div id="sliders">
@@ -83,6 +82,10 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
     <label>Section</label>
     <input type="range" id="sectionSlider" min="0" max="350" value="350">
     <span class="val" id="sectionVal">off</span>
+  </div>
+  <div class="slider-row">
+    <label>Color</label>
+    <input type="color" id="colorPicker" value="#c8bca8" style="width:28px;height:22px;border:none;padding:0;cursor:pointer;background:transparent">
   </div>
 </div>
 
@@ -169,9 +172,9 @@ var SONSBEEK = {
    GLOBALS
    =================================================================== */
 var scene, perspCamera, orthoCamera, camera, renderer, controls;
-var surfaceGroup, edgeGroup, outlineGroup, groundGroup;
+var surfaceGroup, edgeGroup, groundGroup;
 var depthTarget, sectionPlane;
-var hiddenLineEdgeMat, standardEdgeMat, outlineMat, sectionLineMat;
+var hiddenLineEdgeMat, standardEdgeMat, sectionLineMat;
 var sectionLinesGroup;
 var currentSectionHeight = 100;
 var dirLight;
@@ -182,7 +185,7 @@ var sunAngle = 45;
 var sunEnabled = false;
 var allSurfaces = [];
 var allEdgeLines = [];
-var allOutlines = [];
+var silhouetteScene, silhouetteCamera, silhouetteMesh, silhouetteMat;
 var BG = { light: 0xffffff, dark: 0x1a1a1a };
 var ORTHO_SIZE = 22;
 var SUN_RADIUS = 20;
@@ -228,13 +231,6 @@ function createModeMaterials() {
     bench: new THREE.MeshBasicMaterial({wireframe:true, color:0x555555, side:DS}),
     ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x999999, side:DS}),
     edges:false, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:false,
-  };
-  modeMats.xray = {
-    wall: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.35, side:DS}),
-    disc: new THREE.MeshBasicMaterial({wireframe:true, color:0x66aaee, transparent:true, opacity:0.30, side:DS}),
-    bench: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.30, side:DS}),
-    ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x88aacc, transparent:true, opacity:0.15, side:DS}),
-    edges:false, shadows:false, bg:0xf5f8ff, bgDark:0x0a1520, outline:false,
   };
 }
 
@@ -296,9 +292,52 @@ function createEdgeMaterials() {
     transparent: false,
   });
 
-  outlineMat = new THREE.MeshBasicMaterial({
-    color: 0x000000,
-    side: THREE.BackSide,
+  // Post-processing silhouette shader (Sobel on depth)
+  silhouetteMat = new THREE.ShaderMaterial({
+    uniforms: {
+      tDepth: {value: null},
+      resolution: {value: new THREE.Vector2(1, 1)},
+      lineThickness: {value: 2.5},
+      threshold: {value: 0.002},
+    },
+    vertexShader: [
+      'varying vec2 vUv;',
+      'void main() {',
+      '  vUv = uv;',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform sampler2D tDepth;',
+      'uniform vec2 resolution;',
+      'uniform float lineThickness;',
+      'uniform float threshold;',
+      'varying vec2 vUv;',
+      'float getDepth(vec2 uv) {',
+      '  return texture2D(tDepth, uv).r;',
+      '}',
+      'void main() {',
+      '  vec2 texel = lineThickness / resolution;',
+      '  float d = getDepth(vUv);',
+      '  float dU = getDepth(vUv + vec2(0.0, texel.y));',
+      '  float dD = getDepth(vUv - vec2(0.0, texel.y));',
+      '  float dL = getDepth(vUv - vec2(texel.x, 0.0));',
+      '  float dR = getDepth(vUv + vec2(texel.x, 0.0));',
+      '  float dUL = getDepth(vUv + vec2(-texel.x, texel.y));',
+      '  float dUR = getDepth(vUv + vec2(texel.x, texel.y));',
+      '  float dDL = getDepth(vUv + vec2(-texel.x, -texel.y));',
+      '  float dDR = getDepth(vUv + vec2(texel.x, -texel.y));',
+      '  float gx = -dUL - 2.0*dL - dDL + dUR + 2.0*dR + dDR;',
+      '  float gy = -dUL - 2.0*dU - dUR + dDL + 2.0*dD + dDR;',
+      '  float edge = sqrt(gx*gx + gy*gy);',
+      '  if (d > 0.999) discard;',
+      '  if (edge < threshold) discard;',
+      '  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+      '}'
+    ].join('\n'),
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
   });
 
   sectionLineMat = new THREE.MeshBasicMaterial({
@@ -328,8 +367,6 @@ function buildWallSegment(x, yStart, yEnd, height, thickness, category) {
   edgeLine.layers.set(1);
   allEdgeLines.push(edgeLine);
   edgeGroup.add(edgeLine);
-
-  addOutline(mesh, geo, 0.025);
 }
 
 function buildCurvedWall(cw) {
@@ -385,8 +422,6 @@ function buildCurvedWall(cw) {
   edgeLine.layers.set(1);
   allEdgeLines.push(edgeLine);
   edgeGroup.add(edgeLine);
-
-  addOutline(mesh, geo, 0.025);
 }
 
 function buildDisc(disc) {
@@ -406,8 +441,6 @@ function buildDisc(disc) {
   edgeLine.layers.set(1);
   allEdgeLines.push(edgeLine);
   edgeGroup.add(edgeLine);
-
-  addOutline(mesh, geo, 0.02);
 }
 
 function buildGround(site) {
@@ -429,31 +462,6 @@ function buildGround(site) {
   edgeLine.layers.set(1);
   allEdgeLines.push(edgeLine);
   edgeGroup.add(edgeLine);
-
-  // Outline for silhouette
-  addOutline(mesh, geo, 0.03);
-}
-
-function addOutline(originalMesh, geo, expansion) {
-  var cloneGeo = geo.clone();
-  var p = cloneGeo.getAttribute('position');
-  var n = cloneGeo.getAttribute('normal');
-  if (!n) return;
-  for (var i = 0; i < p.count; i++) {
-    p.setXYZ(i,
-      p.getX(i) + n.getX(i) * expansion,
-      p.getY(i) + n.getY(i) * expansion,
-      p.getZ(i) + n.getZ(i) * expansion
-    );
-  }
-  p.needsUpdate = true;
-  var outline = new THREE.Mesh(cloneGeo, outlineMat);
-  outline.position.copy(originalMesh.position);
-  outline.quaternion.copy(originalMesh.quaternion);
-  outline.scale.copy(originalMesh.scale);
-  outline.layers.set(2);
-  allOutlines.push(outline);
-  outlineGroup.add(outline);
 }
 
 /* ===================================================================
@@ -650,7 +658,7 @@ function applyMode(mode) {
     s.mesh.material = m[s.category] || m.wall;
   });
   edgeGroup.visible = m.edges;
-  outlineGroup.visible = !!m.outline;
+  silhouetteMesh.visible = !!m.outline;
 
   dirLight.castShadow = m.shadows && sunEnabled;
   renderer.shadowMap.needsUpdate = true;
@@ -681,34 +689,64 @@ function render() {
 }
 
 function renderOutlineShadedMode() {
-  // Single-pass: shaded surfaces + outlines + edges — same as shaded but with edges
-  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
+  // 1. Depth pre-pass: surfaces only to depthTarget
+  camera.layers.set(0);
+  edgeGroup.visible = false;
+  renderer.setRenderTarget(depthTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+  edgeGroup.visible = true;
+
+  // 2. Update hidden-line shader uniforms
+  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  hiddenLineEdgeMat.uniforms.resolution.value.set(
+    renderer.domElement.width, renderer.domElement.height
+  );
+
+  // 3. Render shaded scene + edges with hidden-line dashing to screen
   camera.layers.enable(0);
   camera.layers.enable(1);
-  camera.layers.enable(2);
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
   renderer.setRenderTarget(null);
   renderer.clear();
   renderer.render(scene, camera);
   camera.layers.enableAll();
-  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
+
+  // 4. Silhouette overlay
+  silhouetteMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  silhouetteMat.uniforms.resolution.value.set(
+    renderer.domElement.width, renderer.domElement.height
+  );
+  renderer.autoClear = false;
+  renderer.render(silhouetteScene, silhouetteCamera);
+  renderer.autoClear = true;
 }
 
 function renderGhostedMode() {
-  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
+  // Depth pre-pass for hidden-line edges
+  camera.layers.set(0);
+  edgeGroup.visible = false;
+  renderer.setRenderTarget(depthTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+  edgeGroup.visible = true;
+
+  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  hiddenLineEdgeMat.uniforms.resolution.value.set(
+    renderer.domElement.width, renderer.domElement.height
+  );
+
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
   camera.layers.enable(0);
   camera.layers.enable(1);
-  camera.layers.disable(2);
   renderer.setRenderTarget(null);
   renderer.clear();
   renderer.render(scene, camera);
   camera.layers.enableAll();
-  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
 }
 
 function renderStandardMode() {
-  camera.layers.enable(0);
-  camera.layers.disable(1);
-  camera.layers.disable(2);
+  camera.layers.set(0);
   renderer.setRenderTarget(null);
   renderer.clear();
   renderer.render(scene, camera);
@@ -866,14 +904,19 @@ function init() {
 
   surfaceGroup = new THREE.Group();
   edgeGroup = new THREE.Group();
-  outlineGroup = new THREE.Group();
   groundGroup = new THREE.Group();
   sectionLinesGroup = new THREE.Group();
   scene.add(surfaceGroup);
   scene.add(edgeGroup);
-  scene.add(outlineGroup);
   scene.add(groundGroup);
   scene.add(sectionLinesGroup);
+
+  // Silhouette overlay (separate scene so it renders on top)
+  silhouetteScene = new THREE.Scene();
+  silhouetteCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  var quadGeo = new THREE.PlaneGeometry(2, 2);
+  silhouetteMesh = new THREE.Mesh(quadGeo, silhouetteMat);
+  silhouetteScene.add(silhouetteMesh);
 
   createModeMaterials();
   createEdgeMaterials();
@@ -950,6 +993,26 @@ function setupUI() {
     updateSection(parseInt(e.target.value));
   });
 
+  // Color picker
+  document.getElementById('colorPicker').addEventListener('input', function(e) {
+    var hex = e.target.value;
+    var c = new THREE.Color(hex);
+    var darker = c.clone().multiplyScalar(0.88);
+    var lighter = c.clone().lerp(new THREE.Color(0xffffff), 0.08);
+    // Update shaded modes (outlineShaded, shaded)
+    ['outlineShaded', 'shaded'].forEach(function(mode) {
+      modeMats[mode].wall.color.copy(c);
+      modeMats[mode].disc.color.copy(darker);
+      modeMats[mode].bench.color.copy(darker);
+      modeMats[mode].ground.color.copy(lighter);
+    });
+    // Update ghosted
+    modeMats.ghosted.wall.color.copy(c);
+    modeMats.ghosted.disc.color.copy(darker);
+    modeMats.ghosted.bench.color.copy(darker);
+    modeMats.ghosted.ground.color.copy(lighter);
+  });
+
   // Load JSON
   var loadPanel = document.getElementById('loadPanel');
   document.getElementById('btnLoad').addEventListener('click', function() {
@@ -998,12 +1061,10 @@ function setupUI() {
 function clearModel() {
   while (surfaceGroup.children.length) surfaceGroup.remove(surfaceGroup.children[0]);
   while (edgeGroup.children.length) edgeGroup.remove(edgeGroup.children[0]);
-  while (outlineGroup.children.length) outlineGroup.remove(outlineGroup.children[0]);
   while (groundGroup.children.length) groundGroup.remove(groundGroup.children[0]);
   while (sectionLinesGroup.children.length) sectionLinesGroup.remove(sectionLinesGroup.children[0]);
   allSurfaces.length = 0;
   allEdgeLines.length = 0;
-  allOutlines.length = 0;
 }
 
 /* ===================================================================
