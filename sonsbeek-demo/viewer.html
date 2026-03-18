@@ -557,9 +557,12 @@ function buildModel(data) {
    LIGHTING
    =================================================================== */
 function setupLighting() {
-  scene.add(new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6));
+  var hemi = new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6);
+  hemi.layers.enableAll();
+  scene.add(hemi);
 
   dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.layers.enableAll();
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.set(2048, 2048);
   dirLight.shadow.camera.left = -15;
@@ -573,10 +576,13 @@ function setupLighting() {
   updateSunPosition(sunAngle);
 
   var fill = new THREE.DirectionalLight(0xb0c4de, 0.3);
+  fill.layers.enableAll();
   fill.position.set(-6, 8, -6);
   scene.add(fill);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+  var amb = new THREE.AmbientLight(0xffffff, 0.15);
+  amb.layers.enableAll();
+  scene.add(amb);
 }
 
 function updateSunPosition(angleDeg) {
