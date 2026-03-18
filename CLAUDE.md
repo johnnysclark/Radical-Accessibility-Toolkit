@@ -96,6 +96,36 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - JSON keys: `snake_case`
 - Tool folders: `kebab-case`
 - Rhino layers: `JIG::<Category>` (PascalCase category)
+- Git branches: plain English words only, no random IDs (see below)
+
+### Git Branch Names
+
+Branch names must be speakable and understandable when read aloud by a screen reader or dictated via voice recognition. Random suffixes, hex strings, and cryptic abbreviations are banned.
+
+**Format:** `author/action-topic`
+
+- `author` — first name or GitHub username, lowercase.
+- `action` — what the branch does: `add`, `fix`, `update`, `remove`, `refactor`.
+- `topic` — plain words describing the change, separated by hyphens.
+
+**Good examples:**
+- `john/add-tactile-export`
+- `ethan/fix-watcher-crash-on-empty-state`
+- `claude/update-screen-reader-hooks`
+- `claude/add-bay-rotation-command`
+
+**Bad examples (do not use):**
+- `claude/fix-stuff-eW35T` — random suffix is not speakable.
+- `feature/JIRA-4821-impl` — ticket numbers are not self-describing.
+- `dev-2a9f3b` — hex gibberish.
+- `wip` — says nothing about intent.
+
+**Rules:**
+1. Every word in the branch name must be a real English word or a project term from the Taxonomy section.
+2. No random character suffixes, UUIDs, hex fragments, or session IDs.
+3. Keep it under 6 words after the author prefix.
+4. A person hearing the branch name once should be able to repeat it back.
+5. When Claude creates branches, it must follow this convention and never append generated IDs.
 
 ---
 
