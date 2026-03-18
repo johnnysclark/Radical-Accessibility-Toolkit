@@ -1,0 +1,371 @@
+{
+  "schema": "plan_layout_jig_v2.3",
+  "meta": {
+    "name": "Sonsbeek Pavilion",
+    "description": "Aldo van Eyck, 1966. Parallel masonry walls with portals and column clusters."
+  },
+  "site": {
+    "width": 100.0,
+    "height": 100.0
+  },
+  "style": {
+    "column_size": 1.5
+  },
+  "bays": {
+    "W1": {
+      "grid_type": "rectangular",
+      "origin": [
+        12.0,
+        15.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        70.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": [
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 25.0,
+          "width": 8.0
+        },
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 25.0,
+          "width": 8.0
+        }
+      ]
+    },
+    "W2": {
+      "grid_type": "rectangular",
+      "origin": [
+        22.0,
+        20.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        60.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": []
+    },
+    "W3": {
+      "grid_type": "rectangular",
+      "origin": [
+        32.0,
+        10.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        75.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": [
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 35.0,
+          "width": 10.0
+        },
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 35.0,
+          "width": 10.0
+        }
+      ]
+    },
+    "W4": {
+      "grid_type": "rectangular",
+      "origin": [
+        44.0,
+        18.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        65.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": [
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 20.0,
+          "width": 6.0
+        },
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 20.0,
+          "width": 6.0
+        }
+      ]
+    },
+    "W5": {
+      "grid_type": "rectangular",
+      "origin": [
+        54.0,
+        12.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        72.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": [
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 40.0,
+          "width": 8.0
+        },
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 40.0,
+          "width": 8.0
+        }
+      ]
+    },
+    "W6": {
+      "grid_type": "rectangular",
+      "origin": [
+        66.0,
+        22.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        55.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": [
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 15.0,
+          "width": 7.0
+        },
+        {
+          "type": "portal",
+          "axis": "y",
+          "gridline": 1,
+          "corner": 15.0,
+          "width": 7.0
+        }
+      ]
+    },
+    "W7": {
+      "grid_type": "rectangular",
+      "origin": [
+        76.0,
+        8.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        2.0,
+        80.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": true,
+        "thickness": 2.0,
+        "A": "on",
+        "B": "on",
+        "C": "on",
+        "D": "on"
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": []
+    },
+    "C1": {
+      "grid_type": "rectangular",
+      "origin": [
+        38.0,
+        45.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        3.0,
+        3.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": false
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": []
+    },
+    "C2": {
+      "grid_type": "rectangular",
+      "origin": [
+        55.0,
+        55.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        3.0,
+        3.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": false
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": []
+    },
+    "C3": {
+      "grid_type": "rectangular",
+      "origin": [
+        72.0,
+        40.0
+      ],
+      "rotation_deg": 0,
+      "bays": [
+        1,
+        1
+      ],
+      "spacing": [
+        3.0,
+        3.0
+      ],
+      "wall_height": 46.0,
+      "walls": {
+        "enabled": false
+      },
+      "corridor": {
+        "enabled": false
+      },
+      "apertures": []
+    }
+  },
+  "tactile3d": {
+    "enabled": true,
+    "wall_height": 46.0,
+    "cut_height": 10.0
+  }
+}

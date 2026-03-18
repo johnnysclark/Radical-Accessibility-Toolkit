@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RAP Viewer</title>
+<style>
+/* ── Reset & Base ───────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;touch-action:none}
+
+/* ── Theme Variables ────────────────────────────────── */
+:root{
+  --bg:#fff;--fg:#222;--bar-bg:rgba(255,255,255,0.92);--bar-border:#ddd;
+  --tab-bg:#f0f0f0;--tab-active:#222;--tab-active-fg:#fff;--btn-bg:#f0f0f0;
+  --overlay-bg:rgba(0,0,0,0.6);--panel-bg:#fff;--input-bg:#f8f8f8;--input-border:#ccc;
+}
+body.dark{
+  --bg:#1a1a1a;--fg:#eee;--bar-bg:rgba(30,30,30,0.92);--bar-border:#444;
+  --tab-bg:#333;--tab-active:#eee;--tab-active-fg:#222;--btn-bg:#333;
+  --overlay-bg:rgba(0,0,0,0.8);--panel-bg:#2a2a2a;--input-bg:#333;--input-border:#555;
+}
+body{background:var(--bg);color:var(--fg)}
+
+/* ── Top Bar ────────────────────────────────────────── */
+#topbar{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--bar-bg);border-bottom:1px solid var(--bar-border);z-index:10;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#topbar .title{font-weight:700;font-size:15px}
+#topbar .count{font-size:12px;opacity:0.7}
+
+/* ── Display Mode Tabs ──────────────────────────────── */
+#tabs{position:fixed;top:44px;left:0;right:0;height:36px;display:flex;overflow-x:auto;overflow-y:hidden;background:var(--bar-bg);border-bottom:1px solid var(--bar-border);z-index:10;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+#tabs button{flex:0 0 auto;padding:6px 14px;border:none;background:var(--tab-bg);color:var(--fg);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;border-radius:4px;margin:4px 3px}
+#tabs button.active{background:var(--tab-active);color:var(--tab-active-fg)}
+
+/* ── Info Line ──────────────────────────────────────── */
+#info{position:fixed;bottom:48px;left:0;right:0;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0.7;background:var(--bar-bg);border-top:1px solid var(--bar-border);z-index:10;gap:12px}
+
+/* ── Bottom Bar ─────────────────────────────────────── */
+#bottombar{position:fixed;bottom:0;left:0;right:0;height:48px;display:flex;align-items:center;justify-content:space-around;padding:0 8px;background:var(--bar-bg);border-top:1px solid var(--bar-border);z-index:10}
+#bottombar button{border:none;background:var(--btn-bg);color:var(--fg);padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer}
+
+/* ── 3D Viewport ────────────────────────────────────── */
+#viewport{position:fixed;top:80px;left:0;right:0;bottom:72px}
+#viewport canvas{display:block;width:100%!important;height:100%!important}
+
+/* ── JSON Input Overlay ─────────────────────────────── */
+#overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-bg);z-index:100;justify-content:center;align-items:center;padding:16px}
+#overlay.show{display:flex}
+#panel{background:var(--panel-bg);border-radius:12px;width:100%;max-width:500px;max-height:90vh;display:flex;flex-direction:column;padding:16px;gap:12px}
+#panel h3{font-size:16px}
+#panel textarea{width:100%;height:200px;resize:vertical;border:1px solid var(--input-border);background:var(--input-bg);color:var(--fg);border-radius:6px;padding:8px;font-family:monospace;font-size:12px}
+#panel .btns{display:flex;gap:8px;justify-content:flex-end}
+#panel .btns button{padding:8px 20px;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+#panel .btns .cancel{background:var(--btn-bg);color:var(--fg)}
+#panel .btns .render{background:#2563eb;color:#fff;font-weight:600}
+#panel .file-row{display:flex;gap:8px;align-items:center}
+#panel .file-row label{padding:8px 16px;background:var(--btn-bg);color:var(--fg);border-radius:6px;cursor:pointer;font-size:12px}
+#panel .file-row input{display:none}
+#panel .file-row span{font-size:11px;opacity:0.7}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <span class="title">RAP Viewer</span>
+  <span class="count" id="objCount">0 objects</span>
+</div>
+
+<!-- Display Mode Tabs -->
+<div id="tabs">
+  <button class="active" data-mode="pen">Pen</button>
+  <button data-mode="arctic">Arctic</button>
+  <button data-mode="shaded">Shaded</button>
+  <button data-mode="ghosted">Ghosted</button>
+  <button data-mode="wireframe">Wireframe</button>
+  <button data-mode="technical">Technical</button>
+  <button data-mode="xray">X-Ray</button>
+</div>
+
+<!-- 3D Viewport -->
+<div id="viewport"></div>
+
+<!-- Info Line -->
+<div id="info">
+  <span id="infoMode">--</span>
+  <span id="infoBays">--</span>
+  <span id="infoGrid">--</span>
+</div>
+
+<!-- Bottom Bar -->
+<div id="bottombar">
+  <button id="btnLoad">Load</button>
+  <button id="btnFit">Fit</button>
+  <button id="btnTheme">Theme</button>
+  <button id="btnScreenshot">Photo</button>
+</div>
+
+<!-- JSON Input Overlay -->
+<div id="overlay">
+  <div id="panel">
+    <h3>Load JSON</h3>
+    <div class="file-row">
+      <label for="fileInput">Choose File</label>
+      <input type="file" id="fileInput" accept=".json">
+      <span id="fileName">No file selected</span>
+    </div>
+    <textarea id="jsonInput" placeholder="Or paste JSON here..."></textarea>
+    <div class="btns">
+      <button class="cancel" id="btnCancel">Cancel</button>
+      <button class="render" id="btnRender">Render</button>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ════════════════════════════════════════════════════════
+// ORBIT CONTROLS (inlined from Three.js examples)
+// Simplified touch-friendly orbit/zoom/pan
+// ════════════════════════════════════════════════════════
+(function(){
+  const STATE={NONE:-1,ROTATE:0,DOLLY:1,PAN:2,TOUCH_ROTATE:3,TOUCH_DOLLY_PAN:4};
+  class OrbitControls{
+    constructor(camera,domElement){
+      this.camera=camera;this.domElement=domElement;this.enabled=true;
+      this.target=new THREE.Vector3();
+      this.minDistance=1;this.maxDistance=5000;
+      this.minPolarAngle=0;this.maxPolarAngle=Math.PI;
+      this.enableDamping=true;this.dampingFactor=0.08;
+      this.rotateSpeed=0.8;this.zoomSpeed=1.2;this.panSpeed=1.0;
+      this._spherical=new THREE.Spherical();this._sphericalDelta=new THREE.Spherical();
+      this._panOffset=new THREE.Vector3();this._scale=1;
+      this._rotateStart=new THREE.Vector2();this._rotateEnd=new THREE.Vector2();
+      this._panStart=new THREE.Vector2();this._panEnd=new THREE.Vector2();
+      this._dollyStart=new THREE.Vector2();this._dollyEnd=new THREE.Vector2();
+      this._state=STATE.NONE;
+      this._quat=new THREE.Quaternion().setFromUnitVectors(camera.up,new THREE.Vector3(0,1,0));
+      this._quatInverse=this._quat.clone().invert();
+      const el=this.domElement;
+      el.addEventListener('pointerdown',e=>this._onPointerDown(e));
+      el.addEventListener('pointermove',e=>this._onPointerMove(e));
+      el.addEventListener('pointerup',e=>this._onPointerUp(e));
+      el.addEventListener('wheel',e=>this._onWheel(e),{passive:false});
+      el.addEventListener('contextmenu',e=>e.preventDefault());
+      this._pointers=[];this._pointerPositions={};
+    }
+    update(){
+      const offset=new THREE.Vector3();
+      const pos=this.camera.position;
+      offset.copy(pos).sub(this.target);
+      offset.applyQuaternion(this._quat);
+      this._spherical.setFromVector3(offset);
+      this._spherical.theta+=this._sphericalDelta.theta;
+      this._spherical.phi+=this._sphericalDelta.phi;
+      this._spherical.phi=Math.max(this.minPolarAngle,Math.min(this.maxPolarAngle,this._spherical.phi));
+      this._spherical.makeSafe();
+      this._spherical.radius*=this._scale;
+      this._spherical.radius=Math.max(this.minDistance,Math.min(this.maxDistance,this._spherical.radius));
+      this.target.add(this._panOffset);
+      offset.setFromSpherical(this._spherical);
+      offset.applyQuaternion(this._quatInverse);
+      pos.copy(this.target).add(offset);
+      this.camera.lookAt(this.target);
+      if(this.enableDamping){
+        this._sphericalDelta.theta*=(1-this.dampingFactor);
+        this._sphericalDelta.phi*=(1-this.dampingFactor);
+        this._panOffset.multiplyScalar(1-this.dampingFactor);
+      }else{
+        this._sphericalDelta.set(0,0,0);
+        this._panOffset.set(0,0,0);
+      }
+      this._scale=1;
+    }
+    _onPointerDown(e){
+      this._pointers.push(e.pointerId);
+      this._pointerPositions[e.pointerId]={x:e.clientX,y:e.clientY};
+      if(this._pointers.length===1){
+        if(e.button===0){this._state=STATE.ROTATE;this._rotateStart.set(e.clientX,e.clientY)}
+        else if(e.button===2){this._state=STATE.PAN;this._panStart.set(e.clientX,e.clientY)}
+      }else if(this._pointers.length===2){
+        this._state=STATE.TOUCH_DOLLY_PAN;
+        const dx=this._pointerPositions[this._pointers[0]].x-e.clientX;
+        const dy=this._pointerPositions[this._pointers[0]].y-e.clientY;
+        this._dollyStart.set(0,Math.sqrt(dx*dx+dy*dy));
+        const mx=(this._pointerPositions[this._pointers[0]].x+e.clientX)/2;
+        const my=(this._pointerPositions[this._pointers[0]].y+e.clientY)/2;
+        this._panStart.set(mx,my);
+      }
+      this.domElement.setPointerCapture(e.pointerId);
+    }
+    _onPointerMove(e){
+      if(!this._pointers.includes(e.pointerId))return;
+      this._pointerPositions[e.pointerId]={x:e.clientX,y:e.clientY};
+      if(this._state===STATE.ROTATE){
+        this._rotateEnd.set(e.clientX,e.clientY);
+        const d=new THREE.Vector2().subVectors(this._rotateEnd,this._rotateStart);
+        const el=this.domElement;
+        this._sphericalDelta.theta-=2*Math.PI*d.x/el.clientHeight*this.rotateSpeed;
+        this._sphericalDelta.phi-=2*Math.PI*d.y/el.clientHeight*this.rotateSpeed;
+        this._rotateStart.copy(this._rotateEnd);
+      }else if(this._state===STATE.PAN){
+        this._panEnd.set(e.clientX,e.clientY);
+        const d=new THREE.Vector2().subVectors(this._panEnd,this._panStart).multiplyScalar(this.panSpeed);
+        this._pan(d.x,d.y);
+        this._panStart.copy(this._panEnd);
+      }else if(this._state===STATE.TOUCH_DOLLY_PAN){
+        const other=this._pointers[0]===e.pointerId?this._pointers[1]:this._pointers[0];
+        const op=this._pointerPositions[other];if(!op)return;
+        const dx=op.x-e.clientX,dy=op.y-e.clientY;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        this._dollyEnd.set(0,dist);
+        const dollyDelta=this._dollyEnd.y/this._dollyStart.y;
+        if(dollyDelta>0)this._scale/=Math.pow(dollyDelta,this.zoomSpeed);
+        this._dollyStart.copy(this._dollyEnd);
+        const mx=(op.x+e.clientX)/2,my=(op.y+e.clientY)/2;
+        this._panEnd.set(mx,my);
+        const pd=new THREE.Vector2().subVectors(this._panEnd,this._panStart).multiplyScalar(this.panSpeed);
+        this._pan(pd.x,pd.y);
+        this._panStart.copy(this._panEnd);
+      }
+    }
+    _onPointerUp(e){
+      this._pointers=this._pointers.filter(p=>p!==e.pointerId);
+      delete this._pointerPositions[e.pointerId];
+      if(this._pointers.length===0)this._state=STATE.NONE;
+    }
+    _onWheel(e){
+      e.preventDefault();
+      if(e.deltaY<0)this._scale/=Math.pow(0.95,this.zoomSpeed);
+      else this._scale*=Math.pow(0.95,this.zoomSpeed);
+    }
+    _pan(dx,dy){
+      const el=this.domElement;
+      const offset=new THREE.Vector3();
+      offset.copy(this.camera.position).sub(this.target);
+      let targetDist=offset.length();
+      targetDist*=Math.tan((this.camera.fov/2)*Math.PI/180);
+      const panLeft=new THREE.Vector3();
+      panLeft.setFromMatrixColumn(this.camera.matrix,0);
+      panLeft.multiplyScalar(-2*dx*targetDist/el.clientHeight);
+      const panUp=new THREE.Vector3();
+      panUp.setFromMatrixColumn(this.camera.matrix,1);
+      panUp.multiplyScalar(2*dy*targetDist/el.clientHeight);
+      this._panOffset.add(panLeft).add(panUp);
+    }
+  }
+  window.OrbitControls=OrbitControls;
+})();
+
+// ════════════════════════════════════════════════════════
+// EMBEDDED DEMO STATE (2 bays: rectangular + radial)
+// ════════════════════════════════════════════════════════
+const DEMO_STATE = {
+  "schema": "plan_layout_jig_v2.3",
+  "meta": {"created":"2025-01-01T00:00:00","last_saved":"2025-01-01T00:00:00","notes":"Demo state for Three.js viewer"},
+  "site": {"origin":[0,0],"width":180,"height":160},
+  "style": {
+    "column_size":1.5,"heavy_lineweight_mm":1.4,"light_lineweight_mm":0.08,
+    "corridor_lineweight_mm":0.35,"wall_lineweight_mm":0.25,
+    "label_text_height":0.3,"braille_text_height":0.5,
+    "corridor_dash_len":3,"corridor_gap_len":2,
+    "background_pad":2,"label_offset":3,"arc_segments":16
+  },
+  "bays": {
+    "A": {
+      "grid_type":"rectangular","z_order":0,"origin":[10,10],"rotation_deg":0,
+      "bays":[3,3],"spacing":[24,24],"spacing_x":null,"spacing_y":null,
+      "corridor":{"enabled":true,"axis":"x","position":1,"width":8,"loading":"double","hatch":"none","hatch_scale":4},
+      "walls":{"enabled":true,"thickness":0.5},
+      "apertures":[
+        {"id":"d1","type":"door","axis":"x","gridline":0,"corner":10,"width":3,"height":7,"hinge":"start","swing":"positive"},
+        {"id":"w1","type":"window","axis":"y","gridline":0,"corner":30,"width":6,"height":4,"hinge":"start","swing":"positive"}
+      ],
+      "void_center":[46,46],"void_size":[20,20],"void_shape":"rectangle",
+      "cells":{},"label":"Bay A","braille":"","wall_height":10
+    },
+    "B": {
+      "grid_type":"radial","z_order":0,"origin":[130,70],"rotation_deg":0,
+      "bays":[3,3],"spacing":[20,20],"spacing_x":null,"spacing_y":null,
+      "rings":3,"ring_spacing":15,"arms":6,"arc_deg":360,"arc_start_deg":0,
+      "corridor":{"enabled":false,"axis":"x","position":1,"width":8,"loading":"double","hatch":"none","hatch_scale":4},
+      "walls":{"enabled":false,"thickness":0.5},
+      "apertures":[],
+      "void_center":[130,70],"void_size":[20,20],"void_shape":"circle",
+      "cells":{},"label":"Bay B","braille":"","wall_height":10
+    }
+  },
+  "blocks":{"door":{"symbol":"arc_swing","label_prefix":"D","show_label":true,"label_height":1.5,"tactile_weight_mm":0.35},"window":{"symbol":"glass_line","label_prefix":"W","show_label":true,"label_height":1.5,"tactile_weight_mm":0.25},"portal":{"symbol":"bracket_arrow","label_prefix":"P","show_label":true,"label_height":1.5,"tactile_weight_mm":0.35},"room":{"symbol":"boundary_label","show_label":true,"label_height":3,"tactile_weight_mm":0.5}},
+  "rooms":{},
+  "legend":{"enabled":false},
+  "tactile3d":{"enabled":false},
+  "hatch_library_path":"./hatches/",
+  "print":{},"bambu":{},"section":{}
+};
+
+// ════════════════════════════════════════════════════════
+// DISPLAY MODE DEFINITIONS
+// ════════════════════════════════════════════════════════
+const DISPLAY_MODES = {
+  pen:       { bg:0xFFFFFF, lineColor:0x000000, faceColor:0x000000, faceOpacity:1,   lineOpacity:1,   edgeOpacity:1,   showFaces:true,  label:'Pen' },
+  arctic:    { bg:0xF5F0EB, lineColor:0xBBBBBB, faceColor:0xFFFFFF, faceOpacity:1,   lineOpacity:0.6, edgeOpacity:0.5, showFaces:true,  label:'Arctic' },
+  shaded:    { bg:0x808080, lineColor:0x333333, faceColor:0xCCCCCC, faceOpacity:1,   lineOpacity:1,   edgeOpacity:0.8, showFaces:true,  label:'Shaded' },
+  ghosted:   { bg:0xF5F0EB, lineColor:0x666666, faceColor:0xDDDDDD, faceOpacity:0.25,lineOpacity:0.9, edgeOpacity:0.8, showFaces:true,  label:'Ghosted' },
+  wireframe: { bg:0xFFFFFF, lineColor:0x000000, faceColor:0x000000, faceOpacity:0,   lineOpacity:1,   edgeOpacity:1,   showFaces:false, label:'Wireframe' },
+  technical: { bg:0xFFFFFF, lineColor:0x000000, faceColor:0xFFFFFF, faceOpacity:1,   lineOpacity:1,   edgeOpacity:1,   showFaces:true,  label:'Technical' },
+  xray:      { bg:0x0A0A2E, lineColor:0x4488FF, faceColor:0x2244AA, faceOpacity:0.08,lineOpacity:0.5, edgeOpacity:0.5, showFaces:true,  label:'X-Ray' },
+};
+
+// ════════════════════════════════════════════════════════
+// THREE.JS SCENE SETUP
+// ════════════════════════════════════════════════════════
+const container = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50,1,0.1,10000);
+camera.position.set(90,200,200);
+camera.up.set(0,1,0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(90,0,-80);
+controls.enableDamping = true;
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+dirLight.position.set(100,200,100);
+scene.add(dirLight);
+
+// Layer groups
+const groups = {
+  site: new THREE.Group(),
+  hatch: new THREE.Group(),
+  grid: new THREE.Group(),
+  columns: new THREE.Group(),
+  walls: new THREE.Group(),
+  blocks: new THREE.Group(),
+  corridor: new THREE.Group(),
+  voids: new THREE.Group(),
+  rooms: new THREE.Group(),
+  labels: new THREE.Group(),
+  legend: new THREE.Group(),
+  objects: new THREE.Group(), // Mode B
+};
+Object.values(groups).forEach(g => scene.add(g));
+
+// State
+let currentMode = 'pen';
+let currentData = null;
+let currentInputMode = null; // 'state' or 'objects'
+let objectCount = 0;
+
+// ════════════════════════════════════════════════════════
+// COORDINATE CONVERSION: Rhino -> Three.js
+// Rhino: X=right, Y=forward, Z=up
+// Three: X=right, Y=up, Z=-forward
+// ════════════════════════════════════════════════════════
+function r2t(rx, ry, rz) {
+  return new THREE.Vector3(rx, rz || 0, -(ry || 0));
+}
+
+// ════════════════════════════════════════════════════════
+// GEOMETRY HELPERS (matching rhino_watcher_v2.py)
+// ════════════════════════════════════════════════════════
+
+/** Compute cumulative gridline positions from spacing arrays.
+ *  Matches _get_spacing_arrays() in rhino_watcher.py lines 176-189 */
+function getSpacingArrays(bay) {
+  const [nx, ny] = bay.bays || [3,3];
+  const sxa = bay.spacing_x;
+  const sya = bay.spacing_y;
+  let cx, cy;
+  if (sxa && sxa.length === nx) {
+    cx = [0]; for (let i=0;i<sxa.length;i++) cx.push(cx[cx.length-1]+sxa[i]);
+  } else {
+    const s = (bay.spacing||[24,24])[0]; cx = []; for(let i=0;i<=nx;i++) cx.push(i*s);
+  }
+  if (sya && sya.length === ny) {
+    cy = [0]; for (let i=0;i<sya.length;i++) cy.push(cy[cy.length-1]+sya[i]);
+  } else {
+    const s = (bay.spacing||[24,24])[1]; cy = []; for(let j=0;j<=ny;j++) cy.push(j*s);
+  }
+  return {cx, cy};
+}
+
+/** 2D rotation + translation.
+ *  Matches _local_to_world() in rhino_watcher.py lines 191-195 */
+function localToWorld(lx, ly, origin, rotDeg) {
+  const r = rotDeg * Math.PI / 180;
+  const wx = origin[0] + lx*Math.cos(r) - ly*Math.sin(r);
+  const wy = origin[1] + lx*Math.sin(r) + ly*Math.cos(r);
+  return [wx, wy, 0];
+}
+
+/** Generate arc points for radial grids.
+ *  Matches _arc_points() in rhino_watcher.py lines 197-202 */
+function arcPoints(cx, cy, radius, startDeg, endDeg, n) {
+  n = n || 24;
+  const pts = [];
+  for (let i=0;i<=n;i++) {
+    const a = (startDeg + (endDeg-startDeg)*i/n) * Math.PI / 180;
+    pts.push([cx+radius*Math.cos(a), cy+radius*Math.sin(a), 0]);
+  }
+  return pts;
+}
+
+/** Read a style parameter with fallback.
+ *  Matches _s() in rhino_watcher.py lines 159-161 */
+function sty(state, key, def) {
+  return (state.style && state.style[key] !== undefined) ? state.style[key] : def;
+}
+
+// ════════════════════════════════════════════════════════
+// DRAWING PRIMITIVES
+// ════════════════════════════════════════════════════════
+
+function makeLine(p1, p2, color, opacity, group) {
+  const geo = new THREE.BufferGeometry().setFromPoints([r2t(p1[0],p1[1],p1[2]),r2t(p2[0],p2[1],p2[2])]);
+  const mat = new THREE.LineBasicMaterial({color, transparent:opacity<1, opacity});
+  const line = new THREE.Line(geo, mat);
+  group.add(line);
+  return line;
+}
+
+function makePolyline(pts, color, opacity, group) {
+  if(pts.length<2) return;
+  const verts = pts.map(p => r2t(p[0],p[1],p[2]||0));
+  const geo = new THREE.BufferGeometry().setFromPoints(verts);
+  const mat = new THREE.LineBasicMaterial({color, transparent:opacity<1, opacity});
+  const line = new THREE.Line(geo, mat);
+  group.add(line);
+  return line;
+}
+
+function makeRect(x0, y0, x1, y1, color, opacity, group) {
+  const pts = [[x0,y0,0],[x1,y0,0],[x1,y1,0],[x0,y1,0],[x0,y0,0]];
+  return makePolyline(pts, color, opacity, group);
+}
+
+function makeFilledRect(x0, y0, x1, y1, color, opacity, group) {
+  const w = Math.abs(x1-x0), h = Math.abs(y1-y0);
+  const cx = (x0+x1)/2, cy = (y0+y1)/2;
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.MeshBasicMaterial({
+    color, transparent:opacity<1, opacity, side:THREE.DoubleSide, depthWrite:opacity>=1
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  const p = r2t(cx, cy, 0);
+  mesh.position.copy(p);
+  mesh.rotation.x = -Math.PI/2;
+  group.add(mesh);
+  return mesh;
+}
+
+function makeCircle(cx, cy, radius, color, opacity, group, segments) {
+  segments = segments || 48;
+  const pts = [];
+  for (let i=0;i<=segments;i++) {
+    const a = 2*Math.PI*i/segments;
+    pts.push([cx+radius*Math.cos(a), cy+radius*Math.sin(a), 0]);
+  }
+  return makePolyline(pts, color, opacity, group);
+}
+
+function makeDashedLine(p1, p2, dashLen, gapLen, color, opacity, group) {
+  const dx=p2[0]-p1[0], dy=p2[1]-p1[1];
+  const total = Math.hypot(dx,dy);
+  if (total < 0.001) return;
+  const ux=dx/total, uy=dy/total;
+  let pos = 0;
+  while (pos < total) {
+    const end = Math.min(pos+dashLen, total);
+    makeLine(
+      [p1[0]+ux*pos, p1[1]+uy*pos, 0],
+      [p1[0]+ux*end, p1[1]+uy*end, 0],
+      color, opacity, group
+    );
+    pos = end + gapLen;
+  }
+}
+
+function makeTextSprite(text, position, size, color) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontSize = 64;
+  ctx.font = `${fontSize}px Arial`;
+  const metrics = ctx.measureText(text);
+  const w = Math.ceil(metrics.width) + 8;
+  const h = fontSize + 8;
+  canvas.width = w; canvas.height = h;
+  ctx.font = `${fontSize}px Arial`;
+  ctx.fillStyle = '#'+new THREE.Color(color).getHexString();
+  ctx.textBaseline = 'top';
+  ctx.fillText(text, 4, 4);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({map:texture, transparent:true, depthWrite:false});
+  const sprite = new THREE.Sprite(mat);
+  const p = r2t(position[0], position[1], position[2]||0);
+  sprite.position.copy(p);
+  const scale = size * 0.15;
+  sprite.scale.set(scale * w/h, scale, 1);
+  return sprite;
+}
+
+// ════════════════════════════════════════════════════════
+// MODE A: STATE JSON RENDERER
+// Reimplements rhino_watcher.py rebuild() logic
+// ════════════════════════════════════════════════════════
+
+function clearAllGroups() {
+  Object.values(groups).forEach(g => {
+    while(g.children.length) {
+      const c = g.children[0];
+      if(c.geometry) c.geometry.dispose();
+      if(c.material) {
+        if(c.material.map) c.material.map.dispose();
+        c.material.dispose();
+      }
+      g.remove(c);
+    }
+  });
+  objectCount = 0;
+}
+
+/** Draw site boundary rectangle.
+ *  Matches _draw_site() in rhino_watcher.py lines 277-281 */
+function drawSite(state, m) {
+  const site = state.site;
+  const [ox,oy] = site.origin;
+  makeRect(ox, oy, ox+site.width, oy+site.height, m.lineColor, m.lineOpacity*0.5, groups.site);
+  objectCount++;
+}
+
+/** Draw grid lines for all bays.
+ *  Matches _draw_bays() in rhino_watcher.py lines 354-383 */
+function drawBays(state, m) {
+  const sortedBays = Object.entries(state.bays).sort((a,b)=>(a[1].z_order||0)-(b[1].z_order||0));
+  const lineColor = m.lineColor;
+  const opacity = m.lineOpacity * 0.5; // Light weight for grid
+  for (const [name, bay] of sortedBays) {
+    const gt = bay.grid_type || 'rectangular';
+    const [ox,oy] = bay.origin;
+    const rot = bay.rotation_deg || 0;
+    if (gt === 'radial') {
+      const nr = bay.rings || 4;
+      const rsVal = bay.ring_spacing || 20;
+      const na = bay.arms || 8;
+      const arc = bay.arc_deg || 360;
+      const arcStart = bay.arc_start_deg || 0;
+      // Draw rings
+      for (let ring=1; ring<=nr; ring++) {
+        const r = ring * rsVal;
+        if (arc >= 360) {
+          makeCircle(ox, oy, r, lineColor, opacity, groups.grid);
+        } else {
+          const pts = arcPoints(ox, oy, r, arcStart, arcStart+arc, 48);
+          makePolyline(pts, lineColor, opacity, groups.grid);
+        }
+        objectCount++;
+      }
+      // Draw arms
+      const outer = nr * rsVal;
+      for (let arm=0; arm<na; arm++) {
+        const angle = arcStart + arc * arm / na;
+        const a = angle * Math.PI / 180;
+        makeLine([ox,oy,0], [ox+outer*Math.cos(a), oy+outer*Math.sin(a), 0], lineColor, opacity, groups.grid);
+        objectCount++;
+      }
+      // Closing arm for partial arcs
+      if (arc < 360) {
+        const a = (arcStart+arc) * Math.PI / 180;
+        makeLine([ox,oy,0], [ox+outer*Math.cos(a), oy+outer*Math.sin(a), 0], lineColor, opacity, groups.grid);
+        objectCount++;
+      }
+    } else {
+      // Rectangular grid
+      const {cx, cy} = getSpacingArrays(bay);
+      // Horizontal lines
+      for (const yVal of cy) {
+        makeLine(
+          localToWorld(cx[0], yVal, [ox,oy], rot),
+          localToWorld(cx[cx.length-1], yVal, [ox,oy], rot),
+          lineColor, opacity, groups.grid
+        );
+        objectCount++;
+      }
+      // Vertical lines
+      for (const xVal of cx) {
+        makeLine(
+          localToWorld(xVal, cy[0], [ox,oy], rot),
+          localToWorld(xVal, cy[cy.length-1], [ox,oy], rot),
+          lineColor, opacity, groups.grid
+        );
+        objectCount++;
+      }
+    }
+  }
+}
+
+/** Draw columns at grid intersections.
+ *  Matches _draw_columns() in rhino_watcher.py lines 389-413 */
+function drawColumns(state, m) {
+  const cs = sty(state, 'column_size', 1.5);
+  const half = cs / 2;
+  const color = m.lineColor;
+  for (const [name, bay] of Object.entries(state.bays)) {
+    const gt = bay.grid_type || 'rectangular';
+    const [ox,oy] = bay.origin;
+    const rot = bay.rotation_deg || 0;
+    if (gt === 'rectangular') {
+      const {cx, cy} = getSpacingArrays(bay);
+      for (const xVal of cx) {
+        for (const yVal of cy) {
+          const [wx, wy] = localToWorld(xVal, yVal, [ox,oy], rot);
+          // Filled square column (heavy weight)
+          if (m.showFaces) {
+            makeFilledRect(wx-half, wy-half, wx+half, wy+half, color, m.faceOpacity, groups.columns);
+          }
+          makeRect(wx-half, wy-half, wx+half, wy+half, color, m.edgeOpacity, groups.columns);
+          objectCount++;
+        }
+      }
+    } else {
+      // Radial: center column
+      if (m.showFaces) makeFilledRect(ox-half, oy-half, ox+half, oy+half, color, m.faceOpacity, groups.columns);
+      makeRect(ox-half, oy-half, ox+half, oy+half, color, m.edgeOpacity, groups.columns);
+      objectCount++;
+      const nr = bay.rings || 4;
+      const rsVal = bay.ring_spacing || 20;
+      const na = bay.arms || 8;
+      const arc = bay.arc_deg || 360;
+      const arcStart = bay.arc_start_deg || 0;
+      for (let ring=1; ring<=nr; ring++) {
+        const r = ring * rsVal;
+        for (let arm=0; arm<na; arm++) {
+          const angle = arcStart + arc * arm / na;
+          const a = angle * Math.PI / 180;
+          const cxPt = ox + r*Math.cos(a);
+          const cyPt = oy + r*Math.sin(a);
+          if (m.showFaces) makeFilledRect(cxPt-half, cyPt-half, cxPt+half, cyPt+half, color, m.faceOpacity, groups.columns);
+          makeRect(cxPt-half, cyPt-half, cxPt+half, cyPt+half, color, m.edgeOpacity, groups.columns);
+          objectCount++;
+        }
+      }
+    }
+  }
+}
+
+/** Calculate solid wall segments after aperture cutouts.
+ *  Matches _calc_wall_segments() in rhino_watcher.py lines 419-428 */
+function calcWallSegments(wallLen, apertures) {
+  if (!apertures || !apertures.length) return [[0, wallLen]];
+  const segments = [];
+  let pos = 0;
+  for (const ap of apertures) {
+    const cn = ap.corner || 0;
+    const wd = ap.width || 3;
+    if (cn > pos) segments.push([pos, cn]);
+    pos = cn + wd;
+  }
+  if (pos < wallLen) segments.push([pos, wallLen]);
+  return segments;
+}
+
+/** Draw wall outlines with aperture cutouts.
+ *  Matches _draw_plan_layout() in rhino_watcher.py lines 443-531 */
+function drawWalls(state, m) {
+  const color = m.lineColor;
+  const opacity = m.lineOpacity * 0.9; // Medium weight
+  for (const [name, bay] of Object.entries(state.bays)) {
+    if ((bay.grid_type || 'rectangular') !== 'rectangular') continue;
+    const w = bay.walls || {};
+    if (!w.enabled) continue;
+    const t = w.thickness || 0.5;
+    const halfT = t / 2;
+    const [ox,oy] = bay.origin;
+    const rot = bay.rotation_deg || 0;
+    const {cx, cy} = getSpacingArrays(bay);
+    const aps = bay.apertures || [];
+
+    // Horizontal walls (x-axis gridlines)
+    for (let j=0; j<cy.length; j++) {
+      const yVal = cy[j];
+      const wallAps = aps.filter(a=>a.axis==='x'&&a.gridline===j).sort((a,b)=>(a.corner||0)-(b.corner||0));
+      for (const [s,e] of calcWallSegments(cx[cx.length-1], wallAps)) {
+        // Two offset lines
+        makeLine(localToWorld(s, yVal-halfT, [ox,oy], rot), localToWorld(e, yVal-halfT, [ox,oy], rot), color, opacity, groups.walls);
+        makeLine(localToWorld(s, yVal+halfT, [ox,oy], rot), localToWorld(e, yVal+halfT, [ox,oy], rot), color, opacity, groups.walls);
+        objectCount+=2;
+      }
+      // End caps at aperture edges
+      for (const ap of wallAps) {
+        const cn = ap.corner||0; const wd = ap.width||3;
+        for (const xPos of [cn, cn+wd]) {
+          makeLine(localToWorld(xPos, yVal-halfT, [ox,oy], rot), localToWorld(xPos, yVal+halfT, [ox,oy], rot), color, opacity, groups.walls);
+          objectCount++;
+        }
+      }
+    }
+    // Vertical walls (y-axis gridlines)
+    for (let i=0; i<cx.length; i++) {
+      const xVal = cx[i];
+      const wallAps = aps.filter(a=>a.axis==='y'&&a.gridline===i).sort((a,b)=>(a.corner||0)-(b.corner||0));
+      for (const [s,e] of calcWallSegments(cy[cy.length-1], wallAps)) {
+        makeLine(localToWorld(xVal-halfT, s, [ox,oy], rot), localToWorld(xVal-halfT, e, [ox,oy], rot), color, opacity, groups.walls);
+        makeLine(localToWorld(xVal+halfT, s, [ox,oy], rot), localToWorld(xVal+halfT, e, [ox,oy], rot), color, opacity, groups.walls);
+        objectCount+=2;
+      }
+      for (const ap of wallAps) {
+        const cn = ap.corner||0; const wd = ap.width||3;
+        for (const yPos of [cn, cn+wd]) {
+          makeLine(localToWorld(xVal-halfT, yPos, [ox,oy], rot), localToWorld(xVal+halfT, yPos, [ox,oy], rot), color, opacity, groups.walls);
+          objectCount++;
+        }
+      }
+    }
+  }
+}
+
+/** Draw aperture symbols (doors, windows, portals).
+ *  Matches _draw_block_insertions() in rhino_watcher.py lines 595-623 */
+function drawApertures(state, m) {
+  const color = m.lineColor;
+  const opacity = m.lineOpacity;
+  const blocks = state.blocks || {};
+  const arcN = Math.round(sty(state, 'arc_segments', 16));
+  for (const [name, bay] of Object.entries(state.bays)) {
+    if ((bay.grid_type||'rectangular') !== 'rectangular') continue;
+    const [ox,oy] = bay.origin; const rot = bay.rotation_deg||0;
+    const {cx, cy} = getSpacingArrays(bay);
+    for (const ap of (bay.apertures||[])) {
+      const atype = ap.type||'door'; const wd = ap.width||3;
+      if (atype === 'door') {
+        // Door arc swing
+        const axis = ap.axis||'x'; const gl = ap.gridline||0;
+        const cn = ap.corner||0; const hinge = ap.hinge||'start'; const swing = ap.swing||'positive';
+        const swingSign = swing==='positive'?1:-1;
+        let hx, hy, startAng, endAng;
+        if (axis === 'x') {
+          const yVal = gl<cy.length?cy[gl]:cy[cy.length-1];
+          hx = hinge==='start'?cn:cn+wd; hy = yVal;
+          if (hinge==='start'){startAng=0;endAng=90*swingSign} else {startAng=180;endAng=180+90*swingSign}
+        } else {
+          const xVal = gl<cx.length?cx[gl]:cx[cx.length-1];
+          hx = xVal; hy = hinge==='start'?cn:cn+wd;
+          if (hinge==='start'){startAng=90;endAng=90+90*swingSign} else {startAng=270;endAng=270+90*swingSign}
+        }
+        const a0=Math.min(startAng,endAng), a1=Math.max(startAng,endAng);
+        const arcPts = [];
+        for (let k=0;k<=arcN;k++) {
+          const ang = (a0+(a1-a0)*k/arcN)*Math.PI/180;
+          arcPts.push(localToWorld(hx+wd*Math.cos(ang), hy+wd*Math.sin(ang), [ox,oy], rot));
+        }
+        makePolyline(arcPts, color, opacity, groups.blocks);
+        // Leaf line
+        const leafAng = endAng*Math.PI/180;
+        makeLine(localToWorld(hx,hy,[ox,oy],rot), localToWorld(hx+wd*Math.cos(leafAng),hy+wd*Math.sin(leafAng),[ox,oy],rot), color, opacity, groups.blocks);
+        objectCount+=2;
+      } else if (atype === 'window') {
+        const axis = ap.axis||'x'; const gl = ap.gridline||0; const cn = ap.corner||0;
+        if (axis==='x') {
+          const yVal = gl<cy.length?cy[gl]:cy[cy.length-1];
+          makeLine(localToWorld(cn,yVal,[ox,oy],rot), localToWorld(cn+wd,yVal,[ox,oy],rot), color, opacity, groups.blocks);
+        } else {
+          const xVal = gl<cx.length?cx[gl]:cx[cx.length-1];
+          makeLine(localToWorld(xVal,cn,[ox,oy],rot), localToWorld(xVal,cn+wd,[ox,oy],rot), color, opacity, groups.blocks);
+        }
+        objectCount++;
+      } else if (atype === 'portal') {
+        const axis = ap.axis||'x'; const gl = ap.gridline||0; const cn = ap.corner||0;
+        const t = (bay.walls||{}).thickness||0.5; const mark = t*1.5;
+        if (axis==='x') {
+          const yVal = gl<cy.length?cy[gl]:cy[cy.length-1];
+          makeLine(localToWorld(cn,yVal-mark,[ox,oy],rot), localToWorld(cn,yVal+mark,[ox,oy],rot), color, opacity, groups.blocks);
+          makeLine(localToWorld(cn+wd,yVal-mark,[ox,oy],rot), localToWorld(cn+wd,yVal+mark,[ox,oy],rot), color, opacity, groups.blocks);
+        } else {
+          const xVal = gl<cx.length?cx[gl]:cx[cx.length-1];
+          makeLine(localToWorld(xVal-mark,cn,[ox,oy],rot), localToWorld(xVal+mark,cn,[ox,oy],rot), color, opacity, groups.blocks);
+          makeLine(localToWorld(xVal-mark,cn+wd,[ox,oy],rot), localToWorld(xVal+mark,cn+wd,[ox,oy],rot), color, opacity, groups.blocks);
+        }
+        objectCount+=2;
+      }
+      // Aperture labels
+      const bk = blocks[atype]||{};
+      if (bk.show_label) {
+        const axis = ap.axis||'x'; const gl = ap.gridline||0; const cn = ap.corner||0;
+        const prefix = bk.label_prefix||(atype[0].toUpperCase());
+        const aid = ap.id||''; const num = aid.replace(/\D/g,'') || aid;
+        const lh = bk.label_height||1.5; const t = (bay.walls||{}).thickness||0.5;
+        const labelOff = t + lh*0.5;
+        let pt;
+        if (axis==='x') {
+          const yVal = gl<cy.length?cy[gl]:cy[cy.length-1];
+          pt = localToWorld(cn+wd/2, yVal+labelOff, [ox,oy], rot);
+        } else {
+          const xVal = gl<cx.length?cx[gl]:cx[cx.length-1];
+          pt = localToWorld(xVal+labelOff, cn+wd/2, [ox,oy], rot);
+        }
+        const sprite = makeTextSprite(`${prefix}${num}`, pt, lh*6, color);
+        groups.blocks.add(sprite);
+        objectCount++;
+      }
+    }
+  }
+}
+
+/** Draw corridors.
+ *  Matches _draw_corridors() in rhino_watcher.py lines 650-691 */
+function drawCorridors(state, m) {
+  const dashLen = sty(state, 'corridor_dash_len', 3);
+  const gapLen = sty(state, 'corridor_gap_len', 2);
+  const color = m.lineColor;
+  const opacity = m.lineOpacity * 0.9; // Medium weight
+  for (const [name, bay] of Object.entries(state.bays)) {
+    const cor = bay.corridor || {};
+    if (!cor.enabled || (bay.grid_type||'rectangular') !== 'rectangular') continue;
+    const [ox,oy] = bay.origin; const rot = bay.rotation_deg||0;
+    const {cx, cy} = getSpacingArrays(bay);
+    const axis = cor.axis||'x'; const pos = cor.position||1;
+    const halfW = (cor.width||8) / 2;
+
+    if (axis === 'x') {
+      if (pos<0 || pos>=cy.length) continue;
+      const yCenter = cy[pos]; const xS = cx[0]; const xE = cx[cx.length-1];
+      const yTop = yCenter+halfW; const yBot = yCenter-halfW;
+      // Solid edges
+      makeLine(localToWorld(xS,yTop,[ox,oy],rot), localToWorld(xE,yTop,[ox,oy],rot), color, opacity, groups.corridor);
+      makeLine(localToWorld(xS,yBot,[ox,oy],rot), localToWorld(xE,yBot,[ox,oy],rot), color, opacity, groups.corridor);
+      // Dashed centerline
+      makeDashedLine(localToWorld(xS,yCenter,[ox,oy],rot), localToWorld(xE,yCenter,[ox,oy],rot), dashLen, gapLen, color, opacity*0.7, groups.corridor);
+      objectCount+=3;
+    } else {
+      if (pos<0 || pos>=cx.length) continue;
+      const xCenter = cx[pos]; const yS = cy[0]; const yE = cy[cy.length-1];
+      const xL = xCenter-halfW; const xR = xCenter+halfW;
+      makeLine(localToWorld(xL,yS,[ox,oy],rot), localToWorld(xL,yE,[ox,oy],rot), color, opacity, groups.corridor);
+      makeLine(localToWorld(xR,yS,[ox,oy],rot), localToWorld(xR,yE,[ox,oy],rot), color, opacity, groups.corridor);
+      makeDashedLine(localToWorld(xCenter,yS,[ox,oy],rot), localToWorld(xCenter,yE,[ox,oy],rot), dashLen, gapLen, color, opacity*0.7, groups.corridor);
+      objectCount+=3;
+    }
+  }
+}
+
+/** Draw void outlines.
+ *  Matches _draw_voids() in rhino_watcher.py lines 697-705 */
+function drawVoids(state, m) {
+  const color = m.lineColor;
+  const opacity = m.lineOpacity;
+  for (const [name, bay] of Object.entries(state.bays)) {
+    const vc = bay.void_center; const vs = bay.void_size;
+    if (!vc || !vs) continue;
+    if ((bay.void_shape||'rectangle') === 'circle') {
+      makeCircle(vc[0], vc[1], vs[0]/2, color, opacity, groups.voids);
+    } else {
+      const x0 = vc[0]-vs[0]/2; const y0 = vc[1]-vs[1]/2;
+      makeRect(x0, y0, x0+vs[0], y0+vs[1], color, opacity, groups.voids);
+    }
+    objectCount++;
+  }
+}
+
+/** Draw bay labels.
+ *  Matches _draw_labels() in rhino_watcher.py lines 711-728 */
+function drawLabels(state, m) {
+  const txtH = sty(state, 'label_text_height', 0.3);
+  const labelOff = sty(state, 'label_offset', 3);
+  const color = m.lineColor;
+  for (const [name, bay] of Object.entries(state.bays)) {
+    const gt = bay.grid_type||'rectangular';
+    const [ox,oy] = bay.origin;
+    let labelPt;
+    if (gt === 'rectangular') {
+      const {cx, cy} = getSpacingArrays(bay);
+      const rot = bay.rotation_deg||0;
+      labelPt = localToWorld(cx[cx.length-1]/2, cy[cy.length-1]+labelOff, [ox,oy], rot);
+    } else {
+      const outer = (bay.rings||4) * (bay.ring_spacing||20);
+      labelPt = [ox, oy+outer+labelOff, 0];
+    }
+    const label = bay.label || `Bay ${name}`;
+    if (label) {
+      const sprite = makeTextSprite(label, labelPt, txtH*30, color);
+      groups.labels.add(sprite);
+      objectCount++;
+    }
+  }
+}
+
+/** Draw cell room boundaries and labels.
+ *  Matches _draw_cell_rooms() in rhino_watcher.py lines 734-827 */
+function drawCellRooms(state, m) {
+  const txtH = sty(state, 'label_text_height', 0.3);
+  const color = m.lineColor;
+  const opacity = m.lineOpacity;
+  for (const [bayName, bay] of Object.entries(state.bays)) {
+    const cells = bay.cells;
+    if (!cells || Object.keys(cells).length===0 || (bay.grid_type||'rectangular')!=='rectangular') continue;
+    const [ox,oy] = bay.origin; const rot = bay.rotation_deg||0;
+    const {cx, cy} = getSpacingArrays(bay);
+    const [nx, ny] = bay.bays||[3,3];
+    // Build lookup
+    const cellNames = {};
+    for (const [key, cl] of Object.entries(cells)) {
+      const parts = key.split(',');
+      if (parts.length===2) cellNames[key] = cl.name||'';
+    }
+    // Group by room name
+    const rooms = {};
+    for (const [key, rname] of Object.entries(cellNames)) {
+      if (!rname) continue;
+      const [c,r] = key.split(',').map(Number);
+      if (!rooms[rname]) rooms[rname]={cells:[],area:0};
+      rooms[rname].cells.push([c,r]);
+      rooms[rname].area += (cx[c+1]-cx[c])*(cy[r+1]-cy[r]);
+    }
+    // Draw boundaries and labels
+    for (const [rname, rd] of Object.entries(rooms)) {
+      const roomSet = new Set(rd.cells.map(([c,r])=>`${c},${r}`));
+      for (const [c,r] of rd.cells) {
+        const x0=cx[c],x1=cx[c+1],y0=cy[r],y1=cy[r+1];
+        if (c===0||!roomSet.has(`${c-1},${r}`)) makeLine(localToWorld(x0,y0,[ox,oy],rot),localToWorld(x0,y1,[ox,oy],rot),color,opacity,groups.rooms);
+        if (c===nx-1||!roomSet.has(`${c+1},${r}`)) makeLine(localToWorld(x1,y0,[ox,oy],rot),localToWorld(x1,y1,[ox,oy],rot),color,opacity,groups.rooms);
+        if (r===0||!roomSet.has(`${c},${r-1}`)) makeLine(localToWorld(x0,y0,[ox,oy],rot),localToWorld(x1,y0,[ox,oy],rot),color,opacity,groups.rooms);
+        if (r===ny-1||!roomSet.has(`${c},${r+1}`)) makeLine(localToWorld(x0,y1,[ox,oy],rot),localToWorld(x1,y1,[ox,oy],rot),color,opacity,groups.rooms);
+        objectCount++;
+      }
+      // Label at centroid
+      const n = rd.cells.length;
+      const sumX = rd.cells.reduce((s,[c])=>(s+(cx[c]+cx[c+1])/2),0);
+      const sumY = rd.cells.reduce((s,[,r])=>(s+(cy[r]+cy[r+1])/2),0);
+      const ctr = localToWorld(sumX/n, sumY/n, [ox,oy], rot);
+      const sprite = makeTextSprite(rname, ctr, txtH*36, color);
+      groups.rooms.add(sprite);
+      // Area text
+      const areaTxt = `${Math.round(rd.area).toLocaleString()} sf`;
+      const ctrBelow = localToWorld(sumX/n, sumY/n - txtH*8, [ox,oy], rot);
+      const areaSprite = makeTextSprite(areaTxt, ctrBelow, txtH*24, color);
+      groups.rooms.add(areaSprite);
+      objectCount+=2;
+    }
+  }
+}
+
+/** Draw legend box.
+ *  Matches _draw_legend() in rhino_watcher.py lines 833-917 */
+function drawLegend(state, m) {
+  const leg = state.legend || {};
+  if (!leg.enabled) return;
+  const color = m.lineColor;
+  const opacity = m.lineOpacity;
+  const site = state.site;
+  const [sox,soy] = site.origin;
+  const sw = site.width; const sh = site.height;
+  const lw = leg.width||40; const pad = leg.padding||3;
+  const rowH = leg.row_height||7; const txtH = leg.text_height||2;
+  const rooms = state.rooms||{};
+  const hatchedRooms = leg.show_hatches ? Object.entries(rooms).filter(([,rm])=>(rm.hatch_image||'none')!=='none') : [];
+  const nRows = hatchedRooms.length;
+  if (nRows===0) return;
+  const totalH = pad*2+(1+nRows)*rowH;
+  const pos = leg.position||'bottom-right';
+  let lox, loy;
+  if (pos==='bottom-right'){lox=sox+sw+pad*2;loy=soy}
+  else if(pos==='bottom-left'){lox=sox-lw-pad*2;loy=soy}
+  else if(pos==='top-right'){lox=sox+sw+pad*2;loy=soy+sh-totalH}
+  else if(pos==='top-left'){lox=sox-lw-pad*2;loy=soy+sh-totalH}
+  else{lox=sox+sw+pad*2;loy=soy}
+  makeRect(lox, loy, lox+lw, loy+totalH, color, opacity, groups.legend);
+  const title = leg.title||'Legend';
+  const titleSprite = makeTextSprite(title, [lox+pad, loy+totalH-pad-txtH, 0], txtH*8, color);
+  groups.legend.add(titleSprite);
+  objectCount+=2;
+}
+
+/** Master state renderer — draws everything in order */
+function renderState(state) {
+  clearAllGroups();
+  currentData = state;
+  currentInputMode = 'state';
+  const m = DISPLAY_MODES[currentMode];
+  renderer.setClearColor(m.bg);
+
+  drawSite(state, m);
+  drawBays(state, m);
+  drawColumns(state, m);
+  drawWalls(state, m);
+  drawApertures(state, m);
+  drawCorridors(state, m);
+  drawVoids(state, m);
+  drawLabels(state, m);
+  drawCellRooms(state, m);
+  drawLegend(state, m);
+
+  updateInfo(state);
+  zoomFit();
+}
+
+// ════════════════════════════════════════════════════════
+// MODE B: GENERIC OBJECTS RENDERER
+// ════════════════════════════════════════════════════════
+
+function renderObjects(data) {
+  clearAllGroups();
+  currentData = data;
+  currentInputMode = 'objects';
+  const m = DISPLAY_MODES[currentMode];
+  renderer.setClearColor(m.bg);
+  const objs = data.objects || [];
+
+  for (const obj of objs) {
+    const color = obj.color ? new THREE.Color(obj.color) : new THREE.Color(m.faceColor);
+    const lineColor = new THREE.Color(m.lineColor);
+    switch(obj.type) {
+      case 'box': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const [w,d,h] = obj.size||[1,1,1];
+        const geo = new THREE.BoxGeometry(w,h,d);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          mesh.position.copy(r2t(cx,cy,cz+h/2));
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        const wireframe = new THREE.LineSegments(edges,lineMat);
+        wireframe.position.copy(r2t(cx,cy,cz+h/2));
+        groups.objects.add(wireframe);
+        objectCount++;
+        break;
+      }
+      case 'cylinder': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const r = obj.radius||1; const h = obj.height||1;
+        const geo = new THREE.CylinderGeometry(r,r,h,24);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          mesh.position.copy(r2t(cx,cy,cz+h/2));
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo,15);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        const wireframe = new THREE.LineSegments(edges,lineMat);
+        wireframe.position.copy(r2t(cx,cy,cz+h/2));
+        groups.objects.add(wireframe);
+        objectCount++;
+        break;
+      }
+      case 'sphere': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const r = obj.radius||1;
+        const geo = new THREE.SphereGeometry(r,24,16);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          mesh.position.copy(r2t(cx,cy,cz));
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo,15);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        const wireframe = new THREE.LineSegments(edges,lineMat);
+        wireframe.position.copy(r2t(cx,cy,cz));
+        groups.objects.add(wireframe);
+        objectCount++;
+        break;
+      }
+      case 'line': {
+        const s = obj.start||[0,0,0]; const e = obj.end||[1,0,0];
+        makeLine(s, e, lineColor.getHex(), m.edgeOpacity, groups.objects);
+        objectCount++;
+        break;
+      }
+      case 'polyline': {
+        const pts = obj.points||[];
+        makePolyline(pts, lineColor.getHex(), m.edgeOpacity, groups.objects);
+        objectCount++;
+        break;
+      }
+      case 'point': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const geo = new THREE.SphereGeometry(0.3,8,8);
+        const mat = new THREE.MeshBasicMaterial({color});
+        const mesh = new THREE.Mesh(geo,mat);
+        mesh.position.copy(r2t(cx,cy,cz));
+        groups.objects.add(mesh);
+        objectCount++;
+        break;
+      }
+      case 'extrusion': {
+        const pts2d = obj.points||[]; const h = obj.height||1;
+        if (pts2d.length<3) break;
+        const shape = new THREE.Shape();
+        shape.moveTo(pts2d[0][0], -pts2d[0][1]); // Rhino Y -> -Z but in shape space
+        for (let i=1;i<pts2d.length;i++) shape.lineTo(pts2d[i][0], -pts2d[i][1]);
+        shape.closePath();
+        const extrudeSettings = {steps:1,depth:h,bevelEnabled:false};
+        const geo = new THREE.ExtrudeGeometry(shape,extrudeSettings);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo,15);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        groups.objects.add(new THREE.LineSegments(edges,lineMat));
+        objectCount++;
+        break;
+      }
+      case 'cone': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const r = obj.radius||1; const h = obj.height||1;
+        const geo = new THREE.ConeGeometry(r,h,24);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          mesh.position.copy(r2t(cx,cy,cz+h/2));
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo,15);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        const wireframe = new THREE.LineSegments(edges,lineMat);
+        wireframe.position.copy(r2t(cx,cy,cz+h/2));
+        groups.objects.add(wireframe);
+        objectCount++;
+        break;
+      }
+      case 'torus': {
+        const [cx,cy,cz] = obj.center||[0,0,0];
+        const R = obj.major_radius||5; const rr = obj.minor_radius||1;
+        const geo = new THREE.TorusGeometry(R,rr,16,48);
+        if (m.showFaces) {
+          const mat = new THREE.MeshLambertMaterial({color,transparent:m.faceOpacity<1,opacity:m.faceOpacity});
+          const mesh = new THREE.Mesh(geo,mat);
+          mesh.position.copy(r2t(cx,cy,cz));
+          mesh.rotation.x = Math.PI/2;
+          groups.objects.add(mesh);
+        }
+        const edges = new THREE.EdgesGeometry(geo,15);
+        const lineMat = new THREE.LineBasicMaterial({color:lineColor,transparent:m.edgeOpacity<1,opacity:m.edgeOpacity});
+        const wireframe = new THREE.LineSegments(edges,lineMat);
+        wireframe.position.copy(r2t(cx,cy,cz));
+        wireframe.rotation.x = Math.PI/2;
+        groups.objects.add(wireframe);
+        objectCount++;
+        break;
+      }
+    }
+  }
+  updateInfoObjects(objs.length);
+  zoomFit();
+}
+
+// ════════════════════════════════════════════════════════
+// AUTO-DETECT & RENDER
+// ════════════════════════════════════════════════════════
+
+function loadJSON(jsonStr) {
+  let data;
+  try {
+    data = JSON.parse(jsonStr);
+  } catch(e) {
+    alert('Invalid JSON: ' + e.message);
+    return;
+  }
+  if (data.schema && typeof data.schema === 'string' && data.schema.startsWith('plan_layout_jig')) {
+    renderState(data);
+  } else if (data.objects && Array.isArray(data.objects)) {
+    renderObjects(data);
+  } else {
+    alert('Unknown JSON format. Expected state JSON with "schema" field or objects JSON with "objects" array.');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// DISPLAY MODE SWITCHING
+// ════════════════════════════════════════════════════════
+
+function applyDisplayMode(mode) {
+  currentMode = mode;
+  // Re-render with new mode
+  if (currentData) {
+    if (currentInputMode === 'state') renderState(currentData);
+    else if (currentInputMode === 'objects') renderObjects(currentData);
+  } else {
+    renderer.setClearColor(DISPLAY_MODES[mode].bg);
+  }
+  // Update tab UI
+  document.querySelectorAll('#tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// ZOOM FIT
+// ════════════════════════════════════════════════════════
+
+function zoomFit() {
+  const box = new THREE.Box3().setFromObject(scene);
+  if (box.isEmpty()) return;
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = camera.fov * Math.PI / 180;
+  let dist = maxDim / (2 * Math.tan(fov/2));
+  dist *= 1.3; // padding
+  controls.target.copy(center);
+  // Position camera above and slightly angled for plan view
+  camera.position.set(center.x, center.y + dist, center.z + dist * 0.3);
+  camera.lookAt(center);
+  controls.update();
+}
+
+// ════════════════════════════════════════════════════════
+// UI INFO UPDATES
+// ════════════════════════════════════════════════════════
+
+function updateInfo(state) {
+  const bayCount = Object.keys(state.bays||{}).length;
+  const gridTypes = [...new Set(Object.values(state.bays||{}).map(b=>b.grid_type||'rectangular'))];
+  document.getElementById('infoMode').textContent = 'State';
+  document.getElementById('infoBays').textContent = `${bayCount} bay${bayCount!==1?'s':''}`;
+  document.getElementById('infoGrid').textContent = gridTypes.join(', ');
+  document.getElementById('objCount').textContent = `${objectCount} objects`;
+}
+
+function updateInfoObjects(count) {
+  document.getElementById('infoMode').textContent = 'Objects';
+  document.getElementById('infoBays').textContent = `${count} item${count!==1?'s':''}`;
+  document.getElementById('infoGrid').textContent = 'generic';
+  document.getElementById('objCount').textContent = `${objectCount} objects`;
+}
+
+// ════════════════════════════════════════════════════════
+// RESIZE HANDLER
+// ════════════════════════════════════════════════════════
+
+function onResize() {
+  const rect = container.getBoundingClientRect();
+  camera.aspect = rect.width / rect.height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(rect.width, rect.height);
+}
+window.addEventListener('resize', onResize);
+
+// ════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ════════════════════════════════════════════════════════
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ════════════════════════════════════════════════════════
+// UI EVENT HANDLERS
+// ════════════════════════════════════════════════════════
+
+// Display mode tabs
+document.querySelectorAll('#tabs button').forEach(btn => {
+  btn.addEventListener('click', () => applyDisplayMode(btn.dataset.mode));
+});
+
+// Load button
+document.getElementById('btnLoad').addEventListener('click', () => {
+  document.getElementById('overlay').classList.add('show');
+});
+
+// Cancel
+document.getElementById('btnCancel').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+});
+
+// Render from textarea
+document.getElementById('btnRender').addEventListener('click', () => {
+  const txt = document.getElementById('jsonInput').value.trim();
+  if (txt) {
+    loadJSON(txt);
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('jsonInput').value = '';
+  }
+});
+
+// File input
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('jsonInput').value = ev.target.result;
+  };
+  reader.readAsText(file);
+});
+
+// Zoom fit
+document.getElementById('btnFit').addEventListener('click', zoomFit);
+
+// Theme toggle
+document.getElementById('btnTheme').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+});
+
+// Screenshot
+document.getElementById('btnScreenshot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const link = document.createElement('a');
+  link.download = 'rap-viewer-screenshot.png';
+  link.href = renderer.domElement.toDataURL('image/png');
+  link.click();
+});
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+
+onResize();
+renderer.setClearColor(DISPLAY_MODES.pen.bg);
+animate();
+
+// Load demo state on start
+renderState(DEMO_STATE);
+</script>
+</body>
+</html>
