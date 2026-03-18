@@ -75,7 +75,7 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
 <div id="sliders">
   <div class="slider-row">
     <label>Sun</label>
-    <button class="pill active" id="btnSun" style="padding:2px 8px;font-size:10px;margin-right:2px">On</button>
+    <button class="pill" id="btnSun" style="padding:2px 8px;font-size:10px;margin-right:2px">Off</button>
     <input type="range" id="sunSlider" min="0" max="360" value="45">
     <span class="val" id="sunVal">45&deg;</span>
   </div>
@@ -137,7 +137,7 @@ var currentMode = 'outlineShaded';
 var isOrtho = false;
 var isDark = false;
 var sunAngle = 45;
-var sunEnabled = true;
+var sunEnabled = false;
 var allSurfaces = [];
 var allEdgeLines = [];
 var allOutlines = [];
@@ -563,7 +563,8 @@ function setupLighting() {
 
   dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.layers.enableAll();
-  dirLight.castShadow = true;
+  dirLight.visible = false;
+  dirLight.castShadow = false;
   dirLight.shadow.mapSize.set(2048, 2048);
   dirLight.shadow.camera.left = -15;
   dirLight.shadow.camera.right = 15;
@@ -638,45 +639,16 @@ function render() {
 }
 
 function renderOutlineShadedMode() {
-  var w = renderer.domElement.width;
-  var h = renderer.domElement.height;
-  if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
-
-  // Pass 1: render shaded scene to screen FIRST (shadows work here)
-  renderer.setRenderTarget(null);
-  renderer.clear();
+  // Single-pass: shaded surfaces + outlines + edges — same as shaded but with edges
+  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
   camera.layers.enable(0);
+  camera.layers.enable(1);
   camera.layers.enable(2);
-  camera.layers.disable(1);
-  renderer.render(scene, camera);
-
-  // Pass 2: render surfaces to depth target (for hidden-line edge comparison)
-  // Use MeshBasicMaterial temporarily so shadow state isn't touched
-  var savedMats = [];
-  var depthMat = new THREE.MeshBasicMaterial({side: THREE.DoubleSide});
-  allSurfaces.forEach(function(s) {
-    savedMats.push(s.mesh.material);
-    s.mesh.material = depthMat;
-  });
-  camera.layers.set(0);
-  renderer.setRenderTarget(depthTarget);
+  renderer.setRenderTarget(null);
   renderer.clear();
   renderer.render(scene, camera);
-  allSurfaces.forEach(function(s, i) {
-    s.mesh.material = savedMats[i];
-  });
-
-  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
-
-  // Pass 3: overlay edges with hidden-line shader
-  renderer.setRenderTarget(null);
-  renderer.autoClear = false;
-  camera.layers.set(1);
-  renderer.render(scene, camera);
-
-  renderer.autoClear = true;
   camera.layers.enableAll();
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
 }
 
 function renderGhostedMode() {
