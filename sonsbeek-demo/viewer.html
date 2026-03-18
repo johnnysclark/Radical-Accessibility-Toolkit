@@ -617,29 +617,32 @@ function rebuildControls() {
 function toggleProjection() {
   var target = controls.target.clone();
   var pos = camera.position.clone();
-  var up = camera.up.clone();
 
   if (isOrtho) {
     isOrtho = false;
     perspCamera.position.copy(pos);
-    perspCamera.up.copy(up);
+    perspCamera.up.set(0, 1, 0);
+    perspCamera.lookAt(target);
     camera = perspCamera;
     document.getElementById('btnProj').textContent = 'Parallel';
     document.getElementById('btnProj').classList.remove('active');
   } else {
     isOrtho = true;
-    // Match ortho frustum to current perspective view
     var dist = pos.distanceTo(target);
     var fovRad = perspCamera.fov * Math.PI / 180;
     var viewHeight = 2 * dist * Math.tan(fovRad / 2);
     setOrthoSize(viewHeight);
     orthoCamera.position.copy(pos);
-    orthoCamera.up.copy(up);
+    orthoCamera.up.set(0, 1, 0);
+    orthoCamera.lookAt(target);
     camera = orthoCamera;
     document.getElementById('btnProj').textContent = 'Perspective';
     document.getElementById('btnProj').classList.add('active');
   }
-  rebuildControls();
+  controls.dispose();
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
   controls.target.copy(target);
   controls.update();
 }
