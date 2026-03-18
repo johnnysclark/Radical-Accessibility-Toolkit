@@ -2370,6 +2370,8 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "template": return cmd_template(state, tokens)
     if cmd == "style":   return cmd_style(state, tokens, state_file)
     if cmd == "view":    return cmd_view(state, tokens, state_file)
+    if cmd == "validate": return cmd_validate(state, tokens)
+    if cmd == "capture":  return cmd_capture(state, tokens, state_file)
     if cmd != "set":
         raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
     if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
@@ -2380,6 +2382,143 @@ def apply_command(state, tokens, state_file=None):
     if fn is None: raise ValueError(f"Unknown set target: '{target}'. "
                                     f"Options: {', '.join(sorted(dispatch))}")
     return fn(state, tokens)
+
+# ── Validate command ───────────────────────────────────
+
+def cmd_validate(state, tokens):
+    """Run validation layers on the current state.
+
+    Usage:
+      validate           — run all layers
+      validate schema    — schema only
+      validate semantic  — semantic only
+      validate spatial   — spatial only
+      validate tactile   — tactile readiness
+      validate fab       — fabrication readiness
+    """
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _root not in sys.path:
+        sys.path.insert(0, _root)
+    try:
+        from controller.validation import schema as _vs
+        from controller.validation import semantic as _vsem
+        from controller.validation import spatial as _vsp
+        from controller.validation import tactile as _vt
+        from controller.validation import fabrication as _vf
+    except ImportError:
+        return state, "ERROR: Validation framework not available."
+
+    layer = tokens[1].lower() if len(tokens) > 1 else "all"
+    dispatch = {
+        "schema": (_vs.validate_schema, _vs.format_results),
+        "semantic": (_vsem.validate_semantic, _vsem.format_results),
+        "spatial": (_vsp.validate_spatial, _vsp.format_results),
+        "tactile": (_vt.validate_tactile, _vt.format_results),
+        "fab": (_vf.validate_fabrication, _vf.format_results),
+        "fabrication": (_vf.validate_fabrication, _vf.format_results),
+    }
+
+    if layer == "all":
+        all_issues = []
+        for mod_fn, _ in dispatch.values():
+            all_issues.extend(mod_fn(state))
+        if not all_issues:
+            return state, "OK: All validation passed. No issues.\nREADY:"
+        errors = sum(1 for i in all_issues if i["level"] == "error")
+        warnings = sum(1 for i in all_issues if i["level"] == "warning")
+        lines = [f"{len(all_issues)} issues ({errors} errors, {warnings} warnings):"]
+        for idx, issue in enumerate(all_issues, 1):
+            level = issue["level"].upper()
+            lines.append(f"  {idx}. {level}: {issue['message']} [{issue['path']}]")
+        lines.append("READY:")
+        return state, "\n".join(lines)
+
+    if layer not in dispatch:
+        return state, f"ERROR: Unknown validation layer '{layer}'. Options: {', '.join(sorted(dispatch))}"
+
+    fn, fmt = dispatch[layer]
+    issues = fn(state)
+    return state, fmt(issues) + "\nREADY:"
+
+
+# ── Capture command ────────────────────────────────────
+
+def cmd_capture(state, tokens, state_file=None):
+    """Manage capture presets and run captures.
+
+    Usage:
+      capture list              — list presets
+      capture run <id>          — run one preset
+      capture run all           — run all enabled presets
+      capture status            — show last capture status
+      capture preset add <id>   — add preset with defaults
+    """
+    if len(tokens) < 2:
+        return state, "ERROR: Usage: capture list | run <id|all> | status | preset add <id>"
+
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _tools_rhino = os.path.join(_root, "tools", "rhino")
+    if _tools_rhino not in sys.path:
+        sys.path.insert(0, _tools_rhino)
+
+    try:
+        from capture_presets import CapturePresetManager
+        from capture_service import CaptureService
+    except ImportError:
+        return state, "ERROR: Capture subsystem not available."
+
+    sub = tokens[1].lower()
+    captures_dir = os.path.join(_root, "captures")
+    mgr = CapturePresetManager(state=state)
+
+    try:
+        import rhino_client as _rc
+    except ImportError:
+        _rc = None
+
+    if sub == "list":
+        return state, mgr.format_list() + "\nREADY:"
+
+    elif sub == "status":
+        svc = CaptureService(captures_dir, state_file, _rc)
+        return state, svc.format_status() + "\nREADY:"
+
+    elif sub == "run":
+        if len(tokens) < 3:
+            return state, "ERROR: Usage: capture run <preset_id|all>"
+        target = tokens[2]
+        svc = CaptureService(captures_dir, state_file, _rc)
+        if target.lower() == "all":
+            status = svc.capture_all(mgr.enabled_presets())
+            return state, svc.format_status(status) + "\nREADY:"
+        else:
+            preset = mgr.get_preset(target)
+            if not preset:
+                available = ", ".join(p["id"] for p in mgr.list_presets())
+                return state, f"ERROR: Preset '{target}' not found. Available: {available}"
+            result = svc.capture_one(preset)
+            return state, f"OK: {result['id']} — {result['status']}: {result['message']}\nREADY:"
+
+    elif sub == "preset" and len(tokens) >= 4 and tokens[2].lower() == "add":
+        preset_id = tokens[3]
+        new_preset = {
+            "id": preset_id,
+            "enabled": True,
+            "named_view": "Top",
+            "display_mode": "Wireframe",
+            "width": 4000,
+            "height": 3000,
+            "format": "png",
+            "output": f"captures/{preset_id}.png",
+            "description": f"Custom preset {preset_id}.",
+        }
+        mgr.add_preset(new_preset)
+        state["capture_jobs"] = mgr.to_state_section()
+        return state, f"OK: Added capture preset '{preset_id}'.\nREADY:"
+
+    else:
+        return state, "ERROR: Usage: capture list | run <id|all> | status | preset add <id>"
+
 
 def do_print(state, state_file):
     pr = state.get("print",{}); site = state["site"]
@@ -2570,6 +2709,21 @@ VIEW COMMANDS (tactile output types):
   view section <x|y> <gridline> [--style <name>]
   view axon [angle1] [angle2] [--hidden] [--style <name>]
   view elevation <north|south|east|west> [--style <name>]
+
+VALIDATION:
+  validate ................. run all validation layers
+  validate schema .......... check required keys, types, enums
+  validate semantic ........ check logical relationships
+  validate spatial ......... check geometry conflicts
+  validate tactile ......... check tactile output readiness
+  validate fab ............. check 3D print readiness
+
+CAPTURE (render artifact presets):
+  capture list ............. list capture presets
+  capture run <id> ......... run one capture preset
+  capture run all .......... run all enabled presets
+  capture status ........... show last capture results
+  capture preset add <id> .. add a new preset with defaults
 
 SETUP (Rhino auto-launch):
   setup rhino ............. launch Rhino with watcher + set units to Feet

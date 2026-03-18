@@ -2547,15 +2547,284 @@ def view_elevation(direction: str, style: str = None) -> str:
         return f"ERROR: {e}"
 
 
+# ── v3.6: Validation tools ────────────────────────────
+
+# Import validation framework
+sys.path.insert(0, _root)
+try:
+    from controller.validation import schema as _val_schema
+    from controller.validation import semantic as _val_semantic
+    from controller.validation import spatial as _val_spatial
+    from controller.validation import tactile as _val_tactile
+    from controller.validation import fabrication as _val_fab
+    _validation_available = True
+except ImportError:
+    _validation_available = False
+
+
+@mcp.tool()
+def validate_schema() -> str:
+    """Validate the structural schema of state.json.
+
+    Checks required keys, types, enums, and nested structure.
+    Returns a list of issues or confirmation that schema is valid.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    issues = _val_schema.validate_schema(state)
+    return _val_schema.format_results(issues)
+
+
+@mcp.tool()
+def validate_semantic() -> str:
+    """Validate semantic correctness of the model.
+
+    Checks corridor references, aperture placement, cell references,
+    room naming, and bay label consistency.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    issues = _val_semantic.validate_semantic(state)
+    return _val_semantic.format_results(issues)
+
+
+@mcp.tool()
+def validate_spatial() -> str:
+    """Validate spatial/geometric properties of the model.
+
+    Checks for overlapping bays, degenerate geometry, bays outside
+    site boundary, and aperture overlaps on the same wall.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    issues = _val_spatial.validate_spatial(state)
+    return _val_spatial.format_results(issues)
+
+
+@mcp.tool()
+def validate_tactile() -> str:
+    """Validate tactile output readiness.
+
+    Checks hatch differentiation, missing braille labels, named cells
+    without hatches, legend status, and aperture density.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    issues = _val_tactile.validate_tactile(state)
+    return _val_tactile.format_results(issues)
+
+
+@mcp.tool()
+def validate_fabrication() -> str:
+    """Validate 3D print / fabrication readiness.
+
+    Checks wall height, cut height, floor thickness, wall thickness,
+    export path, scale factor, and Bambu printer config.
+    Only runs checks if tactile3d is enabled.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    issues = _val_fab.validate_fabrication(state)
+    return _val_fab.format_results(issues)
+
+
+@mcp.tool()
+def validate_all() -> str:
+    """Run all validation layers: schema, semantic, spatial, tactile, fabrication.
+
+    Returns a combined report of all issues found across every layer.
+    """
+    if not _validation_available:
+        return "ERROR: Validation framework not available."
+    state = _load_state()
+    all_issues = []
+    for mod in (_val_schema, _val_semantic, _val_spatial, _val_tactile, _val_fab):
+        func = getattr(mod, "validate_schema", None) or \
+               getattr(mod, "validate_semantic", None) or \
+               getattr(mod, "validate_spatial", None) or \
+               getattr(mod, "validate_tactile", None) or \
+               getattr(mod, "validate_fabrication", None)
+        if func:
+            all_issues.extend(func(state))
+    if not all_issues:
+        return "OK: All validation passed. No issues."
+    errors = sum(1 for i in all_issues if i["level"] == "error")
+    warnings = sum(1 for i in all_issues if i["level"] == "warning")
+    lines = [f"{len(all_issues)} issues ({errors} errors, {warnings} warnings):"]
+    for idx, issue in enumerate(all_issues, 1):
+        level = issue["level"].upper()
+        lines.append(f"  {idx}. {level}: {issue['message']} [{issue['path']}]")
+    return "\n".join(lines)
+
+
+# ── v3.6: Capture tools ──────────────────────────────
+
+_captures_dir = os.path.join(_root, "captures")
+
+try:
+    _tools_rhino_path = os.path.join(_root, "tools", "rhino")
+    if _tools_rhino_path not in sys.path:
+        sys.path.insert(0, _tools_rhino_path)
+    from capture_presets import CapturePresetManager
+    from capture_service import CaptureService
+    _capture_available = True
+except ImportError:
+    _capture_available = False
+
+
+@mcp.tool()
+def list_capture_presets() -> str:
+    """List all configured capture presets.
+
+    Shows preset ID, description, enabled status, resolution, and format.
+    """
+    if not _capture_available:
+        return "ERROR: Capture subsystem not available."
+    state = _load_state()
+    mgr = CapturePresetManager(state=state)
+    return mgr.format_list()
+
+
+@mcp.tool()
+def capture_view(preset_id: str) -> str:
+    """Execute a single capture job by preset ID.
+
+    Captures a high-resolution image from Rhino using the specified
+    named view and display mode. Requires Rhino to be running.
+
+    Args:
+        preset_id: The ID of the capture preset to run.
+    """
+    if not _capture_available:
+        return "ERROR: Capture subsystem not available."
+    state = _load_state()
+    mgr = CapturePresetManager(state=state)
+    preset = mgr.get_preset(preset_id)
+    if not preset:
+        available = ", ".join(p["id"] for p in mgr.list_presets())
+        return f"ERROR: Preset '{preset_id}' not found. Available: {available}"
+    svc = CaptureService(_captures_dir, STATE_PATH, rhino_client)
+    result = svc.capture_one(preset)
+    return f"{result['status'].upper()}: {result['id']} — {result['message']}"
+
+
+@mcp.tool()
+def capture_all_views() -> str:
+    """Execute all enabled capture jobs.
+
+    Captures high-resolution images for every enabled preset.
+    Returns a summary of all captures with status for each.
+    """
+    if not _capture_available:
+        return "ERROR: Capture subsystem not available."
+    state = _load_state()
+    mgr = CapturePresetManager(state=state)
+    svc = CaptureService(_captures_dir, STATE_PATH, rhino_client)
+    status = svc.capture_all(mgr.enabled_presets())
+    return svc.format_status(status)
+
+
+@mcp.tool()
+def get_capture_status() -> str:
+    """Get the status of the most recent capture run.
+
+    Returns revision, timestamp, and per-preset results.
+    """
+    if not _capture_available:
+        return "ERROR: Capture subsystem not available."
+    svc = CaptureService(_captures_dir, STATE_PATH, rhino_client)
+    return svc.format_status()
+
+
+@mcp.tool()
+def set_capture_preset_field(preset_id: str, field: str, value: str) -> str:
+    """Set a field on an existing capture preset.
+
+    Modifies the capture preset and saves to state.json.
+
+    Args:
+        preset_id: The ID of the preset to modify.
+        field: Field name (enabled, named_view, display_mode, width, height, format, output).
+        value: New value as string (booleans: 'true'/'false', numbers: '4000').
+    """
+    if not _capture_available:
+        return "ERROR: Capture subsystem not available."
+    state = _load_state()
+    if "capture_jobs" not in state:
+        state["capture_jobs"] = CapturePresetManager().to_state_section()
+    mgr = CapturePresetManager(state=state)
+    # Convert value types
+    if field in ("width", "height"):
+        try:
+            value = int(value)
+        except ValueError:
+            return f"ERROR: {field} must be an integer."
+    elif field == "enabled":
+        value = value.lower() in ("true", "1", "yes")
+    if not mgr.set_field(preset_id, field, value):
+        return f"ERROR: Preset '{preset_id}' not found."
+    state["capture_jobs"] = mgr.to_state_section()
+    cli.save_state(STATE_PATH, state)
+    return f"OK: Preset '{preset_id}' {field} = {value}.\nREADY:"
+
+
+# ── v3.6: Transaction journal query ──────────────────
+
+@mcp.tool()
+def get_journal(last_n: int = 20) -> str:
+    """Get the last N entries from the state transaction journal.
+
+    Shows who changed the state, when, what command was run,
+    and whether it succeeded or failed.
+
+    Args:
+        last_n: Number of recent entries to return (default 20).
+    """
+    journal_dir = os.path.join(os.path.dirname(STATE_PATH), "journal")
+    if not os.path.isdir(journal_dir):
+        return "OK: No journal entries yet. The journal is created when state changes are made through the transaction manager."
+    files = sorted(f for f in os.listdir(journal_dir)
+                   if f.startswith("txn_") and f.endswith(".json"))
+    if not files:
+        return "OK: Journal directory exists but contains no entries."
+    entries = []
+    for fname in files[-last_n:]:
+        path = os.path.join(journal_dir, fname)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                entries.append(json.load(f))
+        except (json.JSONDecodeError, IOError):
+            pass
+    if not entries:
+        return "OK: No readable journal entries."
+    lines = [f"OK: {len(entries)} journal entries:"]
+    for e in entries:
+        lines.append(f"  {e.get('transaction_id','?')}: "
+                     f"{e.get('writer','?')} — {e.get('command','?')[:60]} — "
+                     f"{e.get('status','?')} at {e.get('timestamp','?')}")
+    return "\n".join(lines)
+
+
 # ── Entry point ────────────────────────────────────────
 
 if __name__ == "__main__":
-    _real_print(f"Layout Jig MCP Server v3.5 starting...", file=sys.stderr)
+    _val_count = 6 if _validation_available else 0
+    _cap_count = 5 if _capture_available else 0
+    _journal_count = 1
+    _total = 65 + _val_count + _cap_count + _journal_count
+    _real_print(f"Layout Jig MCP Server v3.6 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
-    _real_print(f"Tools: 65 (56 v3.4 + 9 v3.5 style/view)", file=sys.stderr)
+    _real_print(f"Tools: {_total} (65 v3.5 + {_val_count} validation + {_cap_count} capture + {_journal_count} journal)", file=sys.stderr)
     _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
     _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Style profiles: {'available' if _style_available else 'not available'}", file=sys.stderr)
+    _real_print(f"Validation: {'available' if _validation_available else 'not available'}", file=sys.stderr)
+    _real_print(f"Capture: {'available' if _capture_available else 'not available'}", file=sys.stderr)
     _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
     _real_print(f"Scripts dir: {SCRIPTS_DIR}", file=sys.stderr)
     mcp.run()
