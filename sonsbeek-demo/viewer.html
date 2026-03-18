@@ -658,7 +658,6 @@ function applyMode(mode) {
     s.mesh.material = m[s.category] || m.wall;
   });
   edgeGroup.visible = m.edges;
-  silhouetteMesh.visible = !!m.outline;
 
   dirLight.castShadow = m.shadows && sunEnabled;
   renderer.shadowMap.needsUpdate = true;
@@ -690,36 +689,26 @@ function render() {
 
 function renderOutlineShadedMode() {
   // 1. Depth pre-pass: surfaces only to depthTarget
-  camera.layers.set(0);
   edgeGroup.visible = false;
+  camera.layers.set(0);
   renderer.setRenderTarget(depthTarget);
   renderer.clear();
   renderer.render(scene, camera);
   edgeGroup.visible = true;
 
-  // 2. Update hidden-line shader uniforms
+  // 2. Feed depth to hidden-line shader
   hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
   hiddenLineEdgeMat.uniforms.resolution.value.set(
     renderer.domElement.width, renderer.domElement.height
   );
 
-  // 3. Render shaded scene + edges with hidden-line dashing to screen
+  // 3. Render shaded surfaces + hidden-line edges to screen
   camera.layers.enable(0);
   camera.layers.enable(1);
-  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
   renderer.setRenderTarget(null);
   renderer.clear();
   renderer.render(scene, camera);
   camera.layers.enableAll();
-
-  // 4. Silhouette overlay
-  silhouetteMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  silhouetteMat.uniforms.resolution.value.set(
-    renderer.domElement.width, renderer.domElement.height
-  );
-  renderer.autoClear = false;
-  renderer.render(silhouetteScene, silhouetteCamera);
-  renderer.autoClear = true;
 }
 
 function renderGhostedMode() {
