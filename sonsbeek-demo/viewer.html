@@ -130,7 +130,9 @@ var SONSBEEK = {"meta":{"name":"Sonsbeek Pavilion","architect":"Aldo van Eyck","
 var scene, perspCamera, orthoCamera, camera, renderer, controls;
 var surfaceGroup, edgeGroup, outlineGroup, groundGroup;
 var depthTarget, sectionPlane;
-var hiddenLineEdgeMat, standardEdgeMat, outlineMat;
+var hiddenLineEdgeMat, standardEdgeMat, outlineMat, sectionLineMat;
+var sectionLinesGroup;
+var currentSectionHeight = 100;
 var dirLight;
 var currentMode = 'pen';
 var isOrtho = false;
@@ -264,6 +266,11 @@ function createEdgeMaterials() {
   outlineMat = new THREE.MeshBasicMaterial({
     color: 0x000000,
     side: THREE.BackSide,
+  });
+
+  sectionLineMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.DoubleSide,
   });
 }
 
@@ -417,6 +424,117 @@ function addOutline(originalMesh, geo, expansion) {
 }
 
 /* ===================================================================
+   SECTION CUT LINES
+   =================================================================== */
+function edgePlaneIntersect(h, a, b) {
+  var da = a.y - h, db = b.y - h;
+  if (da * db < 0) {
+    var t = da / (da - db);
+    return new THREE.Vector3(
+      a.x + t * (b.x - a.x),
+      h,
+      a.z + t * (b.z - a.z)
+    );
+  }
+  return null;
+}
+
+function triPlaneIntersect(h, v0, v1, v2) {
+  var pts = [];
+  var p;
+  p = edgePlaneIntersect(h, v0, v1); if (p) pts.push(p);
+  p = edgePlaneIntersect(h, v1, v2); if (p) pts.push(p);
+  p = edgePlaneIntersect(h, v2, v0); if (p) pts.push(p);
+  if (pts.length === 2) return pts;
+  return null;
+}
+
+function updateSectionLines(height) {
+  while (sectionLinesGroup.children.length)
+    sectionLinesGroup.remove(sectionLinesGroup.children[0]);
+  currentSectionHeight = height;
+
+  if (height >= 90) return;
+
+  scene.updateMatrixWorld();
+
+  var segs = [];
+  allSurfaces.forEach(function(s) {
+    var mesh = s.mesh;
+    var geo = mesh.geometry;
+    var pos = geo.getAttribute('position');
+    var idx = geo.getIndex();
+    var matrix = mesh.matrixWorld;
+    var triCount = idx ? idx.count / 3 : pos.count / 3;
+
+    for (var t = 0; t < triCount; t++) {
+      var i0, i1, i2;
+      if (idx) {
+        i0 = idx.getX(t * 3);
+        i1 = idx.getX(t * 3 + 1);
+        i2 = idx.getX(t * 3 + 2);
+      } else {
+        i0 = t * 3; i1 = t * 3 + 1; i2 = t * 3 + 2;
+      }
+      var v0 = new THREE.Vector3(pos.getX(i0), pos.getY(i0), pos.getZ(i0)).applyMatrix4(matrix);
+      var v1 = new THREE.Vector3(pos.getX(i1), pos.getY(i1), pos.getZ(i1)).applyMatrix4(matrix);
+      var v2 = new THREE.Vector3(pos.getX(i2), pos.getY(i2), pos.getZ(i2)).applyMatrix4(matrix);
+      var seg = triPlaneIntersect(height, v0, v1, v2);
+      if (seg) segs.push(seg);
+    }
+  });
+
+  if (segs.length === 0) return;
+
+  // Build batched geometry: thin boxes along each intersection segment
+  var lineW = 0.04;
+  var lineH = 0.04;
+  var positions = [];
+  var indices = [];
+
+  for (var i = 0; i < segs.length; i++) {
+    var p1 = segs[i][0], p2 = segs[i][1];
+    var dx = p2.x - p1.x, dz = p2.z - p1.z;
+    var len = Math.sqrt(dx * dx + dz * dz);
+    if (len < 0.001) continue;
+
+    var nx = -dz / len * lineW / 2;
+    var nz = dx / len * lineW / 2;
+    var hw = lineH / 2;
+    var y = height - 0.008;
+    var vi = positions.length / 3;
+
+    positions.push(
+      p1.x - nx, y - hw, p1.z - nz,
+      p1.x + nx, y - hw, p1.z + nz,
+      p2.x + nx, y - hw, p2.z + nz,
+      p2.x - nx, y - hw, p2.z - nz,
+      p1.x - nx, y + hw, p1.z - nz,
+      p1.x + nx, y + hw, p1.z + nz,
+      p2.x + nx, y + hw, p2.z + nz,
+      p2.x - nx, y + hw, p2.z - nz
+    );
+    indices.push(
+      vi+0,vi+2,vi+1, vi+0,vi+3,vi+2,
+      vi+4,vi+5,vi+6, vi+4,vi+6,vi+7,
+      vi+1,vi+2,vi+6, vi+1,vi+6,vi+5,
+      vi+0,vi+4,vi+7, vi+0,vi+7,vi+3,
+      vi+0,vi+1,vi+5, vi+0,vi+5,vi+4,
+      vi+3,vi+7,vi+6, vi+3,vi+6,vi+2
+    );
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+
+  var mesh = new THREE.Mesh(geo, sectionLineMat);
+  mesh.layers.set(0);
+  sectionLinesGroup.add(mesh);
+}
+
+/* ===================================================================
    BUILD MODEL
    =================================================================== */
 function buildModel(data) {
@@ -494,9 +612,8 @@ function applyMode(mode) {
   edgeGroup.visible = m.edges;
   outlineGroup.visible = !!m.outline;
 
-  renderer.shadowMap.enabled = m.shadows;
-  if (m.shadows) renderer.shadowMap.needsUpdate = true;
   dirLight.castShadow = m.shadows && sunEnabled;
+  renderer.shadowMap.needsUpdate = true;
   allSurfaces.forEach(function(s) {
     s.mesh.castShadow = m.shadows;
     s.mesh.receiveShadow = m.shadows;
@@ -720,10 +837,12 @@ function updateSection(val) {
   if (val >= 340) {
     sectionPlane.constant = 100;
     document.getElementById('sectionVal').textContent = 'off';
+    updateSectionLines(100);
   } else {
     var h = val / 100;
     sectionPlane.constant = h;
     document.getElementById('sectionVal').textContent = h.toFixed(1) + 'm';
+    updateSectionLines(h);
   }
 }
 
@@ -739,7 +858,7 @@ function init() {
   renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = false;
+  renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -767,10 +886,12 @@ function init() {
   edgeGroup = new THREE.Group();
   outlineGroup = new THREE.Group();
   groundGroup = new THREE.Group();
+  sectionLinesGroup = new THREE.Group();
   scene.add(surfaceGroup);
   scene.add(edgeGroup);
   scene.add(outlineGroup);
   scene.add(groundGroup);
+  scene.add(sectionLinesGroup);
 
   createModeMaterials();
   createEdgeMaterials();
@@ -862,6 +983,7 @@ function setupUI() {
         SONSBEEK = data;
         clearModel();
         buildModel(data);
+        updateSectionLines(currentSectionHeight);
         applyMode(currentMode);
         fitCamera();
         loadPanel.classList.remove('show');
@@ -885,6 +1007,7 @@ function setupUI() {
       SONSBEEK = data;
       clearModel();
       buildModel(data);
+      updateSectionLines(currentSectionHeight);
       applyMode(currentMode);
     } catch (err) { alert('Invalid JSON: ' + err.message); }
   });
@@ -895,6 +1018,7 @@ function clearModel() {
   while (edgeGroup.children.length) edgeGroup.remove(edgeGroup.children[0]);
   while (outlineGroup.children.length) outlineGroup.remove(outlineGroup.children[0]);
   while (groundGroup.children.length) groundGroup.remove(groundGroup.children[0]);
+  while (sectionLinesGroup.children.length) sectionLinesGroup.remove(sectionLinesGroup.children[0]);
   allSurfaces.length = 0;
   allEdgeLines.length = 0;
   allOutlines.length = 0;
