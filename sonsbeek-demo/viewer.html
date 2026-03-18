@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sonsbeek Pavilion — Aldo van Eyck, 1966</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;touch-action:none}
+body{background:#fff;color:#222}
+body.dark{background:#1a1a1a;color:#eee}
+#viewport{width:100%;height:100%}
+#info{position:fixed;top:12px;left:16px;font-size:13px;color:#666;pointer-events:none;user-select:none}
+body.dark #info{color:#888}
+
+/* Mode bar */
+#modes{position:fixed;top:12px;right:16px;display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:540px}
+.pill{padding:4px 11px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:14px;cursor:pointer;font-size:11px;color:#444;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:all .15s;font-family:inherit;line-height:1.3}
+.pill:hover{border-color:#888}
+.pill.active{background:#222;color:#fff;border-color:#222}
+body.dark .pill{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+body.dark .pill.active{background:#eee;color:#222;border-color:#eee}
+
+/* View bar */
+#views{position:fixed;bottom:16px;left:16px;display:flex;gap:5px;align-items:center}
+
+/* Sliders */
+#sliders{position:fixed;bottom:50px;left:16px;display:flex;flex-direction:column;gap:6px}
+.slider-row{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.85);backdrop-filter:blur(6px);border-radius:14px;padding:3px 10px;border:1px solid #bbb;font-size:11px;color:#555}
+body.dark .slider-row{background:rgba(40,40,40,0.85);border-color:#555;color:#aaa}
+.slider-row label{min-width:44px;font-size:11px}
+.slider-row input[type=range]{width:100px;height:4px;cursor:pointer;accent-color:#555}
+.slider-row .val{min-width:32px;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
+
+/* Tools */
+#tools{position:fixed;bottom:16px;right:16px;display:flex;gap:5px}
+.tool-btn{width:34px;height:34px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all .15s;font-family:inherit}
+.tool-btn:hover{border-color:#888;background:rgba(255,255,255,1)}
+body.dark .tool-btn{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+
+/* JSON Editor */
+#editPanel{display:none;position:fixed;top:0;right:0;width:420px;height:100%;background:rgba(255,255,255,0.97);border-left:1px solid #ccc;backdrop-filter:blur(8px);z-index:100;flex-direction:column}
+#editPanel.show{display:flex}
+body.dark #editPanel{background:rgba(25,25,25,0.97);border-color:#444}
+.edit-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #ddd;font-size:12px;color:#666}
+body.dark .edit-toolbar{border-color:#444;color:#aaa}
+.edit-toolbar span{flex:1}
+.edit-toolbar button{padding:4px 12px;border:1px solid #bbb;background:#fff;border-radius:6px;cursor:pointer;font-size:11px}
+body.dark .edit-toolbar button{background:#333;border-color:#555;color:#ccc}
+#jsonEditor{flex:1;border:none;resize:none;padding:10px 12px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;font-size:12px;line-height:1.5;background:transparent;color:#333;outline:none;tab-size:2}
+body.dark #jsonEditor{color:#ccc}
+
+/* Load panel */
+#loadPanel{display:none;position:fixed;bottom:56px;right:16px;background:rgba(255,255,255,0.95);border:1px solid #ccc;border-radius:10px;padding:10px;width:240px;backdrop-filter:blur(8px);z-index:50}
+#loadPanel.show{display:block}
+#loadPanel label{display:inline-block;padding:5px 12px;border:1px solid #bbb;border-radius:6px;cursor:pointer;font-size:11px}
+#loadPanel input[type=file]{display:none}
+body.dark #loadPanel{background:rgba(30,30,30,0.95);border-color:#555}
+body.dark #loadPanel label{border-color:#555;color:#bbb}
+</style>
+</head>
+<body>
+<div id="viewport"></div>
+<div id="info">Sonsbeek Pavilion &middot; Aldo van Eyck, 1966</div>
+
+<div id="modes">
+  <button class="pill active" data-mode="outlineShaded">Outline+Shaded</button>
+  <button class="pill" data-mode="shaded">Shaded</button>
+  <button class="pill" data-mode="arctic">Arctic</button>
+  <button class="pill" data-mode="ghosted">Ghosted</button>
+  <button class="pill" data-mode="wire">Wire</button>
+  <button class="pill" data-mode="xray">X-Ray</button>
+</div>
+
+<div id="sliders">
+  <div class="slider-row">
+    <label>Sun</label>
+    <button class="pill" id="btnSun" style="padding:2px 8px;font-size:10px;margin-right:2px">Off</button>
+    <input type="range" id="sunSlider" min="0" max="360" value="45">
+    <span class="val" id="sunVal">45&deg;</span>
+  </div>
+  <div class="slider-row">
+    <label>Section</label>
+    <input type="range" id="sectionSlider" min="0" max="350" value="350">
+    <span class="val" id="sectionVal">off</span>
+  </div>
+</div>
+
+<div id="views">
+  <button class="pill" id="btnFit">Fit</button>
+  <button class="pill" id="btnProj">Parallel</button>
+  <button class="pill" id="btnPlan">Plan</button>
+  <button class="pill" id="btnElev">Elevation</button>
+</div>
+
+<div id="tools">
+  <button class="tool-btn" id="btnTheme" title="Toggle dark/light">&#x25D0;</button>
+  <button class="tool-btn" id="btnLoad" title="Load JSON">&#x2B06;</button>
+  <button class="tool-btn" id="btnEdit" title="Edit JSON">{ }</button>
+</div>
+
+<div id="editPanel">
+  <div class="edit-toolbar">
+    <span>Edit JSON</span>
+    <button id="btnApplyJSON">Apply</button>
+    <button id="btnCloseEdit">&times;</button>
+  </div>
+  <textarea id="jsonEditor" spellcheck="false"></textarea>
+</div>
+
+<div id="loadPanel">
+  <label for="fileInput">Choose .json file</label>
+  <input type="file" id="fileInput" accept=".json">
+</div>
+
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ===================================================================
+   EMBEDDED MODEL
+   =================================================================== */
+var SONSBEEK = {"meta":{"name":"Sonsbeek Pavilion","architect":"Aldo van Eyck","year":1966,"units":"meters"},"site":{"circle_radius":9,"plinth_height":0.2,"platform_width":24,"platform_depth":16},"walls":[{"id":"W2","x":-4.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-0.5},{"y_start":0.8,"y_end":6}]},{"id":"W3","x":-3,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7,"y_end":5.5}]},{"id":"W4","x":-1,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-1.5},{"y_start":-0.2,"y_end":7.5}]},{"id":"W5","x":1,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7.5,"y_end":0.2},{"y_start":1.5,"y_end":5.5}]},{"id":"W6","x":3,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":7}]},{"id":"W7","x":4.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-0.5},{"y_start":0.5,"y_end":5.5}]}],"curved_walls":[{"id":"CW1","center":[-2,3],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW2","center":[-2,-3],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW3","center":[0,3.5],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW4","center":[0,-2.5],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW5","center":[2,2.5],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW6","center":[2,-3.5],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2}],"discs":[{"id":"D1","center":[-0.3,7],"radius":0.35,"height":1.5},{"id":"D2","center":[-1.5,0.5],"radius":0.8,"height":2},{"id":"D3","center":[3.75,-2.5],"radius":0.6,"height":2},{"id":"D4","center":[0.3,-7],"radius":0.35,"height":1.5}],"benches":[{"id":"B1","x":-6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-4,"y_end":4}]},{"id":"B2","x":6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-5,"y_end":5}]},{"id":"B3","x":3.75,"thickness":0.5,"height":0.9,"segments":[{"y_start":1,"y_end":3.5}]},{"id":"B4","x":1.5,"thickness":0.5,"height":0.9,"segments":[{"y_start":-5.5,"y_end":-4.5},{"y_start":-6.5,"y_end":-5.8}]}],"low_walls":[]};
+
+/* ===================================================================
+   GLOBALS
+   =================================================================== */
+var scene, perspCamera, orthoCamera, camera, renderer, controls;
+var surfaceGroup, edgeGroup, outlineGroup, groundGroup;
+var depthTarget, sectionPlane;
+var hiddenLineEdgeMat, standardEdgeMat, outlineMat, sectionLineMat;
+var sectionLinesGroup;
+var currentSectionHeight = 100;
+var dirLight;
+var currentMode = 'outlineShaded';
+var isOrtho = false;
+var isDark = false;
+var sunAngle = 45;
+var sunEnabled = false;
+var allSurfaces = [];
+var allEdgeLines = [];
+var allOutlines = [];
+var BG = { light: 0xffffff, dark: 0x1a1a1a };
+var ORTHO_SIZE = 22;
+var SUN_RADIUS = 20;
+var SUN_HEIGHT = 15;
+
+/* ===================================================================
+   MATERIALS
+   =================================================================== */
+var modeMats = {};
+function createModeMaterials() {
+  var DS = THREE.DoubleSide;
+  modeMats.outlineShaded = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
+    bench: new THREE.MeshStandardMaterial({color:0xb8b0a0, roughness:0.85, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, roughness:0.95, side:DS}),
+    edges:true, shadows:true, bg:0xf0ede8, bgDark:0x1e1c1a, outline:true,
+  };
+  modeMats.shaded = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
+    bench: new THREE.MeshStandardMaterial({color:0xb8b0a0, roughness:0.85, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, roughness:0.95, side:DS}),
+    edges:false, shadows:true, bg:0xf0ede8, bgDark:0x1e1c1a, outline:false,
+  };
+  modeMats.arctic = {
+    wall: new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.75, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xf5f5f5, roughness:0.70, side:DS}),
+    bench: new THREE.MeshStandardMaterial({color:0xf0f0f0, roughness:0.75, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xeeeeee, roughness:0.90, side:DS}),
+    edges:false, shadows:true, bg:0xf5f5f5, bgDark:0x222222, outline:false,
+  };
+  modeMats.ghosted = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, transparent:true, opacity:0.22, roughness:0.8, side:DS, depthWrite:false}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, transparent:true, opacity:0.18, roughness:0.8, side:DS, depthWrite:false}),
+    bench: new THREE.MeshStandardMaterial({color:0xb8b0a0, transparent:true, opacity:0.18, roughness:0.8, side:DS, depthWrite:false}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, transparent:true, opacity:0.10, roughness:0.9, side:DS, depthWrite:false}),
+    edges:true, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:false,
+  };
+  modeMats.wire = {
+    wall: new THREE.MeshBasicMaterial({wireframe:true, color:0x444444, side:DS}),
+    disc: new THREE.MeshBasicMaterial({wireframe:true, color:0x666666, side:DS}),
+    bench: new THREE.MeshBasicMaterial({wireframe:true, color:0x555555, side:DS}),
+    ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x999999, side:DS}),
+    edges:false, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:false,
+  };
+  modeMats.xray = {
+    wall: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.35, side:DS}),
+    disc: new THREE.MeshBasicMaterial({wireframe:true, color:0x66aaee, transparent:true, opacity:0.30, side:DS}),
+    bench: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.30, side:DS}),
+    ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x88aacc, transparent:true, opacity:0.15, side:DS}),
+    edges:false, shadows:false, bg:0xf5f8ff, bgDark:0x0a1520, outline:false,
+  };
+}
+
+/* ===================================================================
+   EDGE SHADER (with clipping support)
+   =================================================================== */
+function createEdgeMaterials() {
+  standardEdgeMat = new THREE.LineBasicMaterial({color: 0x333333});
+
+  hiddenLineEdgeMat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.clipping,
+      {
+        tDepth:     {value: null},
+        resolution: {value: new THREE.Vector2(1, 1)},
+        dashSize:   {value: 0.12},
+        gapSize:    {value: 0.08},
+        solidColor: {value: new THREE.Color(0x000000)},
+        dashedColor:{value: new THREE.Color(0x999999)},
+      }
+    ]),
+    vertexShader: [
+      '#include <clipping_planes_pars_vertex>',
+      'attribute float lineDistance;',
+      'varying float vLineDistance;',
+      'void main() {',
+      '  vLineDistance = lineDistance;',
+      '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_Position = projectionMatrix * mvPosition;',
+      '  #include <clipping_planes_vertex>',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      '#include <clipping_planes_pars_fragment>',
+      'uniform sampler2D tDepth;',
+      'uniform vec2 resolution;',
+      'uniform float dashSize;',
+      'uniform float gapSize;',
+      'uniform vec3 solidColor;',
+      'uniform vec3 dashedColor;',
+      'varying float vLineDistance;',
+      'void main() {',
+      '  #include <clipping_planes_fragment>',
+      '  vec2 uv = gl_FragCoord.xy / resolution;',
+      '  float sceneDepth = texture2D(tDepth, uv).r;',
+      '  float lineDepth = gl_FragCoord.z;',
+      '  if (lineDepth > sceneDepth + 0.00015) {',
+      '    float total = dashSize + gapSize;',
+      '    if (mod(vLineDistance, total) > dashSize) discard;',
+      '    gl_FragColor = vec4(dashedColor, 1.0);',
+      '  } else {',
+      '    gl_FragColor = vec4(solidColor, 1.0);',
+      '  }',
+      '}'
+    ].join('\n'),
+    clipping: true,
+    depthTest: false,
+    depthWrite: false,
+    transparent: false,
+  });
+
+  outlineMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.BackSide,
+  });
+
+  sectionLineMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.DoubleSide,
+  });
+}
+
+/* ===================================================================
+   GEOMETRY BUILDERS
+   =================================================================== */
+function buildWallSegment(x, yStart, yEnd, height, thickness, category) {
+  var length = Math.abs(yEnd - yStart);
+  var geo = new THREE.BoxGeometry(thickness, height, length);
+  var mesh = new THREE.Mesh(geo);
+  mesh.position.set(x, height / 2, -(yStart + yEnd) / 2);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh: mesh, category: category});
+  surfaceGroup.add(mesh);
+
+  var edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  var edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  addOutline(mesh, geo, 0.025);
+}
+
+function buildCurvedWall(cw) {
+  var cx = cw.center[0];
+  var cz = -cw.center[1];
+  var r = cw.radius;
+  var t = cw.thickness;
+  var h = cw.height;
+  var startA = cw.start_angle_deg * Math.PI / 180;
+  var endA = cw.end_angle_deg * Math.PI / 180;
+  var segs = 32;
+  var innerR = r - t / 2;
+  var outerR = r + t / 2;
+  var pos = [];
+  var idx = [];
+
+  for (var i = 0; i <= segs; i++) {
+    var a = startA + (endA - startA) * (i / segs);
+    var c = Math.cos(a), s = Math.sin(a);
+    pos.push(
+      cx + innerR * c, 0, cz - innerR * s,
+      cx + innerR * c, h, cz - innerR * s,
+      cx + outerR * c, 0, cz - outerR * s,
+      cx + outerR * c, h, cz - outerR * s
+    );
+  }
+  for (var i = 0; i < segs; i++) {
+    var b = i * 4, n = (i + 1) * 4;
+    idx.push(b+2, n+2, n+3, b+2, n+3, b+3);
+    idx.push(b+0, b+1, n+1, b+0, n+1, n+0);
+    idx.push(b+1, b+3, n+3, b+1, n+3, n+1);
+    idx.push(b+0, n+0, n+2, b+0, n+2, b+2);
+  }
+  idx.push(0, 2, 3, 0, 3, 1);
+  var last = segs * 4;
+  idx.push(last, last+1, last+3, last, last+3, last+2);
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+
+  var mesh = new THREE.Mesh(geo);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh: mesh, category: 'wall'});
+  surfaceGroup.add(mesh);
+
+  var edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  var edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  addOutline(mesh, geo, 0.025);
+}
+
+function buildDisc(disc) {
+  var geo = new THREE.CylinderGeometry(disc.radius, disc.radius, disc.height, 32);
+  var mesh = new THREE.Mesh(geo);
+  mesh.position.set(disc.center[0], disc.height / 2, -disc.center[1]);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh: mesh, category: 'disc'});
+  surfaceGroup.add(mesh);
+
+  var edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  var edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  addOutline(mesh, geo, 0.02);
+}
+
+function buildGround(site) {
+  var ph = (site.plinth_height || 0.2);
+  // Circular plinth - visible raised platform
+  var geo = new THREE.CylinderGeometry(site.circle_radius, site.circle_radius, ph, 64);
+  var mesh = new THREE.Mesh(geo);
+  mesh.position.set(0, -ph / 2, 0);
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh: mesh, category: 'ground'});
+  groundGroup.add(mesh);
+
+  // Edge lines for the plinth
+  var edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  var edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  // Outline for silhouette
+  addOutline(mesh, geo, 0.03);
+}
+
+function addOutline(originalMesh, geo, expansion) {
+  var cloneGeo = geo.clone();
+  var p = cloneGeo.getAttribute('position');
+  var n = cloneGeo.getAttribute('normal');
+  if (!n) return;
+  for (var i = 0; i < p.count; i++) {
+    p.setXYZ(i,
+      p.getX(i) + n.getX(i) * expansion,
+      p.getY(i) + n.getY(i) * expansion,
+      p.getZ(i) + n.getZ(i) * expansion
+    );
+  }
+  p.needsUpdate = true;
+  var outline = new THREE.Mesh(cloneGeo, outlineMat);
+  outline.position.copy(originalMesh.position);
+  outline.quaternion.copy(originalMesh.quaternion);
+  outline.scale.copy(originalMesh.scale);
+  outline.layers.set(2);
+  allOutlines.push(outline);
+  outlineGroup.add(outline);
+}
+
+/* ===================================================================
+   SECTION CUT LINES
+   =================================================================== */
+function edgePlaneIntersect(h, a, b) {
+  var da = a.y - h, db = b.y - h;
+  if (da * db < 0) {
+    var t = da / (da - db);
+    return new THREE.Vector3(
+      a.x + t * (b.x - a.x),
+      h,
+      a.z + t * (b.z - a.z)
+    );
+  }
+  return null;
+}
+
+function triPlaneIntersect(h, v0, v1, v2) {
+  var pts = [];
+  var p;
+  p = edgePlaneIntersect(h, v0, v1); if (p) pts.push(p);
+  p = edgePlaneIntersect(h, v1, v2); if (p) pts.push(p);
+  p = edgePlaneIntersect(h, v2, v0); if (p) pts.push(p);
+  if (pts.length === 2) return pts;
+  return null;
+}
+
+function updateSectionLines(height) {
+  while (sectionLinesGroup.children.length)
+    sectionLinesGroup.remove(sectionLinesGroup.children[0]);
+  currentSectionHeight = height;
+
+  if (height >= 90) return;
+
+  scene.updateMatrixWorld();
+
+  var segs = [];
+  allSurfaces.forEach(function(s) {
+    var mesh = s.mesh;
+    var geo = mesh.geometry;
+    var pos = geo.getAttribute('position');
+    var idx = geo.getIndex();
+    var matrix = mesh.matrixWorld;
+    var triCount = idx ? idx.count / 3 : pos.count / 3;
+
+    for (var t = 0; t < triCount; t++) {
+      var i0, i1, i2;
+      if (idx) {
+        i0 = idx.getX(t * 3);
+        i1 = idx.getX(t * 3 + 1);
+        i2 = idx.getX(t * 3 + 2);
+      } else {
+        i0 = t * 3; i1 = t * 3 + 1; i2 = t * 3 + 2;
+      }
+      var v0 = new THREE.Vector3(pos.getX(i0), pos.getY(i0), pos.getZ(i0)).applyMatrix4(matrix);
+      var v1 = new THREE.Vector3(pos.getX(i1), pos.getY(i1), pos.getZ(i1)).applyMatrix4(matrix);
+      var v2 = new THREE.Vector3(pos.getX(i2), pos.getY(i2), pos.getZ(i2)).applyMatrix4(matrix);
+      var seg = triPlaneIntersect(height, v0, v1, v2);
+      if (seg) segs.push(seg);
+    }
+  });
+
+  if (segs.length === 0) return;
+
+  // Build batched geometry: thin boxes along each intersection segment
+  var lineW = 0.04;
+  var lineH = 0.04;
+  var positions = [];
+  var indices = [];
+
+  for (var i = 0; i < segs.length; i++) {
+    var p1 = segs[i][0], p2 = segs[i][1];
+    var dx = p2.x - p1.x, dz = p2.z - p1.z;
+    var len = Math.sqrt(dx * dx + dz * dz);
+    if (len < 0.001) continue;
+
+    var nx = -dz / len * lineW / 2;
+    var nz = dx / len * lineW / 2;
+    var hw = lineH / 2;
+    var y = height - 0.008;
+    var vi = positions.length / 3;
+
+    positions.push(
+      p1.x - nx, y - hw, p1.z - nz,
+      p1.x + nx, y - hw, p1.z + nz,
+      p2.x + nx, y - hw, p2.z + nz,
+      p2.x - nx, y - hw, p2.z - nz,
+      p1.x - nx, y + hw, p1.z - nz,
+      p1.x + nx, y + hw, p1.z + nz,
+      p2.x + nx, y + hw, p2.z + nz,
+      p2.x - nx, y + hw, p2.z - nz
+    );
+    indices.push(
+      vi+0,vi+2,vi+1, vi+0,vi+3,vi+2,
+      vi+4,vi+5,vi+6, vi+4,vi+6,vi+7,
+      vi+1,vi+2,vi+6, vi+1,vi+6,vi+5,
+      vi+0,vi+4,vi+7, vi+0,vi+7,vi+3,
+      vi+0,vi+1,vi+5, vi+0,vi+5,vi+4,
+      vi+3,vi+7,vi+6, vi+3,vi+6,vi+2
+    );
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+
+  var mesh = new THREE.Mesh(geo, sectionLineMat);
+  mesh.layers.set(0);
+  sectionLinesGroup.add(mesh);
+}
+
+/* ===================================================================
+   BUILD MODEL
+   =================================================================== */
+function buildModel(data) {
+  data.walls.forEach(function(w) {
+    w.segments.forEach(function(seg) {
+      buildWallSegment(w.x, seg.y_start, seg.y_end, w.height, w.thickness, 'wall');
+    });
+  });
+  data.curved_walls.forEach(function(cw) { buildCurvedWall(cw); });
+  data.discs.forEach(function(d) { buildDisc(d); });
+  if (data.benches) {
+    data.benches.forEach(function(b) {
+      b.segments.forEach(function(seg) {
+        buildWallSegment(b.x, seg.y_start, seg.y_end, b.height, b.thickness, 'bench');
+      });
+    });
+  }
+  if (data.low_walls) {
+    data.low_walls.forEach(function(lw) {
+      lw.segments.forEach(function(seg) {
+        buildWallSegment(lw.x, seg.y_start, seg.y_end, lw.height, lw.thickness, 'bench');
+      });
+    });
+  }
+  buildGround(data.site);
+}
+
+/* ===================================================================
+   LIGHTING
+   =================================================================== */
+function setupLighting() {
+  var hemi = new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6);
+  hemi.layers.enableAll();
+  scene.add(hemi);
+
+  dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.layers.enableAll();
+  dirLight.visible = false;
+  dirLight.castShadow = false;
+  dirLight.shadow.mapSize.set(2048, 2048);
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 15;
+  dirLight.shadow.camera.bottom = -15;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.bias = -0.0005;
+  scene.add(dirLight);
+  updateSunPosition(sunAngle);
+
+  var fill = new THREE.DirectionalLight(0xb0c4de, 0.3);
+  fill.layers.enableAll();
+  fill.position.set(-6, 8, -6);
+  scene.add(fill);
+
+  var amb = new THREE.AmbientLight(0xffffff, 0.15);
+  amb.layers.enableAll();
+  scene.add(amb);
+}
+
+function updateSunPosition(angleDeg) {
+  sunAngle = angleDeg;
+  var rad = angleDeg * Math.PI / 180;
+  dirLight.position.set(
+    SUN_RADIUS * Math.cos(rad),
+    SUN_HEIGHT,
+    SUN_RADIUS * Math.sin(rad)
+  );
+}
+
+/* ===================================================================
+   DISPLAY MODE
+   =================================================================== */
+function applyMode(mode) {
+  currentMode = mode;
+  var m = modeMats[mode];
+  if (!m) return;
+
+  allSurfaces.forEach(function(s) {
+    s.mesh.material = m[s.category] || m.wall;
+  });
+  edgeGroup.visible = m.edges;
+  outlineGroup.visible = !!m.outline;
+
+  dirLight.castShadow = m.shadows && sunEnabled;
+  renderer.shadowMap.needsUpdate = true;
+  allSurfaces.forEach(function(s) {
+    s.mesh.castShadow = m.shadows;
+    s.mesh.receiveShadow = m.shadows;
+  });
+
+  var bg = isDark ? (m.bgDark || BG.dark) : (m.bg || BG.light);
+  scene.background = new THREE.Color(bg);
+
+  document.querySelectorAll('#modes .pill').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+}
+
+/* ===================================================================
+   RENDER
+   =================================================================== */
+function render() {
+  if (currentMode === 'outlineShaded') {
+    renderOutlineShadedMode();
+  } else if (currentMode === 'ghosted') {
+    renderGhostedMode();
+  } else {
+    renderStandardMode();
+  }
+}
+
+function renderOutlineShadedMode() {
+  // Single-pass: shaded surfaces + outlines + edges — same as shaded but with edges
+  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
+  camera.layers.enable(0);
+  camera.layers.enable(1);
+  camera.layers.enable(2);
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  renderer.render(scene, camera);
+  camera.layers.enableAll();
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
+}
+
+function renderGhostedMode() {
+  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
+  camera.layers.enable(0);
+  camera.layers.enable(1);
+  camera.layers.disable(2);
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  renderer.render(scene, camera);
+  camera.layers.enableAll();
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
+}
+
+function renderStandardMode() {
+  camera.layers.enable(0);
+  camera.layers.disable(1);
+  camera.layers.disable(2);
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  renderer.render(scene, camera);
+  camera.layers.enableAll();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  render();
+}
+
+/* ===================================================================
+   CAMERA
+   =================================================================== */
+function createCameras() {
+  perspCamera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 200);
+  var a = innerWidth / innerHeight;
+  orthoCamera = new THREE.OrthographicCamera(
+    -ORTHO_SIZE * a / 2, ORTHO_SIZE * a / 2,
+    ORTHO_SIZE / 2, -ORTHO_SIZE / 2, 0.1, 200
+  );
+  camera = perspCamera;
+}
+
+function setOrthoSize(size) {
+  var a = innerWidth / innerHeight;
+  orthoCamera.left = -size * a / 2;
+  orthoCamera.right = size * a / 2;
+  orthoCamera.top = size / 2;
+  orthoCamera.bottom = -size / 2;
+  orthoCamera.updateProjectionMatrix();
+}
+
+function rebuildControls() {
+  var target = controls.target.clone();
+  controls.dispose();
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.target.copy(target);
+  controls.update();
+}
+
+function toggleProjection() {
+  var target = controls.target.clone();
+  var pos = camera.position.clone();
+
+  if (isOrtho) {
+    isOrtho = false;
+    perspCamera.position.copy(pos);
+    perspCamera.up.set(0, 1, 0);
+    perspCamera.lookAt(target);
+    camera = perspCamera;
+    document.getElementById('btnProj').textContent = 'Parallel';
+    document.getElementById('btnProj').classList.remove('active');
+  } else {
+    isOrtho = true;
+    var dist = pos.distanceTo(target);
+    var fovRad = perspCamera.fov * Math.PI / 180;
+    var viewHeight = 2 * dist * Math.tan(fovRad / 2);
+    setOrthoSize(viewHeight);
+    orthoCamera.position.copy(pos);
+    orthoCamera.up.set(0, 1, 0);
+    orthoCamera.lookAt(target);
+    camera = orthoCamera;
+    document.getElementById('btnProj').textContent = 'Perspective';
+    document.getElementById('btnProj').classList.add('active');
+  }
+  controls.dispose();
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.target.copy(target);
+  controls.update();
+}
+
+function fitCamera() {
+  camera.position.set(16, 11, 16);
+  camera.up.set(0, 1, 0);
+  controls.target.set(0, 1.2, 0);
+  if (isOrtho) setOrthoSize(ORTHO_SIZE);
+  controls.update();
+}
+
+function viewPlan() {
+  if (!isOrtho) toggleProjection();
+  camera.position.set(0, 30, 0.01);
+  camera.up.set(0, 0, -1);
+  controls.target.set(0, 0, 0);
+  setOrthoSize(22);
+  controls.update();
+}
+
+function viewElevation() {
+  if (!isOrtho) toggleProjection();
+  camera.position.set(0, 1.5, 25);
+  camera.up.set(0, 1, 0);
+  controls.target.set(0, 1.5, 0);
+  setOrthoSize(18);
+  controls.update();
+}
+
+/* ===================================================================
+   SECTION CUT
+   =================================================================== */
+function updateSection(val) {
+  if (val >= 340) {
+    sectionPlane.constant = 100;
+    document.getElementById('sectionVal').textContent = 'off';
+    updateSectionLines(100);
+  } else {
+    var h = val / 100;
+    sectionPlane.constant = h;
+    document.getElementById('sectionVal').textContent = h.toFixed(1) + 'm';
+    updateSectionLines(h);
+  }
+}
+
+/* ===================================================================
+   INIT
+   =================================================================== */
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(BG.light);
+
+  createCameras();
+
+  renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+
+  // Section clipping
+  sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
+  renderer.clippingPlanes = [sectionPlane];
+  renderer.localClippingEnabled = true;
+
+  document.getElementById('viewport').appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+
+  // Depth target
+  var depthTex = new THREE.DepthTexture();
+  depthTex.type = THREE.UnsignedIntType;
+  depthTarget = new THREE.WebGLRenderTarget(
+    renderer.domElement.width, renderer.domElement.height,
+    {depthTexture: depthTex, depthBuffer: true, stencilBuffer: false}
+  );
+
+  surfaceGroup = new THREE.Group();
+  edgeGroup = new THREE.Group();
+  outlineGroup = new THREE.Group();
+  groundGroup = new THREE.Group();
+  sectionLinesGroup = new THREE.Group();
+  scene.add(surfaceGroup);
+  scene.add(edgeGroup);
+  scene.add(outlineGroup);
+  scene.add(groundGroup);
+  scene.add(sectionLinesGroup);
+
+  createModeMaterials();
+  createEdgeMaterials();
+  setupLighting();
+  buildModel(SONSBEEK);
+  fitCamera();
+  applyMode('outlineShaded');
+
+  window.addEventListener('resize', onResize);
+  setupUI();
+  animate();
+}
+
+function onResize() {
+  var a = innerWidth / innerHeight;
+  perspCamera.aspect = a;
+  perspCamera.updateProjectionMatrix();
+
+  if (isOrtho) {
+    var h = orthoCamera.top - orthoCamera.bottom;
+    orthoCamera.left = -h * a / 2;
+    orthoCamera.right = h * a / 2;
+    orthoCamera.updateProjectionMatrix();
+  }
+
+  renderer.setSize(innerWidth, innerHeight);
+  depthTarget.setSize(renderer.domElement.width, renderer.domElement.height);
+}
+
+/* ===================================================================
+   UI
+   =================================================================== */
+function setupUI() {
+  // Mode buttons
+  document.querySelectorAll('#modes .pill').forEach(function(btn) {
+    btn.addEventListener('click', function() { applyMode(btn.dataset.mode); });
+  });
+
+  // View buttons
+  document.getElementById('btnFit').addEventListener('click', fitCamera);
+  document.getElementById('btnProj').addEventListener('click', toggleProjection);
+  document.getElementById('btnPlan').addEventListener('click', viewPlan);
+  document.getElementById('btnElev').addEventListener('click', viewElevation);
+
+  // Theme
+  document.getElementById('btnTheme').addEventListener('click', function() {
+    isDark = !isDark;
+    document.body.classList.toggle('dark', isDark);
+    applyMode(currentMode);
+  });
+
+  // Sun toggle
+  document.getElementById('btnSun').addEventListener('click', function() {
+    sunEnabled = !sunEnabled;
+    dirLight.visible = sunEnabled;
+    dirLight.castShadow = sunEnabled && modeMats[currentMode] && modeMats[currentMode].shadows;
+    this.textContent = sunEnabled ? 'On' : 'Off';
+    this.classList.toggle('active', sunEnabled);
+    renderer.shadowMap.needsUpdate = true;
+  });
+
+  // Sun slider
+  document.getElementById('sunSlider').addEventListener('input', function(e) {
+    var v = parseInt(e.target.value);
+    updateSunPosition(v);
+    document.getElementById('sunVal').textContent = v + '\u00B0';
+    if (modeMats[currentMode] && modeMats[currentMode].shadows) {
+      renderer.shadowMap.needsUpdate = true;
+    }
+  });
+
+  // Section slider
+  document.getElementById('sectionSlider').addEventListener('input', function(e) {
+    updateSection(parseInt(e.target.value));
+  });
+
+  // Load JSON
+  var loadPanel = document.getElementById('loadPanel');
+  document.getElementById('btnLoad').addEventListener('click', function() {
+    loadPanel.classList.toggle('show');
+  });
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        SONSBEEK = data;
+        clearModel();
+        buildModel(data);
+        updateSectionLines(currentSectionHeight);
+        applyMode(currentMode);
+        fitCamera();
+        loadPanel.classList.remove('show');
+      } catch (err) { alert('Error: ' + err.message); }
+    };
+    reader.readAsText(file);
+  });
+
+  // JSON Editor
+  var editPanel = document.getElementById('editPanel');
+  document.getElementById('btnEdit').addEventListener('click', function() {
+    document.getElementById('jsonEditor').value = JSON.stringify(SONSBEEK, null, 2);
+    editPanel.classList.add('show');
+  });
+  document.getElementById('btnCloseEdit').addEventListener('click', function() {
+    editPanel.classList.remove('show');
+  });
+  document.getElementById('btnApplyJSON').addEventListener('click', function() {
+    try {
+      var data = JSON.parse(document.getElementById('jsonEditor').value);
+      SONSBEEK = data;
+      clearModel();
+      buildModel(data);
+      updateSectionLines(currentSectionHeight);
+      applyMode(currentMode);
+    } catch (err) { alert('Invalid JSON: ' + err.message); }
+  });
+}
+
+function clearModel() {
+  while (surfaceGroup.children.length) surfaceGroup.remove(surfaceGroup.children[0]);
+  while (edgeGroup.children.length) edgeGroup.remove(edgeGroup.children[0]);
+  while (outlineGroup.children.length) outlineGroup.remove(outlineGroup.children[0]);
+  while (groundGroup.children.length) groundGroup.remove(groundGroup.children[0]);
+  while (sectionLinesGroup.children.length) sectionLinesGroup.remove(sectionLinesGroup.children[0]);
+  allSurfaces.length = 0;
+  allEdgeLines.length = 0;
+  allOutlines.length = 0;
+}
+
+/* ===================================================================
+   START
+   =================================================================== */
+init();
+</script>
+</body>
+</html>
