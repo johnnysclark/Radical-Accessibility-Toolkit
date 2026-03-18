@@ -9,64 +9,103 @@
 html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;touch-action:none}
 body{background:#fff;color:#222}
 body.dark{background:#1a1a1a;color:#eee}
-
 #viewport{width:100%;height:100%}
-
 #info{position:fixed;top:12px;left:16px;font-size:13px;color:#666;pointer-events:none;user-select:none}
 body.dark #info{color:#888}
 
-#modes{position:fixed;top:12px;right:16px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}
-#modes button{padding:5px 12px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:16px;cursor:pointer;font-size:12px;color:#444;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:all .15s}
-#modes button:hover{border-color:#888}
-#modes button.active{background:#222;color:#fff;border-color:#222}
-body.dark #modes button{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
-body.dark #modes button.active{background:#eee;color:#222;border-color:#eee}
+/* Mode bar */
+#modes{position:fixed;top:12px;right:16px;display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:540px}
+.pill{padding:4px 11px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:14px;cursor:pointer;font-size:11px;color:#444;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:all .15s;font-family:inherit;line-height:1.3}
+.pill:hover{border-color:#888}
+.pill.active{background:#222;color:#fff;border-color:#222}
+body.dark .pill{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+body.dark .pill.active{background:#eee;color:#222;border-color:#eee}
 
-#tools{position:fixed;bottom:16px;right:16px;display:flex;gap:6px}
-#tools button{width:36px;height:36px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all .15s}
-#tools button:hover{border-color:#888;background:rgba(255,255,255,1)}
-body.dark #tools button{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+/* View bar */
+#views{position:fixed;bottom:16px;left:16px;display:flex;gap:5px;align-items:center}
 
-#views{position:fixed;bottom:16px;left:16px;display:flex;gap:6px}
-#views button{padding:5px 12px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:16px;cursor:pointer;font-size:12px;color:#444;backdrop-filter:blur(6px);transition:all .15s}
-#views button:hover{border-color:#888}
-#views button.active{background:#222;color:#fff;border-color:#222}
-body.dark #views button{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
-body.dark #views button.active{background:#eee;color:#222;border-color:#eee}
+/* Sliders */
+#sliders{position:fixed;bottom:50px;left:16px;display:flex;flex-direction:column;gap:6px}
+.slider-row{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.85);backdrop-filter:blur(6px);border-radius:14px;padding:3px 10px;border:1px solid #bbb;font-size:11px;color:#555}
+body.dark .slider-row{background:rgba(40,40,40,0.85);border-color:#555;color:#aaa}
+.slider-row label{min-width:44px;font-size:11px}
+.slider-row input[type=range]{width:100px;height:4px;cursor:pointer;accent-color:#555}
+.slider-row .val{min-width:32px;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
 
-#loadPanel{display:none;position:fixed;bottom:60px;right:16px;background:rgba(255,255,255,0.95);border:1px solid #ccc;border-radius:10px;padding:12px;width:260px;backdrop-filter:blur(8px)}
+/* Tools */
+#tools{position:fixed;bottom:16px;right:16px;display:flex;gap:5px}
+.tool-btn{width:34px;height:34px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all .15s;font-family:inherit}
+.tool-btn:hover{border-color:#888;background:rgba(255,255,255,1)}
+body.dark .tool-btn{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+
+/* JSON Editor */
+#editPanel{display:none;position:fixed;top:0;right:0;width:420px;height:100%;background:rgba(255,255,255,0.97);border-left:1px solid #ccc;backdrop-filter:blur(8px);z-index:100;flex-direction:column}
+#editPanel.show{display:flex}
+body.dark #editPanel{background:rgba(25,25,25,0.97);border-color:#444}
+.edit-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #ddd;font-size:12px;color:#666}
+body.dark .edit-toolbar{border-color:#444;color:#aaa}
+.edit-toolbar span{flex:1}
+.edit-toolbar button{padding:4px 12px;border:1px solid #bbb;background:#fff;border-radius:6px;cursor:pointer;font-size:11px}
+body.dark .edit-toolbar button{background:#333;border-color:#555;color:#ccc}
+#jsonEditor{flex:1;border:none;resize:none;padding:10px 12px;font-family:'Cascadia Code','Fira Code','SF Mono',monospace;font-size:12px;line-height:1.5;background:transparent;color:#333;outline:none;tab-size:2}
+body.dark #jsonEditor{color:#ccc}
+
+/* Load panel */
+#loadPanel{display:none;position:fixed;bottom:56px;right:16px;background:rgba(255,255,255,0.95);border:1px solid #ccc;border-radius:10px;padding:10px;width:240px;backdrop-filter:blur(8px);z-index:50}
 #loadPanel.show{display:block}
-#loadPanel label{display:inline-block;padding:6px 14px;border:1px solid #bbb;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:8px}
+#loadPanel label{display:inline-block;padding:5px 12px;border:1px solid #bbb;border-radius:6px;cursor:pointer;font-size:11px}
 #loadPanel input[type=file]{display:none}
 body.dark #loadPanel{background:rgba(30,30,30,0.95);border-color:#555}
 body.dark #loadPanel label{border-color:#555;color:#bbb}
 </style>
 </head>
 <body>
-
 <div id="viewport"></div>
 <div id="info">Sonsbeek Pavilion &middot; Aldo van Eyck, 1966</div>
 
 <div id="modes">
-  <button class="active" data-mode="pen">Pen</button>
-  <button data-mode="penShaded">Pen+Shaded</button>
-  <button data-mode="shaded">Shaded</button>
-  <button data-mode="arctic">Arctic</button>
-  <button data-mode="ghosted">Ghosted</button>
-  <button data-mode="wire">Wire</button>
-  <button data-mode="xray">X-Ray</button>
+  <button class="pill active" data-mode="pen">Pen</button>
+  <button class="pill" data-mode="penShaded">Pen+Shaded</button>
+  <button class="pill" data-mode="shaded">Shaded</button>
+  <button class="pill" data-mode="arctic">Arctic</button>
+  <button class="pill" data-mode="ghosted">Ghosted</button>
+  <button class="pill" data-mode="wire">Wire</button>
+  <button class="pill" data-mode="xray">X-Ray</button>
+</div>
+
+<div id="sliders">
+  <div class="slider-row">
+    <label>Sun</label>
+    <input type="range" id="sunSlider" min="0" max="360" value="45">
+    <span class="val" id="sunVal">45&deg;</span>
+  </div>
+  <div class="slider-row">
+    <label>Section</label>
+    <input type="range" id="sectionSlider" min="0" max="350" value="350">
+    <span class="val" id="sectionVal">off</span>
+  </div>
 </div>
 
 <div id="views">
-  <button id="btnProj">Parallel</button>
-  <button id="btnPlan">Plan</button>
-  <button id="btnElev">Elevation</button>
+  <button class="pill" id="btnFit">Fit</button>
+  <button class="pill" id="btnProj">Parallel</button>
+  <button class="pill" id="btnPlan">Plan</button>
+  <button class="pill" id="btnElev">Elevation</button>
 </div>
 
 <div id="tools">
-  <button id="btnFit" title="Fit view">&#x2B1C;</button>
-  <button id="btnTheme" title="Toggle dark/light">&#x25D0;</button>
-  <button id="btnLoad" title="Load JSON">&#x2B06;</button>
+  <button class="tool-btn" id="btnTheme" title="Toggle dark/light">&#x25D0;</button>
+  <button class="tool-btn" id="btnLoad" title="Load JSON">&#x2B06;</button>
+  <button class="tool-btn" id="btnEdit" title="Edit JSON">{ }</button>
+</div>
+
+<div id="editPanel">
+  <div class="edit-toolbar">
+    <span>Edit JSON</span>
+    <button id="btnApplyJSON">Apply</button>
+    <button id="btnCloseEdit">&times;</button>
+  </div>
+  <textarea id="jsonEditor" spellcheck="false"></textarea>
 </div>
 
 <div id="loadPanel">
@@ -80,32 +119,34 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
 
 <script>
 /* ===================================================================
-   EMBEDDED MODEL — Sonsbeek Pavilion geometry
+   EMBEDDED MODEL
    =================================================================== */
-const SONSBEEK = {"meta":{"name":"Sonsbeek Pavilion","architect":"Aldo van Eyck","year":1966,"units":"meters"},"site":{"circle_radius":9,"platform_width":24,"platform_depth":16},"walls":[{"id":"W2","x":-4.2,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-0.5},{"y_start":0.8,"y_end":6}]},{"id":"W3","x":-2.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7,"y_end":5.5}]},{"id":"W4","x":-0.8,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-1.5},{"y_start":-0.2,"y_end":7.5}]},{"id":"W5","x":0.8,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7.5,"y_end":0.2},{"y_start":1.5,"y_end":5.5}]},{"id":"W6","x":2.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":7}]},{"id":"W7","x":4.2,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-0.8},{"y_start":0.5,"y_end":5.5}]}],"curved_walls":[{"id":"CW1","center":[-1.65,3],"radius":0.85,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW2","center":[-1.65,-3.5],"radius":0.85,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW3","center":[0,4],"radius":0.8,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW4","center":[0,-2.5],"radius":0.8,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW5","center":[1.65,2.5],"radius":0.85,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW6","center":[1.65,-4],"radius":0.85,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2}],"discs":[{"id":"D1","center":[-0.3,7],"radius":0.35,"height":0.9},{"id":"D2","center":[-1.5,1],"radius":0.8,"height":0.9},{"id":"D3","center":[3.3,-2.5],"radius":0.6,"height":0.9},{"id":"D4","center":[0.3,-7],"radius":0.35,"height":0.9}],"benches":[{"id":"B1","x":-6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-4,"y_end":4}]},{"id":"B2","x":6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-5,"y_end":5}]},{"id":"B3","x":3.35,"thickness":0.5,"height":0.9,"segments":[{"y_start":1,"y_end":3.5}]},{"id":"B4","x":1.2,"thickness":0.5,"height":0.9,"segments":[{"y_start":-5.5,"y_end":-4.5},{"y_start":-6.5,"y_end":-5.8}]}],"low_walls":[]};
+var SONSBEEK = {"meta":{"name":"Sonsbeek Pavilion","architect":"Aldo van Eyck","year":1966,"units":"meters"},"site":{"circle_radius":9,"plinth_height":0.2,"platform_width":24,"platform_depth":16},"walls":[{"id":"W2","x":-4.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-0.5},{"y_start":0.8,"y_end":6}]},{"id":"W3","x":-3,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7,"y_end":5.5}]},{"id":"W4","x":-1,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-1.5},{"y_start":-0.2,"y_end":7.5}]},{"id":"W5","x":1,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7.5,"y_end":0.2},{"y_start":1.5,"y_end":5.5}]},{"id":"W6","x":3,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":7}]},{"id":"W7","x":4.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-0.5},{"y_start":0.5,"y_end":5.5}]}],"curved_walls":[{"id":"CW1","center":[-2,3],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW2","center":[-2,-3],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW3","center":[0,3.5],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW4","center":[0,-2.5],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW5","center":[2,2.5],"radius":1,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW6","center":[2,-3.5],"radius":1,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2}],"discs":[{"id":"D1","center":[-0.3,7],"radius":0.35,"height":1.5},{"id":"D2","center":[-1.5,0.5],"radius":0.8,"height":2},{"id":"D3","center":[3.75,-2.5],"radius":0.6,"height":2},{"id":"D4","center":[0.3,-7],"radius":0.35,"height":1.5}],"benches":[{"id":"B1","x":-6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-4,"y_end":4}]},{"id":"B2","x":6,"thickness":0.8,"height":0.9,"segments":[{"y_start":-5,"y_end":5}]},{"id":"B3","x":3.75,"thickness":0.5,"height":0.9,"segments":[{"y_start":1,"y_end":3.5}]},{"id":"B4","x":1.5,"thickness":0.5,"height":0.9,"segments":[{"y_start":-5.5,"y_end":-4.5},{"y_start":-6.5,"y_end":-5.8}]}],"low_walls":[]};
 
 /* ===================================================================
    GLOBALS
    =================================================================== */
-let scene, perspCamera, orthoCamera, camera, renderer, controls;
-let surfaceGroup, edgeGroup, outlineGroup, groundGroup;
-let depthTarget;
-let hiddenLineEdgeMat;
-let standardEdgeMat;
-let outlineMat;
-let currentMode = 'pen';
-let isOrtho = false;
-let isDark = false;
-const allSurfaces = [];
-const allEdgeLines = [];
-const allOutlines = [];
-const BG = { light: 0xffffff, dark: 0x1a1a1a };
-const ORTHO_SIZE = 22; // frustum size for orthographic views
+var scene, perspCamera, orthoCamera, camera, renderer, controls;
+var surfaceGroup, edgeGroup, outlineGroup, groundGroup;
+var depthTarget, sectionPlane;
+var hiddenLineEdgeMat, standardEdgeMat, outlineMat;
+var dirLight;
+var currentMode = 'pen';
+var isOrtho = false;
+var isDark = false;
+var sunAngle = 45;
+var allSurfaces = [];
+var allEdgeLines = [];
+var allOutlines = [];
+var BG = { light: 0xffffff, dark: 0x1a1a1a };
+var ORTHO_SIZE = 22;
+var SUN_RADIUS = 20;
+var SUN_HEIGHT = 15;
 
 /* ===================================================================
-   MATERIALS PER DISPLAY MODE
+   MATERIALS
    =================================================================== */
-const modeMats = {};
+var modeMats = {};
 function createModeMaterials() {
   var DS = THREE.DoubleSide;
   modeMats.pen = {
@@ -115,6 +156,7 @@ function createModeMaterials() {
     ground: new THREE.MeshBasicMaterial({color:0xf8f8f8, side:DS}),
     edges:true, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:true,
   };
+  // Pen+Shaded: same look as shaded but with pen edges overlaid
   modeMats.penShaded = {
     wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
     disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
@@ -160,29 +202,36 @@ function createModeMaterials() {
 }
 
 /* ===================================================================
-   HIDDEN-LINE EDGE SHADER
+   EDGE SHADER (with clipping support)
    =================================================================== */
 function createEdgeMaterials() {
   standardEdgeMat = new THREE.LineBasicMaterial({color: 0x333333});
 
   hiddenLineEdgeMat = new THREE.ShaderMaterial({
-    uniforms: {
-      tDepth:     {value: null},
-      resolution: {value: new THREE.Vector2(1, 1)},
-      dashSize:   {value: 0.12},
-      gapSize:    {value: 0.08},
-      solidColor: {value: new THREE.Color(0x000000)},
-      dashedColor:{value: new THREE.Color(0x999999)},
-    },
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.clipping,
+      {
+        tDepth:     {value: null},
+        resolution: {value: new THREE.Vector2(1, 1)},
+        dashSize:   {value: 0.12},
+        gapSize:    {value: 0.08},
+        solidColor: {value: new THREE.Color(0x000000)},
+        dashedColor:{value: new THREE.Color(0x999999)},
+      }
+    ]),
     vertexShader: [
+      '#include <clipping_planes_pars_vertex>',
       'attribute float lineDistance;',
       'varying float vLineDistance;',
       'void main() {',
       '  vLineDistance = lineDistance;',
-      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_Position = projectionMatrix * mvPosition;',
+      '  #include <clipping_planes_vertex>',
       '}'
     ].join('\n'),
     fragmentShader: [
+      '#include <clipping_planes_pars_fragment>',
       'uniform sampler2D tDepth;',
       'uniform vec2 resolution;',
       'uniform float dashSize;',
@@ -190,12 +239,11 @@ function createEdgeMaterials() {
       'uniform vec3 solidColor;',
       'uniform vec3 dashedColor;',
       'varying float vLineDistance;',
-      '',
       'void main() {',
+      '  #include <clipping_planes_fragment>',
       '  vec2 uv = gl_FragCoord.xy / resolution;',
       '  float sceneDepth = texture2D(tDepth, uv).r;',
       '  float lineDepth = gl_FragCoord.z;',
-      '',
       '  if (lineDepth > sceneDepth + 0.00015) {',
       '    float total = dashSize + gapSize;',
       '    if (mod(vLineDistance, total) > dashSize) discard;',
@@ -205,6 +253,7 @@ function createEdgeMaterials() {
       '  }',
       '}'
     ].join('\n'),
+    clipping: true,
     depthTest: false,
     depthWrite: false,
     transparent: false,
@@ -219,7 +268,6 @@ function createEdgeMaterials() {
 /* ===================================================================
    GEOMETRY BUILDERS
    =================================================================== */
-
 function buildWallSegment(x, yStart, yEnd, height, thickness, category) {
   var length = Math.abs(yEnd - yStart);
   var geo = new THREE.BoxGeometry(thickness, height, length);
@@ -253,7 +301,6 @@ function buildCurvedWall(cw) {
   var segs = 32;
   var innerR = r - t / 2;
   var outerR = r + t / 2;
-
   var pos = [];
   var idx = [];
 
@@ -267,7 +314,6 @@ function buildCurvedWall(cw) {
       cx + outerR * c, h, cz - outerR * s
     );
   }
-
   for (var i = 0; i < segs; i++) {
     var b = i * 4, n = (i + 1) * 4;
     idx.push(b+2, n+2, n+3, b+2, n+3, b+3);
@@ -298,7 +344,7 @@ function buildCurvedWall(cw) {
   allEdgeLines.push(edgeLine);
   edgeGroup.add(edgeLine);
 
-  addOutline(mesh, geo, 0.022);
+  addOutline(mesh, geo, 0.025);
 }
 
 function buildDisc(disc) {
@@ -323,21 +369,27 @@ function buildDisc(disc) {
 }
 
 function buildGround(site) {
-  var geo = new THREE.CylinderGeometry(site.circle_radius, site.circle_radius, 0.05, 64);
+  var ph = (site.plinth_height || 0.2);
+  // Circular plinth - visible raised platform
+  var geo = new THREE.CylinderGeometry(site.circle_radius, site.circle_radius, ph, 64);
   var mesh = new THREE.Mesh(geo);
-  mesh.position.set(0, -0.025, 0);
+  mesh.position.set(0, -ph / 2, 0);
   mesh.receiveShadow = true;
   mesh.layers.set(0);
   allSurfaces.push({mesh: mesh, category: 'ground'});
   groundGroup.add(mesh);
 
-  var ringGeo = new THREE.RingGeometry(site.circle_radius - 0.02, site.circle_radius + 0.02, 64);
-  var ringMat = new THREE.MeshBasicMaterial({color: 0xcccccc, side: THREE.DoubleSide});
-  var ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.001;
-  ring.layers.set(0);
-  groundGroup.add(ring);
+  // Edge lines for the plinth
+  var edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  var edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  // Outline for silhouette
+  addOutline(mesh, geo, 0.03);
 }
 
 function addOutline(originalMesh, geo, expansion) {
@@ -345,7 +397,6 @@ function addOutline(originalMesh, geo, expansion) {
   var p = cloneGeo.getAttribute('position');
   var n = cloneGeo.getAttribute('normal');
   if (!n) return;
-
   for (var i = 0; i < p.count; i++) {
     p.setXYZ(i,
       p.getX(i) + n.getX(i) * expansion,
@@ -354,7 +405,6 @@ function addOutline(originalMesh, geo, expansion) {
     );
   }
   p.needsUpdate = true;
-
   var outline = new THREE.Mesh(cloneGeo, outlineMat);
   outline.position.copy(originalMesh.position);
   outline.quaternion.copy(originalMesh.quaternion);
@@ -365,27 +415,16 @@ function addOutline(originalMesh, geo, expansion) {
 }
 
 /* ===================================================================
-   BUILD THE FULL MODEL
+   BUILD MODEL
    =================================================================== */
 function buildModel(data) {
-  // Straight walls (full height)
   data.walls.forEach(function(w) {
     w.segments.forEach(function(seg) {
       buildWallSegment(w.x, seg.y_start, seg.y_end, w.height, w.thickness, 'wall');
     });
   });
-
-  // Curved walls (full height)
-  data.curved_walls.forEach(function(cw) {
-    buildCurvedWall(cw);
-  });
-
-  // Discs (bench height)
-  data.discs.forEach(function(d) {
-    buildDisc(d);
-  });
-
-  // Benches (bench height rectangular elements)
+  data.curved_walls.forEach(function(cw) { buildCurvedWall(cw); });
+  data.discs.forEach(function(d) { buildDisc(d); });
   if (data.benches) {
     data.benches.forEach(function(b) {
       b.segments.forEach(function(seg) {
@@ -393,8 +432,6 @@ function buildModel(data) {
       });
     });
   }
-
-  // Low walls (legacy support)
   if (data.low_walls) {
     data.low_walls.forEach(function(lw) {
       lw.segments.forEach(function(seg) {
@@ -402,21 +439,16 @@ function buildModel(data) {
       });
     });
   }
-
-  // Ground
   buildGround(data.site);
 }
 
 /* ===================================================================
    LIGHTING
    =================================================================== */
-var dirLight;
 function setupLighting() {
-  var hemi = new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6);
-  scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6));
 
   dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(10, 15, 8);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.set(2048, 2048);
   dirLight.shadow.camera.left = -15;
@@ -427,17 +459,27 @@ function setupLighting() {
   dirLight.shadow.camera.far = 50;
   dirLight.shadow.bias = -0.0005;
   scene.add(dirLight);
+  updateSunPosition(sunAngle);
 
   var fill = new THREE.DirectionalLight(0xb0c4de, 0.3);
   fill.position.set(-6, 8, -6);
   scene.add(fill);
 
-  var amb = new THREE.AmbientLight(0xffffff, 0.15);
-  scene.add(amb);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+}
+
+function updateSunPosition(angleDeg) {
+  sunAngle = angleDeg;
+  var rad = angleDeg * Math.PI / 180;
+  dirLight.position.set(
+    SUN_RADIUS * Math.cos(rad),
+    SUN_HEIGHT,
+    SUN_RADIUS * Math.sin(rad)
+  );
 }
 
 /* ===================================================================
-   DISPLAY MODE SWITCHING
+   DISPLAY MODE
    =================================================================== */
 function applyMode(mode) {
   currentMode = mode;
@@ -447,11 +489,11 @@ function applyMode(mode) {
   allSurfaces.forEach(function(s) {
     s.mesh.material = m[s.category] || m.wall;
   });
-
   edgeGroup.visible = m.edges;
   outlineGroup.visible = !!m.outline;
 
   renderer.shadowMap.enabled = m.shadows;
+  if (m.shadows) renderer.shadowMap.needsUpdate = true;
   dirLight.castShadow = m.shadows;
   allSurfaces.forEach(function(s) {
     s.mesh.castShadow = m.shadows;
@@ -461,13 +503,13 @@ function applyMode(mode) {
   var bg = isDark ? (m.bgDark || BG.dark) : (m.bg || BG.light);
   scene.background = new THREE.Color(bg);
 
-  document.querySelectorAll('#modes button').forEach(function(btn) {
+  document.querySelectorAll('#modes .pill').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
 }
 
 /* ===================================================================
-   RENDER LOOP
+   RENDER
    =================================================================== */
 function render() {
   if (currentMode === 'pen' || currentMode === 'penShaded') {
@@ -482,10 +524,7 @@ function render() {
 function renderPenMode() {
   var w = renderer.domElement.width;
   var h = renderer.domElement.height;
-
-  if (depthTarget.width !== w || depthTarget.height !== h) {
-    depthTarget.setSize(w, h);
-  }
+  if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
 
   // Pass 1: surfaces to depth target
   camera.layers.set(0);
@@ -496,18 +535,18 @@ function renderPenMode() {
   hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
   hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
 
-  // Pass 2: outlines to screen
+  // Pass 2: outlines
   renderer.setRenderTarget(null);
   renderer.clear();
   camera.layers.set(2);
   renderer.render(scene, camera);
 
-  // Pass 3: surfaces on top
+  // Pass 3: surfaces
   renderer.autoClear = false;
   camera.layers.set(0);
   renderer.render(scene, camera);
 
-  // Pass 4: edges with hidden-line shader
+  // Pass 4: edges
   camera.layers.set(1);
   renderer.render(scene, camera);
 
@@ -516,8 +555,7 @@ function renderPenMode() {
 }
 
 function renderGhostedMode() {
-  allEdgeLines.forEach(function(line) { line.material = standardEdgeMat; });
-
+  allEdgeLines.forEach(function(l) { l.material = standardEdgeMat; });
   camera.layers.enable(0);
   camera.layers.enable(1);
   camera.layers.disable(2);
@@ -525,8 +563,7 @@ function renderGhostedMode() {
   renderer.clear();
   renderer.render(scene, camera);
   camera.layers.enableAll();
-
-  allEdgeLines.forEach(function(line) { line.material = hiddenLineEdgeMat; });
+  allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
 }
 
 function renderStandardMode() {
@@ -546,49 +583,29 @@ function animate() {
 }
 
 /* ===================================================================
-   CAMERA MANAGEMENT
+   CAMERA
    =================================================================== */
 function createCameras() {
   perspCamera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 200);
-  var aspect = innerWidth / innerHeight;
+  var a = innerWidth / innerHeight;
   orthoCamera = new THREE.OrthographicCamera(
-    -ORTHO_SIZE * aspect / 2, ORTHO_SIZE * aspect / 2,
-    ORTHO_SIZE / 2, -ORTHO_SIZE / 2,
-    0.1, 200
+    -ORTHO_SIZE * a / 2, ORTHO_SIZE * a / 2,
+    ORTHO_SIZE / 2, -ORTHO_SIZE / 2, 0.1, 200
   );
   camera = perspCamera;
 }
 
-function updateOrthoFrustum() {
-  var aspect = innerWidth / innerHeight;
-  // Calculate frustum from perspective camera distance
-  var dist = camera.position.distanceTo(controls.target);
-  var size = isOrtho ? ORTHO_SIZE : dist * Math.tan(perspCamera.fov * Math.PI / 360) * 2;
-  orthoCamera.left = -size * aspect / 2;
-  orthoCamera.right = size * aspect / 2;
+function setOrthoSize(size) {
+  var a = innerWidth / innerHeight;
+  orthoCamera.left = -size * a / 2;
+  orthoCamera.right = size * a / 2;
   orthoCamera.top = size / 2;
   orthoCamera.bottom = -size / 2;
   orthoCamera.updateProjectionMatrix();
 }
 
-function setOrthoFrustumSize(size) {
-  var aspect = innerWidth / innerHeight;
-  orthoCamera.left = -size * aspect / 2;
-  orthoCamera.right = size * aspect / 2;
-  orthoCamera.top = size / 2;
-  orthoCamera.bottom = -size / 2;
-  orthoCamera.updateProjectionMatrix();
-}
-
-function switchCamera(newCamera) {
+function rebuildControls() {
   var target = controls.target.clone();
-  var pos = camera.position.clone();
-  var up = camera.up.clone();
-
-  camera = newCamera;
-  camera.position.copy(pos);
-  camera.up.copy(up);
-
   controls.dispose();
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -598,64 +615,77 @@ function switchCamera(newCamera) {
 }
 
 function toggleProjection() {
+  var target = controls.target.clone();
+  var pos = camera.position.clone();
+  var up = camera.up.clone();
+
   if (isOrtho) {
-    // Switch to perspective
     isOrtho = false;
-    switchCamera(perspCamera);
+    perspCamera.position.copy(pos);
+    perspCamera.up.copy(up);
+    camera = perspCamera;
     document.getElementById('btnProj').textContent = 'Parallel';
+    document.getElementById('btnProj').classList.remove('active');
   } else {
-    // Switch to orthographic
     isOrtho = true;
-    updateOrthoFrustum();
-    switchCamera(orthoCamera);
+    // Match ortho frustum to current perspective view
+    var dist = pos.distanceTo(target);
+    var fovRad = perspCamera.fov * Math.PI / 180;
+    var viewHeight = 2 * dist * Math.tan(fovRad / 2);
+    setOrthoSize(viewHeight);
+    orthoCamera.position.copy(pos);
+    orthoCamera.up.copy(up);
+    camera = orthoCamera;
     document.getElementById('btnProj').textContent = 'Perspective';
+    document.getElementById('btnProj').classList.add('active');
   }
-  document.getElementById('btnProj').classList.toggle('active', isOrtho);
+  rebuildControls();
+  controls.target.copy(target);
+  controls.update();
 }
 
 function fitCamera() {
-  perspCamera.position.set(16, 11, 16);
-  orthoCamera.position.set(16, 11, 16);
-  controls.target.set(0, 1.2, 0);
+  camera.position.set(16, 11, 16);
   camera.up.set(0, 1, 0);
-  if (isOrtho) {
-    setOrthoFrustumSize(ORTHO_SIZE);
-  }
+  controls.target.set(0, 1.2, 0);
+  if (isOrtho) setOrthoSize(ORTHO_SIZE);
   controls.update();
 }
 
 function viewPlan() {
-  // Switch to ortho if not already
-  if (!isOrtho) {
-    isOrtho = true;
-    switchCamera(orthoCamera);
-    document.getElementById('btnProj').textContent = 'Perspective';
-    document.getElementById('btnProj').classList.add('active');
-  }
-  camera.position.set(0, 30, 0);
+  if (!isOrtho) toggleProjection();
+  camera.position.set(0, 30, 0.01);
   camera.up.set(0, 0, -1);
   controls.target.set(0, 0, 0);
-  setOrthoFrustumSize(22);
+  setOrthoSize(22);
   controls.update();
 }
 
 function viewElevation() {
-  // Switch to ortho if not already
-  if (!isOrtho) {
-    isOrtho = true;
-    switchCamera(orthoCamera);
-    document.getElementById('btnProj').textContent = 'Perspective';
-    document.getElementById('btnProj').classList.add('active');
-  }
+  if (!isOrtho) toggleProjection();
   camera.position.set(0, 1.5, 25);
   camera.up.set(0, 1, 0);
   controls.target.set(0, 1.5, 0);
-  setOrthoFrustumSize(18);
+  setOrthoSize(18);
   controls.update();
 }
 
 /* ===================================================================
-   INITIALIZATION
+   SECTION CUT
+   =================================================================== */
+function updateSection(val) {
+  if (val >= 340) {
+    sectionPlane.constant = 100;
+    document.getElementById('sectionVal').textContent = 'off';
+  } else {
+    var h = val / 100;
+    sectionPlane.constant = h;
+    document.getElementById('sectionVal').textContent = h.toFixed(1) + 'm';
+  }
+}
+
+/* ===================================================================
+   INIT
    =================================================================== */
 function init() {
   scene = new THREE.Scene();
@@ -670,18 +700,23 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
+
+  // Section clipping
+  sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
+  renderer.clippingPlanes = [sectionPlane];
+  renderer.localClippingEnabled = true;
+
   document.getElementById('viewport').appendChild(renderer.domElement);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
 
-  // Depth render target
+  // Depth target
   var depthTex = new THREE.DepthTexture();
   depthTex.type = THREE.UnsignedIntType;
   depthTarget = new THREE.WebGLRenderTarget(
-    renderer.domElement.width,
-    renderer.domElement.height,
+    renderer.domElement.width, renderer.domElement.height,
     {depthTexture: depthTex, depthBuffer: true, stencilBuffer: false}
   );
 
@@ -707,20 +742,14 @@ function init() {
 }
 
 function onResize() {
-  var aspect = innerWidth / innerHeight;
-  perspCamera.aspect = aspect;
+  var a = innerWidth / innerHeight;
+  perspCamera.aspect = a;
   perspCamera.updateProjectionMatrix();
 
-  // Update ortho frustum on resize
   if (isOrtho) {
-    var hSize = (orthoCamera.top - orthoCamera.bottom);
-    orthoCamera.left = -hSize * aspect / 2;
-    orthoCamera.right = hSize * aspect / 2;
-    orthoCamera.updateProjectionMatrix();
-  } else {
-    var oAspect = aspect;
-    orthoCamera.left = -ORTHO_SIZE * oAspect / 2;
-    orthoCamera.right = ORTHO_SIZE * oAspect / 2;
+    var h = orthoCamera.top - orthoCamera.bottom;
+    orthoCamera.left = -h * a / 2;
+    orthoCamera.right = h * a / 2;
     orthoCamera.updateProjectionMatrix();
   }
 
@@ -733,37 +762,43 @@ function onResize() {
    =================================================================== */
 function setupUI() {
   // Mode buttons
-  document.querySelectorAll('#modes button').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      applyMode(btn.dataset.mode);
-    });
+  document.querySelectorAll('#modes .pill').forEach(function(btn) {
+    btn.addEventListener('click', function() { applyMode(btn.dataset.mode); });
   });
 
-  // Fit
+  // View buttons
   document.getElementById('btnFit').addEventListener('click', fitCamera);
+  document.getElementById('btnProj').addEventListener('click', toggleProjection);
+  document.getElementById('btnPlan').addEventListener('click', viewPlan);
+  document.getElementById('btnElev').addEventListener('click', viewElevation);
 
-  // Theme toggle
+  // Theme
   document.getElementById('btnTheme').addEventListener('click', function() {
     isDark = !isDark;
     document.body.classList.toggle('dark', isDark);
     applyMode(currentMode);
   });
 
-  // Camera projection toggle
-  document.getElementById('btnProj').addEventListener('click', toggleProjection);
+  // Sun slider
+  document.getElementById('sunSlider').addEventListener('input', function(e) {
+    var v = parseInt(e.target.value);
+    updateSunPosition(v);
+    document.getElementById('sunVal').textContent = v + '\u00B0';
+    if (modeMats[currentMode] && modeMats[currentMode].shadows) {
+      renderer.shadowMap.needsUpdate = true;
+    }
+  });
 
-  // Plan view
-  document.getElementById('btnPlan').addEventListener('click', viewPlan);
-
-  // Elevation view
-  document.getElementById('btnElev').addEventListener('click', viewElevation);
+  // Section slider
+  document.getElementById('sectionSlider').addEventListener('input', function(e) {
+    updateSection(parseInt(e.target.value));
+  });
 
   // Load JSON
   var loadPanel = document.getElementById('loadPanel');
   document.getElementById('btnLoad').addEventListener('click', function() {
     loadPanel.classList.toggle('show');
   });
-
   document.getElementById('fileInput').addEventListener('change', function(e) {
     var file = e.target.files[0];
     if (!file) return;
@@ -771,16 +806,34 @@ function setupUI() {
     reader.onload = function(ev) {
       try {
         var data = JSON.parse(ev.target.result);
+        SONSBEEK = data;
         clearModel();
         buildModel(data);
         applyMode(currentMode);
         fitCamera();
         loadPanel.classList.remove('show');
-      } catch (err) {
-        alert('Error parsing JSON: ' + err.message);
-      }
+      } catch (err) { alert('Error: ' + err.message); }
     };
     reader.readAsText(file);
+  });
+
+  // JSON Editor
+  var editPanel = document.getElementById('editPanel');
+  document.getElementById('btnEdit').addEventListener('click', function() {
+    document.getElementById('jsonEditor').value = JSON.stringify(SONSBEEK, null, 2);
+    editPanel.classList.add('show');
+  });
+  document.getElementById('btnCloseEdit').addEventListener('click', function() {
+    editPanel.classList.remove('show');
+  });
+  document.getElementById('btnApplyJSON').addEventListener('click', function() {
+    try {
+      var data = JSON.parse(document.getElementById('jsonEditor').value);
+      SONSBEEK = data;
+      clearModel();
+      buildModel(data);
+      applyMode(currentMode);
+    } catch (err) { alert('Invalid JSON: ' + err.message); }
   });
 }
 
