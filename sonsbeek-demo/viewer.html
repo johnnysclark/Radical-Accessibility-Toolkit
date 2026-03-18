@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sonsbeek Pavilion — Aldo van Eyck, 1966</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;touch-action:none}
+body{background:#fff;color:#222}
+body.dark{background:#1a1a1a;color:#eee}
+
+#viewport{width:100%;height:100%}
+
+#info{position:fixed;top:12px;left:16px;font-size:13px;color:#666;pointer-events:none;user-select:none}
+body.dark #info{color:#888}
+
+#modes{position:fixed;top:12px;right:16px;display:flex;gap:6px}
+#modes button{padding:5px 12px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:16px;cursor:pointer;font-size:12px;color:#444;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:all .15s}
+#modes button:hover{border-color:#888}
+#modes button.active{background:#222;color:#fff;border-color:#222}
+body.dark #modes button{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+body.dark #modes button.active{background:#eee;color:#222;border-color:#eee}
+
+#tools{position:fixed;bottom:16px;right:16px;display:flex;gap:6px}
+#tools button{width:36px;height:36px;border:1px solid #bbb;background:rgba(255,255,255,0.85);border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all .15s}
+#tools button:hover{border-color:#888;background:rgba(255,255,255,1)}
+body.dark #tools button{background:rgba(40,40,40,0.85);color:#bbb;border-color:#555}
+
+#loadPanel{display:none;position:fixed;bottom:60px;right:16px;background:rgba(255,255,255,0.95);border:1px solid #ccc;border-radius:10px;padding:12px;width:260px;backdrop-filter:blur(8px)}
+#loadPanel.show{display:block}
+#loadPanel label{display:inline-block;padding:6px 14px;border:1px solid #bbb;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:8px}
+#loadPanel input[type=file]{display:none}
+body.dark #loadPanel{background:rgba(30,30,30,0.95);border-color:#555}
+body.dark #loadPanel label{border-color:#555;color:#bbb}
+</style>
+</head>
+<body>
+
+<div id="viewport"></div>
+<div id="info">Sonsbeek Pavilion &middot; Aldo van Eyck, 1966</div>
+
+<div id="modes">
+  <button class="active" data-mode="pen">Pen</button>
+  <button data-mode="shaded">Shaded</button>
+  <button data-mode="arctic">Arctic</button>
+  <button data-mode="ghosted">Ghosted</button>
+  <button data-mode="wire">Wire</button>
+  <button data-mode="xray">X-Ray</button>
+</div>
+
+<div id="tools">
+  <button id="btnFit" title="Fit view">&#x2B1C;</button>
+  <button id="btnTheme" title="Toggle dark/light">&#x25D0;</button>
+  <button id="btnLoad" title="Load JSON">&#x2B06;</button>
+</div>
+
+<div id="loadPanel">
+  <label for="fileInput">Choose .json file</label>
+  <input type="file" id="fileInput" accept=".json">
+</div>
+
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   EMBEDDED MODEL — Sonsbeek Pavilion geometry
+   ═══════════════════════════════════════════════════════════════ */
+const SONSBEEK = {"meta":{"name":"Sonsbeek Pavilion","architect":"Aldo van Eyck","year":1966,"units":"meters"},"site":{"circle_radius":9,"platform_width":24,"platform_depth":16},"walls":[{"id":"W1","x":-6,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7.5,"y_end":7}]},{"id":"W2","x":-4.2,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-0.5},{"y_start":0.8,"y_end":6}]},{"id":"W3","x":-2.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7,"y_end":5.5}]},{"id":"W4","x":-0.8,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":-1.5},{"y_start":-0.2,"y_end":7.5}]},{"id":"W5","x":0.8,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7.5,"y_end":0.2},{"y_start":1.5,"y_end":5.5}]},{"id":"W6","x":2.5,"thickness":0.2,"height":2.87,"segments":[{"y_start":-5.5,"y_end":7}]},{"id":"W7","x":4.2,"thickness":0.2,"height":2.87,"segments":[{"y_start":-6,"y_end":-0.8},{"y_start":0.5,"y_end":5.5}]},{"id":"W8","x":6,"thickness":0.2,"height":2.87,"segments":[{"y_start":-7,"y_end":7.5}]}],"curved_walls":[{"id":"CW1","center":[-1.65,3],"radius":0.85,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW2","center":[-1.65,-3.5],"radius":0.85,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW3","center":[0,4],"radius":0.8,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW4","center":[0,-2.5],"radius":0.8,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2},{"id":"CW5","center":[1.65,2.5],"radius":0.85,"start_angle_deg":0,"end_angle_deg":180,"height":2.87,"thickness":0.2},{"id":"CW6","center":[1.65,-4],"radius":0.85,"start_angle_deg":180,"end_angle_deg":360,"height":2.87,"thickness":0.2}],"discs":[{"id":"D1","center":[-3.3,2.5],"radius":0.75,"height":2.5},{"id":"D2","center":[-1.5,6],"radius":0.75,"height":2.5},{"id":"D3","center":[0,0.8],"radius":1,"height":2},{"id":"D4","center":[1.5,6],"radius":0.75,"height":2.5},{"id":"D5","center":[3.3,-2.5],"radius":0.75,"height":2.5}],"low_walls":[{"id":"LW1","x":-5.1,"thickness":0.1,"height":0.9,"segments":[{"y_start":-1,"y_end":1}]},{"id":"LW2","x":5.1,"thickness":0.1,"height":0.9,"segments":[{"y_start":-1,"y_end":1}]}]};
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBALS
+   ═══════════════════════════════════════════════════════════════ */
+let scene, camera, renderer, controls;
+let surfaceGroup, edgeGroup, outlineGroup, groundGroup;
+let depthTarget;
+let hiddenLineEdgeMat;   // custom shader material for pen mode edges
+let standardEdgeMat;      // simple black lines for other modes
+let outlineMat;           // back-face silhouette material
+let currentMode = 'pen';
+let isDark = false;
+const allSurfaces = [];   // {mesh, category} — for material swapping
+const allEdgeLines = [];  // LineSegments objects
+const allOutlines = [];   // outline meshes
+const BG = { light: 0xffffff, dark: 0x1a1a1a };
+
+/* ═══════════════════════════════════════════════════════════════
+   MATERIALS PER DISPLAY MODE
+   ═══════════════════════════════════════════════════════════════ */
+const modeMats = {};
+function createModeMaterials() {
+  const DS = THREE.DoubleSide;
+  modeMats.pen = {
+    wall: new THREE.MeshBasicMaterial({color:0xffffff, side:DS}),
+    disc: new THREE.MeshBasicMaterial({color:0xf0f0f0, side:DS}),
+    ground: new THREE.MeshBasicMaterial({color:0xf8f8f8, side:DS}),
+    lowwall: new THREE.MeshBasicMaterial({color:0xeeeeee, side:DS}),
+    edges:true, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:true,
+  };
+  modeMats.shaded = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, roughness:0.95, side:DS}),
+    lowwall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
+    edges:false, shadows:true, bg:0xf0ede8, bgDark:0x1e1c1a, outline:false,
+  };
+  modeMats.arctic = {
+    wall: new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.75, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xf5f5f5, roughness:0.70, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xeeeeee, roughness:0.90, side:DS}),
+    lowwall: new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.75, side:DS}),
+    edges:false, shadows:true, bg:0xf5f5f5, bgDark:0x222222, outline:false,
+  };
+  modeMats.ghosted = {
+    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, transparent:true, opacity:0.22, roughness:0.8, side:DS, depthWrite:false}),
+    disc: new THREE.MeshStandardMaterial({color:0xb0a898, transparent:true, opacity:0.18, roughness:0.8, side:DS, depthWrite:false}),
+    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, transparent:true, opacity:0.10, roughness:0.9, side:DS, depthWrite:false}),
+    lowwall: new THREE.MeshStandardMaterial({color:0xc8bca8, transparent:true, opacity:0.18, roughness:0.8, side:DS, depthWrite:false}),
+    edges:true, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:false,
+  };
+  modeMats.wire = {
+    wall: new THREE.MeshBasicMaterial({wireframe:true, color:0x444444, side:DS}),
+    disc: new THREE.MeshBasicMaterial({wireframe:true, color:0x666666, side:DS}),
+    ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x999999, side:DS}),
+    lowwall: new THREE.MeshBasicMaterial({wireframe:true, color:0x555555, side:DS}),
+    edges:false, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:false,
+  };
+  modeMats.xray = {
+    wall: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.35, side:DS}),
+    disc: new THREE.MeshBasicMaterial({wireframe:true, color:0x66aaee, transparent:true, opacity:0.30, side:DS}),
+    ground: new THREE.MeshBasicMaterial({wireframe:true, color:0x88aacc, transparent:true, opacity:0.15, side:DS}),
+    lowwall: new THREE.MeshBasicMaterial({wireframe:true, color:0x4488cc, transparent:true, opacity:0.30, side:DS}),
+    edges:false, shadows:false, bg:0xf5f8ff, bgDark:0x0a1520, outline:false,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HIDDEN-LINE EDGE SHADER
+   Renders edges as solid black where visible, dashed gray where
+   hidden behind surfaces. Uses a pre-rendered depth texture.
+   ═══════════════════════════════════════════════════════════════ */
+function createEdgeMaterials() {
+  // Standard edge material (for ghosted mode etc.)
+  standardEdgeMat = new THREE.LineBasicMaterial({color: 0x333333});
+
+  // Hidden-line shader material for pen mode
+  hiddenLineEdgeMat = new THREE.ShaderMaterial({
+    uniforms: {
+      tDepth:     {value: null},
+      resolution: {value: new THREE.Vector2(1, 1)},
+      dashSize:   {value: 0.12},
+      gapSize:    {value: 0.08},
+      solidColor: {value: new THREE.Color(0x000000)},
+      dashedColor:{value: new THREE.Color(0x999999)},
+    },
+    vertexShader: `
+      attribute float lineDistance;
+      varying float vLineDistance;
+      void main() {
+        vLineDistance = lineDistance;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDepth;
+      uniform vec2 resolution;
+      uniform float dashSize;
+      uniform float gapSize;
+      uniform vec3 solidColor;
+      uniform vec3 dashedColor;
+      varying float vLineDistance;
+
+      void main() {
+        vec2 uv = gl_FragCoord.xy / resolution;
+        float sceneDepth = texture2D(tDepth, uv).r;
+        float lineDepth = gl_FragCoord.z;
+
+        if (lineDepth > sceneDepth + 0.00015) {
+          // Hidden — dashed
+          float total = dashSize + gapSize;
+          if (mod(vLineDistance, total) > dashSize) discard;
+          gl_FragColor = vec4(dashedColor, 1.0);
+        } else {
+          // Visible — solid
+          gl_FragColor = vec4(solidColor, 1.0);
+        }
+      }
+    `,
+    depthTest: false,
+    depthWrite: false,
+    transparent: false,
+  });
+
+  // Outline material for silhouette
+  outlineMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.BackSide,
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GEOMETRY BUILDERS
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Build a straight wall segment as a BoxGeometry mesh. */
+function buildWallSegment(x, yStart, yEnd, height, thickness, category) {
+  const length = Math.abs(yEnd - yStart);
+  const geo = new THREE.BoxGeometry(thickness, height, length);
+  const mesh = new THREE.Mesh(geo);
+  mesh.position.set(x, height / 2, -(yStart + yEnd) / 2);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh, category});
+  surfaceGroup.add(mesh);
+
+  // Feature edges
+  const edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  const edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  // Silhouette outline
+  addOutline(mesh, geo, 0.025);
+}
+
+/** Build a curved wall as custom BufferGeometry. */
+function buildCurvedWall(cw) {
+  const cx = cw.center[0];
+  const cz = -cw.center[1];
+  const r = cw.radius;
+  const t = cw.thickness;
+  const h = cw.height;
+  const startA = cw.start_angle_deg * Math.PI / 180;
+  const endA = cw.end_angle_deg * Math.PI / 180;
+  const segs = 32;
+  const innerR = r - t / 2;
+  const outerR = r + t / 2;
+
+  const pos = [];
+  const idx = [];
+
+  for (let i = 0; i <= segs; i++) {
+    const a = startA + (endA - startA) * (i / segs);
+    const c = Math.cos(a), s = Math.sin(a);
+    // Plan y → -z, so negate sin
+    pos.push(
+      cx + innerR * c, 0, cz - innerR * s,
+      cx + innerR * c, h, cz - innerR * s,
+      cx + outerR * c, 0, cz - outerR * s,
+      cx + outerR * c, h, cz - outerR * s
+    );
+  }
+
+  for (let i = 0; i < segs; i++) {
+    const b = i * 4, n = (i + 1) * 4;
+    // Outer face
+    idx.push(b+2, n+2, n+3, b+2, n+3, b+3);
+    // Inner face
+    idx.push(b+0, b+1, n+1, b+0, n+1, n+0);
+    // Top face
+    idx.push(b+1, b+3, n+3, b+1, n+3, n+1);
+    // Bottom face
+    idx.push(b+0, n+0, n+2, b+0, n+2, b+2);
+  }
+  // End caps
+  idx.push(0, 2, 3, 0, 3, 1);
+  const last = segs * 4;
+  idx.push(last, last+1, last+3, last, last+3, last+2);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(geo);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh, category: 'wall'});
+  surfaceGroup.add(mesh);
+
+  // Edges
+  const edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  const edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  // Silhouette
+  addOutline(mesh, geo, 0.022);
+}
+
+/** Build a disc element as CylinderGeometry. */
+function buildDisc(disc) {
+  const geo = new THREE.CylinderGeometry(disc.radius, disc.radius, disc.height, 32);
+  const mesh = new THREE.Mesh(geo);
+  mesh.position.set(disc.center[0], disc.height / 2, -disc.center[1]);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh, category: 'disc'});
+  surfaceGroup.add(mesh);
+
+  const edgeGeo = new THREE.EdgesGeometry(geo, 25);
+  const edgeLine = new THREE.LineSegments(edgeGeo, hiddenLineEdgeMat);
+  edgeLine.position.copy(mesh.position);
+  edgeLine.computeLineDistances();
+  edgeLine.layers.set(1);
+  allEdgeLines.push(edgeLine);
+  edgeGroup.add(edgeLine);
+
+  addOutline(mesh, geo, 0.02);
+}
+
+/** Build the circular ground plane. */
+function buildGround(site) {
+  // Circle ground
+  const geo = new THREE.CylinderGeometry(site.circle_radius, site.circle_radius, 0.05, 64);
+  const mesh = new THREE.Mesh(geo);
+  mesh.position.set(0, -0.025, 0);
+  mesh.receiveShadow = true;
+  mesh.layers.set(0);
+  allSurfaces.push({mesh, category: 'ground'});
+  groundGroup.add(mesh);
+
+  // Circle edge ring (visible line on the ground)
+  const ringGeo = new THREE.RingGeometry(site.circle_radius - 0.02, site.circle_radius + 0.02, 64);
+  const ringMat = new THREE.MeshBasicMaterial({color: 0xcccccc, side: THREE.DoubleSide});
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.001;
+  ring.layers.set(0);
+  groundGroup.add(ring);
+}
+
+/** Expand geometry along normals for back-face silhouette outline. */
+function addOutline(originalMesh, geo, expansion) {
+  const cloneGeo = geo.clone();
+  const p = cloneGeo.getAttribute('position');
+  const n = cloneGeo.getAttribute('normal');
+  if (!n) return;
+
+  for (let i = 0; i < p.count; i++) {
+    p.setXYZ(i,
+      p.getX(i) + n.getX(i) * expansion,
+      p.getY(i) + n.getY(i) * expansion,
+      p.getZ(i) + n.getZ(i) * expansion
+    );
+  }
+  p.needsUpdate = true;
+
+  const outline = new THREE.Mesh(cloneGeo, outlineMat);
+  outline.position.copy(originalMesh.position);
+  outline.quaternion.copy(originalMesh.quaternion);
+  outline.scale.copy(originalMesh.scale);
+  outline.layers.set(2);
+  allOutlines.push(outline);
+  outlineGroup.add(outline);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUILD THE FULL MODEL
+   ═══════════════════════════════════════════════════════════════ */
+function buildModel(data) {
+  // Straight walls
+  data.walls.forEach(function(w) {
+    w.segments.forEach(function(seg) {
+      buildWallSegment(w.x, seg.y_start, seg.y_end, w.height, w.thickness, 'wall');
+    });
+  });
+
+  // Curved walls
+  data.curved_walls.forEach(function(cw) {
+    buildCurvedWall(cw);
+  });
+
+  // Discs
+  data.discs.forEach(function(d) {
+    buildDisc(d);
+  });
+
+  // Low walls
+  if (data.low_walls) {
+    data.low_walls.forEach(function(lw) {
+      lw.segments.forEach(function(seg) {
+        buildWallSegment(lw.x, seg.y_start, seg.y_end, lw.height, lw.thickness, 'lowwall');
+      });
+    });
+  }
+
+  // Ground
+  buildGround(data.site);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHTING
+   ═══════════════════════════════════════════════════════════════ */
+let dirLight;
+function setupLighting() {
+  // Warm hemisphere: sky warm, ground cool
+  const hemi = new THREE.HemisphereLight(0xfff5e6, 0xb0c4de, 0.6);
+  scene.add(hemi);
+
+  // Directional with shadows
+  dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(10, 15, 8);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(2048, 2048);
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 15;
+  dirLight.shadow.camera.bottom = -15;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.bias = -0.0005;
+  scene.add(dirLight);
+
+  // Cool fill
+  const fill = new THREE.DirectionalLight(0xb0c4de, 0.3);
+  fill.position.set(-6, 8, -6);
+  scene.add(fill);
+
+  // Subtle ambient
+  const amb = new THREE.AmbientLight(0xffffff, 0.15);
+  scene.add(amb);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISPLAY MODE SWITCHING
+   ═══════════════════════════════════════════════════════════════ */
+function applyMode(mode) {
+  currentMode = mode;
+  const m = modeMats[mode];
+  if (!m) return;
+
+  // Update surface materials
+  allSurfaces.forEach(function(s) {
+    s.mesh.material = m[s.category] || m.wall;
+  });
+
+  // Edge visibility
+  edgeGroup.visible = m.edges;
+
+  // Outline visibility (only pen mode)
+  outlineGroup.visible = !!m.outline;
+
+  // Shadows
+  renderer.shadowMap.enabled = m.shadows;
+  dirLight.castShadow = m.shadows;
+  allSurfaces.forEach(function(s) {
+    s.mesh.castShadow = m.shadows;
+    s.mesh.receiveShadow = m.shadows;
+  });
+
+  // Background
+  const bg = isDark ? (m.bgDark || BG.dark) : (m.bg || BG.light);
+  scene.background = new THREE.Color(bg);
+
+  // Mode buttons
+  document.querySelectorAll('#modes button').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER LOOP
+   ═══════════════════════════════════════════════════════════════ */
+function render() {
+  if (currentMode === 'pen') {
+    renderPenMode();
+  } else if (currentMode === 'ghosted') {
+    renderGhostedMode();
+  } else {
+    renderStandardMode();
+  }
+}
+
+/** Pen mode: hidden-line depth-comparison rendering. */
+function renderPenMode() {
+  const w = renderer.domElement.width;
+  const h = renderer.domElement.height;
+
+  // Resize depth target if needed
+  if (depthTarget.width !== w || depthTarget.height !== h) {
+    depthTarget.setSize(w, h);
+  }
+
+  // Pass 1: Render surfaces to depth target
+  camera.layers.set(0);
+  renderer.setRenderTarget(depthTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+
+  // Update hidden-line shader uniforms
+  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
+
+  // Pass 2: Render outlines to screen (back-face silhouette)
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  camera.layers.set(2);
+  renderer.render(scene, camera);
+
+  // Pass 3: Render surfaces on top (covers outlines except at silhouette edges)
+  renderer.autoClear = false;
+  camera.layers.set(0);
+  renderer.render(scene, camera);
+
+  // Pass 4: Render edges on top with hidden-line shader
+  camera.layers.set(1);
+  renderer.render(scene, camera);
+
+  renderer.autoClear = true;
+  camera.layers.enableAll();
+}
+
+/** Ghosted mode: transparent surfaces with simple edges. */
+function renderGhostedMode() {
+  // Set edge material to standard
+  allEdgeLines.forEach(function(line) { line.material = standardEdgeMat; });
+
+  camera.layers.enable(0);
+  camera.layers.enable(1);
+  camera.layers.disable(2);
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  renderer.render(scene, camera);
+  camera.layers.enableAll();
+
+  // Restore hidden-line material
+  allEdgeLines.forEach(function(line) { line.material = hiddenLineEdgeMat; });
+}
+
+/** Standard mode: single-pass rendering. */
+function renderStandardMode() {
+  camera.layers.enable(0);
+  camera.layers.disable(1);
+  camera.layers.disable(2);
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  renderer.render(scene, camera);
+  camera.layers.enableAll();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CAMERA
+   ═══════════════════════════════════════════════════════════════ */
+function fitCamera() {
+  // Isometric-ish perspective from southeast, elevated
+  camera.position.set(16, 11, 16);
+  controls.target.set(0, 1.2, 0);
+  controls.update();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INITIALIZATION
+   ═══════════════════════════════════════════════════════════════ */
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(BG.light);
+
+  camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 200);
+
+  renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = false;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  document.getElementById('viewport').appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+
+  // Depth render target for hidden-line rendering
+  const depthTex = new THREE.DepthTexture();
+  depthTex.type = THREE.UnsignedIntType;
+  depthTarget = new THREE.WebGLRenderTarget(
+    renderer.domElement.width,
+    renderer.domElement.height,
+    {depthTexture: depthTex, depthBuffer: true, stencilBuffer: false}
+  );
+
+  // Object groups
+  surfaceGroup = new THREE.Group();
+  edgeGroup = new THREE.Group();
+  outlineGroup = new THREE.Group();
+  groundGroup = new THREE.Group();
+  scene.add(surfaceGroup);
+  scene.add(edgeGroup);
+  scene.add(outlineGroup);
+  scene.add(groundGroup);
+
+  // Materials
+  createModeMaterials();
+  createEdgeMaterials();
+
+  // Lighting
+  setupLighting();
+
+  // Build model
+  buildModel(SONSBEEK);
+
+  // Camera
+  fitCamera();
+
+  // Apply default mode
+  applyMode('pen');
+
+  // Events
+  window.addEventListener('resize', onResize);
+  setupUI();
+
+  animate();
+}
+
+function onResize() {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  depthTarget.setSize(renderer.domElement.width, renderer.domElement.height);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════════════════ */
+function setupUI() {
+  // Mode buttons
+  document.querySelectorAll('#modes button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyMode(btn.dataset.mode);
+    });
+  });
+
+  // Fit
+  document.getElementById('btnFit').addEventListener('click', fitCamera);
+
+  // Theme toggle
+  document.getElementById('btnTheme').addEventListener('click', function() {
+    isDark = !isDark;
+    document.body.classList.toggle('dark', isDark);
+    applyMode(currentMode); // reapply to update background
+  });
+
+  // Load JSON
+  var loadPanel = document.getElementById('loadPanel');
+  document.getElementById('btnLoad').addEventListener('click', function() {
+    loadPanel.classList.toggle('show');
+  });
+
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        // Clear existing model
+        clearModel();
+        buildModel(data);
+        applyMode(currentMode);
+        fitCamera();
+        loadPanel.classList.remove('show');
+      } catch (err) {
+        alert('Error parsing JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function clearModel() {
+  while (surfaceGroup.children.length) surfaceGroup.remove(surfaceGroup.children[0]);
+  while (edgeGroup.children.length) edgeGroup.remove(edgeGroup.children[0]);
+  while (outlineGroup.children.length) outlineGroup.remove(outlineGroup.children[0]);
+  while (groundGroup.children.length) groundGroup.remove(groundGroup.children[0]);
+  allSurfaces.length = 0;
+  allEdgeLines.length = 0;
+  allOutlines.length = 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   START
+   ═══════════════════════════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>
