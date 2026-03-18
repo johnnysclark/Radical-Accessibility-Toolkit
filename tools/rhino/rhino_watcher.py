@@ -40,6 +40,16 @@ except ImportError:
     IN_RHINO = False
     print("[WARN] Not in Rhino. Geometry calls will be skipped.")
 
+# Cross-platform compatibility layer (optional — falls back to
+# inline Windows code if compat.py is not found).
+try:
+    from compat import (chime as _compat_chime, speak as _compat_speak,
+                        find_rhino_object as _compat_find_obj,
+                        IS_IRONPYTHON as _COMPAT_IRONPYTHON)
+    _HAS_COMPAT = True
+except ImportError:
+    _HAS_COMPAT = False
+
 # ── Configuration ──────────────────────────────────────────
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
@@ -98,8 +108,11 @@ SPEAK_RATE = int(os.environ.get("LAYOUT_JIG_SPEAK_RATE", "3"))
 
 def _chime():
     """Play a short system beep. Non-blocking, fire-and-forget."""
+    if _HAS_COMPAT:
+        _compat_chime()
+        return
+    # Fallback: Windows PowerShell (original behaviour)
     try:
-        # Windows: [System.Console]::Beep(frequency_hz, duration_ms)
         subprocess.Popen(
             ["powershell", "-NoProfile", "-Command",
              "[System.Console]::Beep(880, 120)"],
@@ -109,10 +122,15 @@ def _chime():
 
 
 def _speak(text):
-    """Speak text via Windows PowerShell SpeechSynthesizer.
+    """Speak text via platform TTS.
 
     Non-blocking (fire-and-forget). Uses SPEAK_RATE for speed.
+    On Windows: PowerShell SpeechSynthesizer.  On Mac: say command.
     """
+    if _HAS_COMPAT:
+        _compat_speak(text, rate=SPEAK_RATE)
+        return
+    # Fallback: Windows PowerShell (original behaviour)
     escaped = text.replace("'", "''")
     ps_cmd = (
         "Add-Type -AssemblyName System.Speech;"
@@ -1179,14 +1197,17 @@ def _export_stl(obj_ids, filepath):
     if not IN_RHINO:
         return
     try:
-        import System
         import struct
 
         # --- collect meshes from all geometry types ---
         meshes = []
         mp = Rhino.Geometry.MeshingParameters.Default
         for oid in obj_ids:
-            robj = sc.doc.Objects.FindId(System.Guid(str(oid)))
+            if _HAS_COMPAT:
+                robj = _compat_find_obj(sc.doc, oid)
+            else:
+                import System
+                robj = sc.doc.Objects.FindId(System.Guid(str(oid)))
             if robj is None:
                 continue
             geom = robj.Geometry

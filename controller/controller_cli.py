@@ -25,8 +25,12 @@ Usage
   python controller_cli.py
   python controller_cli.py --state "/path/to/state.json"
 """
-import argparse, copy, json, math, os, subprocess, sys, time
+import argparse, copy, json, math, os, platform, subprocess, sys, time
 from datetime import datetime
+
+# ── Platform detection ────────────────────────────────────
+IS_MAC = platform.system() == "Darwin"
+IS_WINDOWS = platform.system() == "Windows"
 
 try:
     import template_manager as _tmpl_mgr
@@ -79,8 +83,10 @@ def _atomic_write(path, text):
     os.replace(tmp, path)
 
 def _speak(text, rate=2):
-    """Fire-and-forget TTS via PowerShell SpeechSynthesizer.
+    """Fire-and-forget TTS via platform speech engine.
 
+    Windows: PowerShell SpeechSynthesizer.
+    macOS: built-in ``say`` command.
     Strips OK:/ERROR: prefixes for cleaner speech.
     Returns True on success, False if speech fails.
     """
@@ -89,15 +95,21 @@ def _speak(text, rate=2):
         if clean.startswith(prefix):
             clean = clean[len(prefix):]
             break
-    # Escape single quotes for PowerShell
-    escaped = clean.replace("'", "''")
-    ps_cmd = (
-        f"Add-Type -AssemblyName System.Speech;"
-        f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
-        f"$s.Rate={int(rate)};"
-        f"$s.Speak('{escaped}')"
-    )
     try:
+        if IS_MAC:
+            wpm = 180 + int(rate) * 20
+            subprocess.Popen(
+                ["say", "-r", str(wpm), clean],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        # Windows (default): PowerShell SpeechSynthesizer
+        escaped = clean.replace("'", "''")
+        ps_cmd = (
+            f"Add-Type -AssemblyName System.Speech;"
+            f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+            f"$s.Rate={int(rate)};"
+            f"$s.Speak('{escaped}')"
+        )
         subprocess.Popen(
             ["powershell", "-NoProfile", "-Command", ps_cmd],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -1789,12 +1801,18 @@ def cmd_tts(state, tokens):
 # SETUP (Rhino auto-launch)
 # ══════════════════════════════════════════════════════════
 
-# Default Rhino install locations (Windows)
-_RHINO_SEARCH_PATHS = [
-    r"C:\Program Files\Rhino 8\System\Rhino.exe",
-    r"C:\Program Files\Rhino 7\System\Rhino.exe",
-    r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
-]
+# Default Rhino install locations by platform
+if IS_MAC:
+    _RHINO_SEARCH_PATHS = [
+        "/Applications/Rhino 8.app/Contents/MacOS/Rhinoceros",
+        "/Applications/Rhino 7.app/Contents/MacOS/Rhinoceros",
+    ]
+else:
+    _RHINO_SEARCH_PATHS = [
+        r"C:\Program Files\Rhino 8\System\Rhino.exe",
+        r"C:\Program Files\Rhino 7\System\Rhino.exe",
+        r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
+    ]
 
 def _find_rhino():
     """Return the Rhino executable path if found, else None."""
@@ -1856,15 +1874,24 @@ def cmd_setup(state, tokens, state_file):
     if rhino_path is None:
         rhino_path = _find_rhino()
     if rhino_path is None or not os.path.isfile(rhino_path):
+        if IS_MAC:
+            hint = '"/Applications/Rhino 8.app/Contents/MacOS/Rhinoceros"'
+        else:
+            hint = '"C:\\Program Files\\Rhino 8\\System\\Rhino.exe"'
         return state, (
-            "ERROR: Rhino not found. Use: setup rhino --path "
-            "\"C:\\Program Files\\Rhino 8\\System\\Rhino.exe\"")
+            "ERROR: Rhino not found. Use: setup rhino --path " + hint)
 
     # Build watcher path
     watcher_path = os.path.join(_script_dir(), "rhino", "rhino_watcher.py")
     if not os.path.isfile(watcher_path):
-        return state, (
-            "ERROR: Watcher not found at {}.".format(watcher_path))
+        # Also check tools/rhino/ relative to project root
+        alt = os.path.join(os.path.dirname(_script_dir()),
+                           "tools", "rhino", "rhino_watcher.py")
+        if os.path.isfile(alt):
+            watcher_path = alt
+        else:
+            return state, (
+                "ERROR: Watcher not found at {}.".format(watcher_path))
 
     # Build command: launch Rhino, auto-run the watcher script,
     # and set units to Feet.
@@ -1874,11 +1901,20 @@ def cmd_setup(state, tokens, state_file):
     ).format(watcher_path.replace("\\", "/"))
 
     try:
-        subprocess.Popen(
-            [rhino_path, "/nosplash",
-             "/runscript={}".format(run_cmds)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL)
+        if IS_MAC:
+            # macOS: use 'open' to launch the .app bundle with script args
+            subprocess.Popen(
+                ["open", "-a", "Rhino 8", "--args",
+                 "-runscript={}".format(run_cmds)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
+        else:
+            # Windows: direct executable with /nosplash flag
+            subprocess.Popen(
+                [rhino_path, "/nosplash",
+                 "/runscript={}".format(run_cmds)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
     except Exception as e:
         return state, "ERROR: Failed to launch Rhino: {}".format(e)
 

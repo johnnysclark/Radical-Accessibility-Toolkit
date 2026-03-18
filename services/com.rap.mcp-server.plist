@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rap.mcp-server</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>mcp/mcp_server.py</string>
+        <string>--state</string>
+        <string>controller/state.json</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/Shared/Projects/rap</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>RAP_PROJECT_ROOT</key>
+        <string>/Users/Shared/Projects/rap</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/Shared/Projects/rap/logs/mcp-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/Shared/Projects/rap/logs/mcp-stderr.log</string>
+</dict>
+</plist>

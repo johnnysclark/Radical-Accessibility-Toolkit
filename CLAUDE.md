@@ -70,7 +70,7 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
 - **Exception:** `tools/swell-print/` and `mcp/` are allowed pip dependencies (Pillow, reportlab, mcp). The controller itself stays stdlib-only.
 
-### Watcher Side (IronPython 2.7)
+### Watcher Side (IronPython 2.7 on Windows, CPython 3.x on Mac)
 - Use `rhinoscriptsyntax as rs` for all geometry.
 - Hook `Rhino.RhinoApp.Idle += on_idle` for file watching.
 - Check `os.path.getmtime()` to detect changes.
@@ -80,6 +80,7 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - **No f-strings** — IronPython 2.7 doesn't support them. Use `.format()`.
 - **No pathlib** — use `os.path` throughout.
 - **No writing to state.json** — watcher is read-only on the CMA.
+- Platform-specific code goes through `tools/rhino/compat.py`, never inline.
 
 ### JSON State Files
 - Always include `"schema"` and `"meta"` at top level.
@@ -126,6 +127,79 @@ Branch names must be speakable and understandable when read aloud by a screen re
 3. Keep it under 6 words after the author prefix.
 4. A person hearing the branch name once should be able to repeat it back.
 5. When Claude creates branches, it must follow this convention and never append generated IDs.
+
+---
+
+## Cross-Platform Support
+
+RAP runs on both macOS (Rhino 8 Mac, CPython 3.x) and Windows (Rhino 8 Windows, IronPython 2.7). The controller, MCP server, and JSON state are platform-agnostic. Only the Rhino watcher and audio feedback require platform-specific code, handled by a compatibility layer.
+
+### Platform detection
+
+In controller code (Python 3):
+
+    import platform
+    IS_MAC = platform.system() == "Darwin"
+    IS_WINDOWS = platform.system() == "Windows"
+
+In watcher code (IronPython 2.7 or CPython):
+
+    from compat import IS_MAC, IS_WINDOWS, IS_IRONPYTHON, IS_CPYTHON
+
+### The compat.py layer (tools/rhino/compat.py)
+
+Use `compat.py` for any code that runs inside Rhino and needs to differ between platforms. It provides:
+- `IS_IRONPYTHON`, `IS_CPYTHON`, `IS_MAC`, `IS_WINDOWS` -- platform flags.
+- `make_guid(string)` -- creates System.Guid on IronPython, tries System.Guid then uuid.UUID on CPython.
+- `find_rhino_object(doc, guid_string)` -- cross-platform object lookup.
+- `chime()` -- plays a short beep (PowerShell on Windows, afplay on Mac).
+- `speak(text, rate)` -- TTS (PowerShell SpeechSynthesizer on Windows, say command on Mac).
+
+Rules for compat.py:
+- No f-strings (IronPython 2.7 does not support them). Use `.format()`.
+- No pathlib. Use `os.path`.
+- Never put platform detection inline in individual watcher functions. Import from compat.
+
+### File path conventions
+
+- Always use `os.path.join()` for path construction.
+- Never hardcode drive letters or OS-specific separators.
+- Use environment variables (`RAP_PROJECT_ROOT`, `LAYOUT_JIG_STATE`) for configurable base paths.
+- Rhino search paths are platform-conditional in `controller_cli.py`.
+
+### Running on macOS vs Windows
+
+macOS:
+- Install Rhino 8 for Mac from McNeel.
+- The watcher runs in Rhino's CPython 3 environment. Open ScriptEditor, paste: `exec(open("tools/rhino/rhino_watcher.py").read())`
+- Controller and MCP server run in any Python 3.8+ environment.
+- Audio feedback uses the macOS `say` command.
+
+Windows:
+- Install Rhino 8 for Windows from McNeel.
+- The watcher runs in Rhino's IronPython 2.7 environment. Paste the same exec() line or use `setup rhino` from the CLI.
+- Audio feedback uses PowerShell SpeechSynthesizer.
+- Screen reader hooks (JAWS/NVDA) work only on Windows.
+
+### Testing on both platforms
+
+Run `python tests/test_cross_platform.py` standalone to verify:
+- Platform detection flags are correct.
+- compat.py loads and functions do not crash.
+- Controller CLI imports and follows OK:/ERROR: protocol.
+- All expected project files exist.
+
+Inside Rhino, paste the test into ScriptEditor to also verify rhinoscriptsyntax and Rhino.RhinoApp availability.
+
+### What stays Windows-only
+
+- `tools/screen-reader-hooks/` -- JAWS/NVDA are Windows applications.
+- `tools/accessible-client/acclaude.bat` -- Windows batch launcher (the TypeScript code itself is cross-platform).
+- WSL2 bridge code -- only activates when running under WSL.
+
+### Output protocol
+
+The `OK:` / `ERROR:` / `READY:` output prefix protocol is platform-agnostic and must be preserved on all platforms. It is the primary interface for screen reader users.
 
 ---
 
