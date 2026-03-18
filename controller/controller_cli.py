@@ -2065,9 +2065,11 @@ def cmd_view(state, tokens, state_file=None):
             return _view_axon(state, tokens, sm, out_dir)
         elif sub == "elevation":
             return _view_elevation(state, tokens, sm, out_dir)
+        elif sub == "oblique":
+            return _view_oblique(state, tokens, sm, out_dir)
         else:
             raise ValueError(
-                "Unknown view type: '{}'. Options: plan, section, axon, elevation".format(sub))
+                "Unknown view type: '{}'. Options: plan, section, axon, elevation, oblique".format(sub))
     finally:
         # Restore original style if we switched
         if style_name and original_style:
@@ -2280,6 +2282,78 @@ def _view_elevation(state, tokens, sm, out_dir):
 
     d = _sr.density(img)
     return state, "OK: Rendered {} (density {:.1f}%)".format(out_name, d)
+
+
+def _view_oblique(state, tokens, sm, out_dir):
+    """Render a cut military oblique projection."""
+    cut_height = None
+    z_angle = 45.0
+    z_scale = 1.0
+
+    positional = []
+    for i, t in enumerate(tokens):
+        if i < 2:
+            continue
+        if t == "--angle" and i + 1 < len(tokens):
+            try:
+                z_angle = float(tokens[i + 1])
+            except ValueError:
+                pass
+        elif t == "--scale" and i + 1 < len(tokens):
+            try:
+                z_scale = float(tokens[i + 1])
+            except ValueError:
+                pass
+        elif t.startswith("--"):
+            continue
+        else:
+            try:
+                positional.append(float(t))
+            except ValueError:
+                pass
+
+    if positional:
+        cut_height = positional[0]
+    if cut_height is None:
+        cut_height = state.get("tactile3d", {}).get("cut_height", 10.0)
+
+    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "tools", "swell-print")
+    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
+        sys.path.insert(0, _swell_dir)
+
+    try:
+        import state_renderer as _sr
+    except ImportError:
+        raise ValueError("swell-print not installed.")
+
+    paper = sm.get("layout.paper", "letter")
+    dpi = 300
+
+    img = _sr.render_oblique(state, cut_height=cut_height,
+                              z_angle=z_angle, z_scale=z_scale,
+                              dpi=dpi, paper_size=paper,
+                              style_manager=sm)
+
+    suffix = "_cabinet" if z_scale < 1.0 else ""
+    out_name = "oblique{}.png".format(suffix)
+    out_path = os.path.join(out_dir, out_name)
+    img.save(out_path, dpi=(dpi, dpi))
+
+    try:
+        import pdf_generator as _pg
+        pdf_name = "oblique{}.pdf".format(suffix)
+        pdf_path = os.path.join(out_dir, pdf_name)
+        _pg.generate_pdf(img, pdf_path, paper_size=paper)
+        out_path = pdf_path
+        out_name = pdf_name
+    except ImportError:
+        pass
+
+    d = _sr.density(img)
+    mode = "military" if z_scale >= 1.0 else "cabinet"
+    return state, "OK: Rendered {} ({} oblique, cut at {:.0f} ft, density {:.1f}%)".format(
+        out_name, mode, cut_height, d)
 
 
 # ══════════════════════════════════════════════════════════
