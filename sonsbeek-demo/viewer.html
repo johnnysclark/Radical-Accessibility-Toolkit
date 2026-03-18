@@ -65,7 +65,6 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
 
 <div id="modes">
   <button class="pill active" data-mode="pen">Pen</button>
-  <button class="pill" data-mode="penShaded">Pen+Shaded</button>
   <button class="pill" data-mode="shaded">Shaded</button>
   <button class="pill" data-mode="arctic">Arctic</button>
   <button class="pill" data-mode="ghosted">Ghosted</button>
@@ -154,19 +153,11 @@ var modeMats = {};
 function createModeMaterials() {
   var DS = THREE.DoubleSide;
   modeMats.pen = {
-    wall: new THREE.MeshBasicMaterial({color:0xffffff, side:DS}),
-    disc: new THREE.MeshBasicMaterial({color:0xf0f0f0, side:DS}),
-    bench: new THREE.MeshBasicMaterial({color:0xeeeeee, side:DS}),
-    ground: new THREE.MeshBasicMaterial({color:0xf8f8f8, side:DS}),
-    edges:true, shadows:false, bg:0xffffff, bgDark:0x1a1a1a, outline:true,
-  };
-  // Pen+Shaded: same look as shaded but with pen edges overlaid
-  modeMats.penShaded = {
-    wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
-    disc: new THREE.MeshStandardMaterial({color:0xb0a898, roughness:0.80, side:DS}),
-    bench: new THREE.MeshStandardMaterial({color:0xb8b0a0, roughness:0.85, side:DS}),
-    ground: new THREE.MeshStandardMaterial({color:0xd8d0c4, roughness:0.95, side:DS}),
-    edges:true, shadows:true, bg:0xf0ede8, bgDark:0x1e1c1a, outline:true,
+    wall: new THREE.MeshStandardMaterial({color:0xe8e4de, roughness:0.80, side:DS}),
+    disc: new THREE.MeshStandardMaterial({color:0xddd8d0, roughness:0.75, side:DS}),
+    bench: new THREE.MeshStandardMaterial({color:0xe0dbd4, roughness:0.80, side:DS}),
+    ground: new THREE.MeshStandardMaterial({color:0xeae6e0, roughness:0.90, side:DS}),
+    edges:true, shadows:true, bg:0xf5f3f0, bgDark:0x1a1a1a, outline:true,
   };
   modeMats.shaded = {
     wall: new THREE.MeshStandardMaterial({color:0xc8bca8, roughness:0.85, side:DS}),
@@ -633,8 +624,6 @@ function applyMode(mode) {
 function render() {
   if (currentMode === 'pen') {
     renderPenMode();
-  } else if (currentMode === 'penShaded') {
-    renderPenShadedMode();
   } else if (currentMode === 'ghosted') {
     renderGhostedMode();
   } else {
@@ -647,43 +636,10 @@ function renderPenMode() {
   var h = renderer.domElement.height;
   if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
 
-  // Pass 1: surfaces to depth target
-  camera.layers.set(0);
-  renderer.setRenderTarget(depthTarget);
-  renderer.clear();
-  renderer.render(scene, camera);
-
-  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
-
-  // Pass 2: outlines
-  renderer.setRenderTarget(null);
-  renderer.clear();
-  camera.layers.set(2);
-  renderer.render(scene, camera);
-
-  // Pass 3: surfaces
-  renderer.autoClear = false;
-  camera.layers.set(0);
-  renderer.render(scene, camera);
-
-  // Pass 4: edges
-  camera.layers.set(1);
-  renderer.render(scene, camera);
-
-  renderer.autoClear = true;
-  camera.layers.enableAll();
-}
-
-function renderPenShadedMode() {
-  var w = renderer.domElement.width;
-  var h = renderer.domElement.height;
-  if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
-
   // Force shadow map update
   renderer.shadowMap.needsUpdate = true;
 
-  // Pass 1: shaded surfaces to depth target (for edge depth comparison)
+  // Pass 1: surfaces to depth target (for edge depth comparison)
   camera.layers.set(0);
   renderer.setRenderTarget(depthTarget);
   renderer.clear();
@@ -698,7 +654,7 @@ function renderPenShadedMode() {
   camera.layers.set(2);
   renderer.render(scene, camera);
 
-  // Pass 3: shaded surfaces with shadows on top
+  // Pass 3: shaded surfaces with shadows
   renderer.autoClear = false;
   camera.layers.set(0);
   renderer.render(scene, camera);
