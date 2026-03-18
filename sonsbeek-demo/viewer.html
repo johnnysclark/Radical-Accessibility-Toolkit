@@ -76,6 +76,7 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
 <div id="sliders">
   <div class="slider-row">
     <label>Sun</label>
+    <button class="pill active" id="btnSun" style="padding:2px 8px;font-size:10px;margin-right:2px">On</button>
     <input type="range" id="sunSlider" min="0" max="360" value="45">
     <span class="val" id="sunVal">45&deg;</span>
   </div>
@@ -135,6 +136,7 @@ var currentMode = 'pen';
 var isOrtho = false;
 var isDark = false;
 var sunAngle = 45;
+var sunEnabled = true;
 var allSurfaces = [];
 var allEdgeLines = [];
 var allOutlines = [];
@@ -494,7 +496,7 @@ function applyMode(mode) {
 
   renderer.shadowMap.enabled = m.shadows;
   if (m.shadows) renderer.shadowMap.needsUpdate = true;
-  dirLight.castShadow = m.shadows;
+  dirLight.castShadow = m.shadows && sunEnabled;
   allSurfaces.forEach(function(s) {
     s.mesh.castShadow = m.shadows;
     s.mesh.receiveShadow = m.shadows;
@@ -512,8 +514,10 @@ function applyMode(mode) {
    RENDER
    =================================================================== */
 function render() {
-  if (currentMode === 'pen' || currentMode === 'penShaded') {
+  if (currentMode === 'pen') {
     renderPenMode();
+  } else if (currentMode === 'penShaded') {
+    renderPenShadedMode();
   } else if (currentMode === 'ghosted') {
     renderGhostedMode();
   } else {
@@ -547,6 +551,42 @@ function renderPenMode() {
   renderer.render(scene, camera);
 
   // Pass 4: edges
+  camera.layers.set(1);
+  renderer.render(scene, camera);
+
+  renderer.autoClear = true;
+  camera.layers.enableAll();
+}
+
+function renderPenShadedMode() {
+  var w = renderer.domElement.width;
+  var h = renderer.domElement.height;
+  if (depthTarget.width !== w || depthTarget.height !== h) depthTarget.setSize(w, h);
+
+  // Force shadow map update
+  renderer.shadowMap.needsUpdate = true;
+
+  // Pass 1: shaded surfaces to depth target (for edge depth comparison)
+  camera.layers.set(0);
+  renderer.setRenderTarget(depthTarget);
+  renderer.clear();
+  renderer.render(scene, camera);
+
+  hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
+
+  // Pass 2: outlines to screen
+  renderer.setRenderTarget(null);
+  renderer.clear();
+  camera.layers.set(2);
+  renderer.render(scene, camera);
+
+  // Pass 3: shaded surfaces with shadows on top
+  renderer.autoClear = false;
+  camera.layers.set(0);
+  renderer.render(scene, camera);
+
+  // Pass 4: edges with hidden-line shader
   camera.layers.set(1);
   renderer.render(scene, camera);
 
@@ -780,6 +820,16 @@ function setupUI() {
     isDark = !isDark;
     document.body.classList.toggle('dark', isDark);
     applyMode(currentMode);
+  });
+
+  // Sun toggle
+  document.getElementById('btnSun').addEventListener('click', function() {
+    sunEnabled = !sunEnabled;
+    dirLight.visible = sunEnabled;
+    dirLight.castShadow = sunEnabled && modeMats[currentMode] && modeMats[currentMode].shadows;
+    this.textContent = sunEnabled ? 'On' : 'Off';
+    this.classList.toggle('active', sunEnabled);
+    renderer.shadowMap.needsUpdate = true;
   });
 
   // Sun slider
