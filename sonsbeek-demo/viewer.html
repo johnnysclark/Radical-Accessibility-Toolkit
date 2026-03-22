@@ -87,6 +87,21 @@ body.dark #loadPanel label{border-color:#555;color:#bbb}
     <label>Color</label>
     <input type="color" id="colorPicker" value="#c8bca8" style="width:28px;height:22px;border:none;padding:0;cursor:pointer;background:transparent">
   </div>
+  <div class="slider-row">
+    <label>Hidden</label>
+    <input type="range" id="hiddenWeight" min="0.5" max="5" step="0.5" value="1">
+    <span class="val" id="hiddenWeightVal">1.0</span>
+  </div>
+  <div class="slider-row">
+    <label>Edges</label>
+    <input type="range" id="normalWeight" min="0.5" max="5" step="0.5" value="2">
+    <span class="val" id="normalWeightVal">2.0</span>
+  </div>
+  <div class="slider-row">
+    <label>Outline</label>
+    <input type="range" id="silhouetteWeight" min="0.5" max="8" step="0.5" value="3">
+    <span class="val" id="silhouetteWeightVal">3.0</span>
+  </div>
 </div>
 
 <div id="views">
@@ -186,6 +201,7 @@ var sunEnabled = false;
 var allSurfaces = [];
 var allEdgeLines = [];
 var silhouetteScene, silhouetteCamera, silhouetteMesh, silhouetteMat;
+var edgeTarget, edgeDilationMat, edgeDilationScene, edgeDilationCamera, edgeDilationMesh;
 var BG = { light: 0xffffff, dark: 0x1a1a1a };
 var ORTHO_SIZE = 22;
 var SUN_RADIUS = 20;
@@ -246,10 +262,11 @@ function createEdgeMaterials() {
       {
         tDepth:     {value: null},
         resolution: {value: new THREE.Vector2(1, 1)},
-        dashSize:   {value: 0.12},
-        gapSize:    {value: 0.08},
+        dashSize:   {value: 0.06},
+        gapSize:    {value: 0.03},
         solidColor: {value: new THREE.Color(0x000000)},
-        dashedColor:{value: new THREE.Color(0x999999)},
+        dashedColor:{value: new THREE.Color(0x000000)},
+        encode:     {value: 0.0},
       }
     ]),
     vertexShader: [
@@ -271,6 +288,7 @@ function createEdgeMaterials() {
       'uniform float gapSize;',
       'uniform vec3 solidColor;',
       'uniform vec3 dashedColor;',
+      'uniform float encode;',
       'varying float vLineDistance;',
       'void main() {',
       '  #include <clipping_planes_fragment>',
@@ -280,9 +298,11 @@ function createEdgeMaterials() {
       '  if (lineDepth > sceneDepth + 0.00015) {',
       '    float total = dashSize + gapSize;',
       '    if (mod(vLineDistance, total) > dashSize) discard;',
-      '    gl_FragColor = vec4(dashedColor, 1.0);',
+      '    if (encode > 0.5) { gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); }',
+      '    else { gl_FragColor = vec4(dashedColor, 1.0); }',
       '  } else {',
-      '    gl_FragColor = vec4(solidColor, 1.0);',
+      '    if (encode > 0.5) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }',
+      '    else { gl_FragColor = vec4(solidColor, 1.0); }',
       '  }',
       '}'
     ].join('\n'),
@@ -333,6 +353,59 @@ function createEdgeMaterials() {
       '  if (d > 0.999) discard;',
       '  if (edge < threshold) discard;',
       '  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+      '}'
+    ].join('\n'),
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  });
+
+  // Edge dilation shader (thickens R/G encoded edges independently)
+  edgeDilationMat = new THREE.ShaderMaterial({
+    uniforms: {
+      tEdges: {value: null},
+      resolution: {value: new THREE.Vector2(1, 1)},
+      normalWeight: {value: 2.0},
+      hiddenWeight: {value: 1.0},
+      dashScale: {value: 8.0},
+    },
+    vertexShader: [
+      'varying vec2 vUv;',
+      'void main() {',
+      '  vUv = uv;',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform sampler2D tEdges;',
+      'uniform vec2 resolution;',
+      'uniform float normalWeight;',
+      'uniform float hiddenWeight;',
+      'uniform float dashScale;',
+      'varying vec2 vUv;',
+      'void main() {',
+      '  vec2 texel = 1.0 / resolution;',
+      '  float maxR = max(normalWeight, hiddenWeight);',
+      '  float foundNormal = 0.0;',
+      '  float foundHidden = 0.0;',
+      '  for (int y = -5; y <= 5; y++) {',
+      '    for (int x = -5; x <= 5; x++) {',
+      '      float dist = sqrt(float(x * x + y * y));',
+      '      if (dist > maxR) continue;',
+      '      vec4 s = texture2D(tEdges, vUv + vec2(float(x), float(y)) * texel);',
+      '      if (dist <= normalWeight && s.r > 0.5) foundNormal = 1.0;',
+      '      if (dist <= hiddenWeight && s.g > 0.5) foundHidden = 1.0;',
+      '    }',
+      '  }',
+      '  if (foundNormal > 0.5) {',
+      '    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+      '  } else if (foundHidden > 0.5) {',
+      '    float p = mod(gl_FragCoord.x * 0.7 + gl_FragCoord.y * 0.7, dashScale);',
+      '    if (p > dashScale * 0.55) discard;',
+      '    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+      '  } else {',
+      '    discard;',
+      '  }',
       '}'
     ].join('\n'),
     transparent: true,
@@ -688,7 +761,9 @@ function render() {
 }
 
 function renderOutlineShadedMode() {
-  // 1. Depth pre-pass: surfaces only to depthTarget
+  var w = renderer.domElement.width, h = renderer.domElement.height;
+
+  // 1. Depth pre-pass: surfaces only → depthTarget
   edgeGroup.visible = false;
   camera.layers.set(0);
   renderer.setRenderTarget(depthTarget);
@@ -698,21 +773,43 @@ function renderOutlineShadedMode() {
 
   // 2. Feed depth to hidden-line shader
   hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  hiddenLineEdgeMat.uniforms.resolution.value.set(
-    renderer.domElement.width, renderer.domElement.height
-  );
+  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
 
-  // 3. Render shaded surfaces + hidden-line edges to screen
-  camera.layers.enable(0);
-  camera.layers.enable(1);
-  renderer.setRenderTarget(null);
+  // 3. Edge encode pass: edges only → edgeTarget (R=visible, G=hidden)
+  hiddenLineEdgeMat.uniforms.encode.value = 1.0;
+  camera.layers.set(1);
+  renderer.setRenderTarget(edgeTarget);
+  renderer.setClearColor(0x000000, 0);
   renderer.clear();
   renderer.render(scene, camera);
+  hiddenLineEdgeMat.uniforms.encode.value = 0.0;
+
+  // 4. Main pass: shaded surfaces only → screen
+  camera.layers.set(0);
+  renderer.setRenderTarget(null);
+  renderer.setClearColor(scene.background.getHex(), 1);
+  renderer.clear();
+  renderer.render(scene, camera);
+
+  // 5. Edge dilation composite → screen overlay
+  edgeDilationMat.uniforms.tEdges.value = edgeTarget.texture;
+  edgeDilationMat.uniforms.resolution.value.set(w, h);
+  renderer.autoClear = false;
+  renderer.render(edgeDilationScene, edgeDilationCamera);
+
+  // 6. Silhouette composite → screen overlay
+  silhouetteMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  silhouetteMat.uniforms.resolution.value.set(w, h);
+  renderer.render(silhouetteScene, silhouetteCamera);
+  renderer.autoClear = true;
+
   camera.layers.enableAll();
 }
 
 function renderGhostedMode() {
-  // Depth pre-pass for hidden-line edges
+  var w = renderer.domElement.width, h = renderer.domElement.height;
+
+  // 1. Depth pre-pass: surfaces only → depthTarget
   camera.layers.set(0);
   edgeGroup.visible = false;
   renderer.setRenderTarget(depthTarget);
@@ -721,16 +818,37 @@ function renderGhostedMode() {
   edgeGroup.visible = true;
 
   hiddenLineEdgeMat.uniforms.tDepth.value = depthTarget.depthTexture;
-  hiddenLineEdgeMat.uniforms.resolution.value.set(
-    renderer.domElement.width, renderer.domElement.height
-  );
+  hiddenLineEdgeMat.uniforms.resolution.value.set(w, h);
 
+  // 2. Edge encode pass → edgeTarget
+  hiddenLineEdgeMat.uniforms.encode.value = 1.0;
   allEdgeLines.forEach(function(l) { l.material = hiddenLineEdgeMat; });
-  camera.layers.enable(0);
-  camera.layers.enable(1);
-  renderer.setRenderTarget(null);
+  camera.layers.set(1);
+  renderer.setRenderTarget(edgeTarget);
+  renderer.setClearColor(0x000000, 0);
   renderer.clear();
   renderer.render(scene, camera);
+  hiddenLineEdgeMat.uniforms.encode.value = 0.0;
+
+  // 3. Main pass: transparent surfaces → screen
+  camera.layers.set(0);
+  renderer.setRenderTarget(null);
+  renderer.setClearColor(scene.background.getHex(), 1);
+  renderer.clear();
+  renderer.render(scene, camera);
+
+  // 4. Edge dilation composite → screen overlay
+  edgeDilationMat.uniforms.tEdges.value = edgeTarget.texture;
+  edgeDilationMat.uniforms.resolution.value.set(w, h);
+  renderer.autoClear = false;
+  renderer.render(edgeDilationScene, edgeDilationCamera);
+
+  // 5. Silhouette composite → screen overlay
+  silhouetteMat.uniforms.tDepth.value = depthTarget.depthTexture;
+  silhouetteMat.uniforms.resolution.value.set(w, h);
+  renderer.render(silhouetteScene, silhouetteCamera);
+  renderer.autoClear = true;
+
   camera.layers.enableAll();
 }
 
@@ -900,15 +1018,30 @@ function init() {
   scene.add(groundGroup);
   scene.add(sectionLinesGroup);
 
-  // Silhouette overlay (separate scene so it renders on top)
-  silhouetteScene = new THREE.Scene();
-  silhouetteCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  createModeMaterials();
+  createEdgeMaterials();
+
+  // Edge target for R/G encoded edge rendering
+  edgeTarget = new THREE.WebGLRenderTarget(
+    renderer.domElement.width, renderer.domElement.height,
+    {depthBuffer: true, stencilBuffer: false}
+  );
+
+  // Fullscreen quad scenes for post-process overlays
   var quadGeo = new THREE.PlaneGeometry(2, 2);
+  var quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  // Silhouette overlay
+  silhouetteScene = new THREE.Scene();
+  silhouetteCamera = quadCam;
   silhouetteMesh = new THREE.Mesh(quadGeo, silhouetteMat);
   silhouetteScene.add(silhouetteMesh);
 
-  createModeMaterials();
-  createEdgeMaterials();
+  // Edge dilation overlay
+  edgeDilationScene = new THREE.Scene();
+  edgeDilationCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  edgeDilationMesh = new THREE.Mesh(quadGeo.clone(), edgeDilationMat);
+  edgeDilationScene.add(edgeDilationMesh);
   setupLighting();
   buildModel(SONSBEEK);
   fitCamera();
@@ -932,7 +1065,9 @@ function onResize() {
   }
 
   renderer.setSize(innerWidth, innerHeight);
-  depthTarget.setSize(renderer.domElement.width, renderer.domElement.height);
+  var w = renderer.domElement.width, h = renderer.domElement.height;
+  depthTarget.setSize(w, h);
+  edgeTarget.setSize(w, h);
 }
 
 /* ===================================================================
@@ -980,6 +1115,23 @@ function setupUI() {
   // Section slider
   document.getElementById('sectionSlider').addEventListener('input', function(e) {
     updateSection(parseInt(e.target.value));
+  });
+
+  // Lineweight sliders
+  document.getElementById('hiddenWeight').addEventListener('input', function(e) {
+    var v = parseFloat(e.target.value);
+    edgeDilationMat.uniforms.hiddenWeight.value = v;
+    document.getElementById('hiddenWeightVal').textContent = v.toFixed(1);
+  });
+  document.getElementById('normalWeight').addEventListener('input', function(e) {
+    var v = parseFloat(e.target.value);
+    edgeDilationMat.uniforms.normalWeight.value = v;
+    document.getElementById('normalWeightVal').textContent = v.toFixed(1);
+  });
+  document.getElementById('silhouetteWeight').addEventListener('input', function(e) {
+    var v = parseFloat(e.target.value);
+    silhouetteMat.uniforms.lineThickness.value = v;
+    document.getElementById('silhouetteWeightVal').textContent = v.toFixed(1);
   });
 
   // Color picker
