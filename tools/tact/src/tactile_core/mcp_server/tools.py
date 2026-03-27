@@ -2041,3 +2041,70 @@ def _get_adjustment_suggestions(density: float, image_type: str) -> Dict[str, An
         })
 
     return suggestions
+
+
+async def state_to_piaf(
+    state_path: str,
+    paper_size: str = "letter",
+    output_format: str = "pdf",
+) -> str:
+    """Render a Layout Jig state.json to a PIAF-ready tactile graphic.
+
+    Reads the canonical model artifact (state.json) and produces a 300 DPI
+    black-and-white architectural plan suitable for swell-paper printing.
+    No Rhino dependency — reads JSON directly.
+
+    Args:
+        state_path: Path to state.json file
+        paper_size: "letter" (8.5x11) or "tabloid" (11x17)
+        output_format: "pdf" or "png"
+    """
+    import json as json_module
+
+    state_path_resolved = str(Path(state_path).resolve())
+    if not Path(state_path_resolved).is_file():
+        return f"ERROR: State file not found: {state_path}"
+
+    try:
+        from tactile_core.core.state_renderer import render as sr_render, density as sr_density
+    except ImportError as e:
+        return f"ERROR: Could not import state_renderer: {e}"
+
+    try:
+        with open(state_path_resolved, 'r') as f:
+            state = json_module.load(f)
+    except (json_module.JSONDecodeError, IOError) as e:
+        return f"ERROR: Could not read state file: {e}"
+
+    dpi = 300
+    try:
+        img = sr_render(state, dpi=dpi, paper_size=paper_size)
+    except Exception as e:
+        return f"ERROR: Render failed: {e}"
+
+    base = Path(state_path_resolved).stem
+    out_dir = Path(state_path_resolved).parent
+
+    fmt = output_format.lower()
+    if fmt not in ("pdf", "png"):
+        fmt = "pdf"
+
+    if fmt == "pdf":
+        out_path = out_dir / f"{base}_tactile.pdf"
+        try:
+            from tactile_core.core.pdf_generator import PIAFPDFGenerator
+            gen = PIAFPDFGenerator()
+            gen.generate_single_page_pdf(img, str(out_path), paper_size=paper_size)
+        except ImportError:
+            out_path = out_dir / f"{base}_tactile.png"
+            img.save(str(out_path), dpi=(dpi, dpi))
+    else:
+        out_path = out_dir / f"{base}_tactile.png"
+        img.save(str(out_path), dpi=(dpi, dpi))
+
+    d = sr_density(img)
+    return (
+        f"OK: Rendered {out_path.name} ({paper_size.title()}, {dpi} DPI, density {d:.1f}%)\n"
+        f"  Path: {out_path}\n"
+        "READY:"
+    )

@@ -64,9 +64,9 @@ tact = "tactile_core.cli:main"
 tact-mcp = "tactile_core.mcp_server.server:main"
 
 [project.urls]
-Homepage = "https://github.com/ethanshig/Radical-Accessibility-Toolkit"
-Documentation = "https://github.com/ethanshig/Radical-Accessibility-Toolkit/tree/master/tools/tact"
-Repository = "https://github.com/ethanshig/Radical-Accessibility-Toolkit"
+Homepage = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit"
+Documentation = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit/tree/master/tools/tact"
+Repository = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tactile_core"]

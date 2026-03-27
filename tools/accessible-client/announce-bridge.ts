@@ -6,7 +6,7 @@ import { existsSync } from "fs"
 import { resolve } from "path"
 
 const PROJECT_DIR = resolve(__dirname, "../..")
-const PS1_PATH = resolve(PROJECT_DIR, "src/hooks/screen-reader/announce.ps1")
+const PS1_PATH = resolve(PROJECT_DIR, "tools/screen-reader-hooks/screen-reader/announce.ps1")
 
 // Convert /mnt/DRIVE/... to DRIVE:\... without calling wslpath
 function toWinPath(wslPath: string): string | null {

@@ -29,7 +29,8 @@ from tactile_core.mcp_server.tools import (
     analyze_image,
     describe_image,
     extract_text_with_vision,
-    assess_tactile_quality
+    assess_tactile_quality,
+    state_to_piaf
 )
 
 # Initialize MCP server
@@ -45,6 +46,7 @@ mcp.tool()(analyze_image)
 mcp.tool()(describe_image)
 mcp.tool()(extract_text_with_vision)
 mcp.tool()(assess_tactile_quality)
+mcp.tool()(state_to_piaf)
 
 
 # ============================================================================

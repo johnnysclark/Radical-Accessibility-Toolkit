@@ -55,6 +55,7 @@ def main():
         tact presets    List available presets
         tact batch      Batch convert a folder
         tact info       Show tool information
+        tact render     Render state.json to tactile output
     """
     pass
 
@@ -845,6 +846,10 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
                     logger.info(f"  Abbreviation key entries: {len(key_entries)}")
                 logger.info("=" * 60)
 
+            click.echo(f"OK: Converted {Path(input_path).name} -> {output_path}")
+            click.echo("READY:")
+
+
         except PDFGeneratorError as e:
             logger.error("PDF generation failed", e)
             logger.solution("Check that the output path is writable")
@@ -1363,6 +1368,85 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
     except Exception as e:
         logger.error("Batch processing failed", e)
         sys.exit(1)
+
+
+@main.command()
+@click.argument('state_path', required=False, type=click.Path(exists=True))
+@click.option('--paper-size', '-p', default='letter', type=click.Choice(['letter', 'tabloid']),
+              help='Paper size for output.')
+@click.option('--output-format', '-f', default='pdf', type=click.Choice(['pdf', 'png']),
+              help='Output format.')
+@click.option('--dpi', default=300, type=int, help='Output resolution.')
+def render(state_path, paper_size, output_format, dpi):
+    """Render state.json to a PIAF-ready tactile graphic.
+
+    Reads the Layout Jig state file and produces a 300 DPI black-and-white
+    plan suitable for swell-paper printing. Draws columns, walls, corridors,
+    apertures, room hatches, labels, legend, and section cuts.
+
+    No Rhino dependency — reads JSON directly.
+    """
+    import json
+
+    # Find state.json if not provided
+    if not state_path:
+        here = Path(__file__).resolve().parent
+        # Try common locations
+        for candidate in [
+            here / '..' / '..' / '..' / '..' / 'controller' / 'state.json',
+            Path.cwd() / 'controller' / 'state.json',
+            Path.cwd() / 'state.json',
+        ]:
+            if candidate.exists():
+                state_path = str(candidate.resolve())
+                break
+        if not state_path:
+            click.echo("ERROR: No state.json found. Provide path as argument.")
+            raise SystemExit(1)
+
+    try:
+        from tactile_core.core.state_renderer import render as sr_render, density as sr_density
+    except ImportError as e:
+        click.echo(f"ERROR: Could not import state_renderer: {e}")
+        raise SystemExit(1)
+
+    try:
+        with open(state_path, 'r') as f:
+            state = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        click.echo(f"ERROR: Could not read state file: {e}")
+        raise SystemExit(1)
+
+    try:
+        img = sr_render(state, dpi=dpi, paper_size=paper_size)
+    except Exception as e:
+        click.echo(f"ERROR: Render failed: {e}")
+        raise SystemExit(1)
+
+    # Output path next to state file
+    base = Path(state_path).stem
+    out_dir = Path(state_path).parent
+
+    if output_format == 'pdf':
+        out_path = out_dir / f"{base}_tactile.pdf"
+        try:
+            from tactile_core.core.pdf_generator import PIAFPDFGenerator
+            gen = PIAFPDFGenerator()
+            gen.generate_single_page_pdf(img, str(out_path), paper_size=paper_size)
+        except ImportError:
+            # Fall back to PNG if reportlab not available
+            out_path = out_dir / f"{base}_tactile.png"
+            img.save(str(out_path), dpi=(dpi, dpi))
+    else:
+        out_path = out_dir / f"{base}_tactile.png"
+        img.save(str(out_path), dpi=(dpi, dpi))
+
+    d = sr_density(img)
+    click.echo(f"OK: Rendered {out_path.name} ({paper_size.title()}, {dpi} DPI, density {d:.1f}%)")
+    click.echo(f"  Path: {out_path}")
+    if d > 40:
+        click.echo("  WARNING: Density above 40% may reduce PIAF clarity.")
+    click.echo("READY:")
 
 
 if __name__ == '__main__':

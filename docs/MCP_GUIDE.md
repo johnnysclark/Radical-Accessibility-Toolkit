@@ -80,8 +80,7 @@ Supporting modules:
 - `controller/braille.py` -- Grade 1/2 braille translation (stdlib-only)
 - `tools/rhino/rhino_client.py` -- TCP client to query Rhino
 - `tools/rhino/tactile_print.py` -- tactile printing utilities
-- `tools/swell-print/state_renderer.py` -- render state.json to B&W image
-- `tools/swell-print/image_converter.py` -- convert images to PIAF-ready B&W
+- `tools/tact/` -- tactile conversion, state.json rendering, OCR, Braille
 
 ### Data flow: what happens when Claude says "rotate bay A by 30 degrees"
 
@@ -131,13 +130,15 @@ Steps 15-16 happen independently. The MCP call is already done by step 14. Rhino
 
 ### Automated Setup
 
-Run the setup script from the CONTROLLER directory:
+Run the setup script from the repo root:
 
     python setup.py
 
-This checks Python version, installs mcp/Pillow/reportlab, creates
-.mcp.json, validates state.json, and tests MCP server readiness.
-All output uses OK:/ERROR: prefixes for screen readers.
+This checks Python 3.10+, installs mcp and TACT (with easyocr),
+creates .mcp.json, initializes state.json if missing, and tests
+MCP server readiness. All output uses OK:/ERROR: prefixes for
+screen readers. No API keys needed — MCP servers run through
+the Claude Code subscription.
 
 If you prefer manual setup, follow the steps below.
 
@@ -149,28 +150,34 @@ For MCP functionality:
 
 Tested with mcp 1.26.0. The controller itself is Python stdlib only.
 
-For swell-print tactile graphics (optional):
+For tactile conversion with OCR and Braille:
 
-    pip install -r tools/swell-print/requirements.txt
+    pip install -e tools/tact
 
-This installs Pillow and reportlab. Without these, the 4 swell-print
-MCP tools return a helpful error message; all other tools work normally.
+This installs the TACT library with EasyOCR, which provides its
+own MCP server with 7 functions for all tactile conversion
+(image-to-tactile and state.json rendering).
+
+See .mcp.json.example for the complete multi-server configuration.
 
 ### Configure Claude Code
 
-Create `.mcp.json` in the PARENT folder of CONTROLLER (the folder
-where Claude Code opens the project). The paths must include
-CONTROLLER/ because the file sits one level above it:
+Create `.mcp.json` in the repo root (where Claude Code opens
+the project):
 
     {
       "mcpServers": {
         "layout-jig": {
           "command": "python",
           "args": [
-            "CONTROLLER/mcp/mcp_server.py",
+            "mcp/mcp_server.py",
             "--state",
-            "CONTROLLER/controller/state.json"
+            "controller/state.json"
           ]
+        },
+        "tactile": {
+          "command": "python",
+          "args": ["tools/tact/mcp_entry.py"]
         }
       }
     }
@@ -188,9 +195,9 @@ your Claude Desktop settings directory). Use absolute paths:
         "layout-jig": {
           "command": "python",
           "args": [
-            "C:/path/to/CONTROLLER/mcp/mcp_server.py",
+            "C:/path/to/repo/mcp/mcp_server.py",
             "--state",
-            "C:/path/to/CONTROLLER/controller/state.json"
+            "C:/path/to/repo/controller/state.json"
           ]
         }
       }
@@ -204,17 +211,17 @@ Add via Settings > MCP Servers with the same command and args.
 
 Instead of passing `--state`, you can set the environment variable:
 
-    LAYOUT_JIG_STATE=CONTROLLER/controller/state.json python CONTROLLER/mcp/mcp_server.py
+    LAYOUT_JIG_STATE=controller/state.json python mcp/mcp_server.py
 
 ### Run standalone (for testing)
 
-    python CONTROLLER/mcp/mcp_server.py --state CONTROLLER/controller/state.json
+    python mcp/mcp_server.py --state controller/state.json
 
 The server communicates over stdio using JSON-RPC. All normal print output is redirected to stderr so it does not interfere with the protocol. You will see startup messages on stderr like:
 
     Layout Jig MCP Server v3.3 starting...
     State file: /path/to/state.json
-    Tools: 53 registered
+    Tools: 58 registered
 
 ### Optional: Rhino connection
 
@@ -230,7 +237,7 @@ If Rhino is not running, those functions return OFFLINE messages. Everything els
 
 ## 4. Tool Reference
 
-53 MCP functions organized by category.
+58 MCP functions organized by category.
 
 ### Core pipeline (21 functions)
 
@@ -360,19 +367,60 @@ Mode 3: Learning Rhino Python. These tools generate editable IronPython 2.7 scri
 
 `show_script(name: str)` -- Return the full contents of a script. Supports fuzzy name matching if the exact name is not found.
 
-### Swell-print (4 functions)
+### Zone, grid, and export (9 functions)
 
-PIAF tactile graphics generation. Render state.json directly to B&W output (no Rhino needed) or convert any image to tactile-ready format. Requires Pillow and reportlab (`pip install -r tools/swell-print/requirements.txt`). Tools degrade gracefully if dependencies are not installed.
+Site-scale planning, structural grid management, and model export. These commands manage zones (named functional areas), a global structural grid, and export to multiple formats. All go through `_run()` or direct CLI dispatch.
 
-`render_tactile(paper_size: str, output_format: str)` -- Render state.json to a PIAF-ready tactile graphic. Draws columns, walls, corridors, apertures, room hatches, labels (English + Braille), legend, and section cuts. Output is 300 DPI B&W in PDF or PNG format. No Rhino needed. Braille on PIAF output conforms to BANA standards: 30pt font producing 10mm line spacing. English text renders at 12pt. These sizes are paper-absolute and do not change with model scale.
+`add_zone(name: str, width: float, depth: float, x: float, y: float, program_type: str)` -- Add a rectangular program zone to the site plan. Zones define functional areas (residential, service, circulation) separately from rooms.
 
-The CLI `print` command also generates PIAF output directly by calling the swell-print renderer. Users can type `print` in the interactive CLI to generate state_tactile.pdf without using MCP.
+`add_zone_polygon(name: str, corners: str, program_type: str)` -- Add a polygon zone defined by corner points. Corners are space-separated "X1,Y1 X2,Y2 X3,Y3 ..." pairs.
 
-`convert_to_tactile(image_path: str, preset: str, threshold: int, paper_size: str)` -- Convert any image (photo, sketch, CAD export) to PIAF-ready B&W output. Ten presets available for different image types.
+`remove_zone(name: str)` -- Remove a zone from the site plan by name.
 
-`check_tactile_density(image_path: str)` -- Check if an image's black pixel density is suitable for PIAF printing. Optimal range is 25-40%, maximum 45%.
+`list_zones()` -- List all program zones with dimensions and area.
 
-`list_tactile_presets()` -- List all available conversion presets with threshold and density settings.
+`set_zone_label(name: str, label: str, braille: str)` -- Set the display label and optional braille text for a zone.
+
+`set_grid(spacing: float, rotation: float, origin_x: float, origin_y: float)` -- Set a global structural grid overlay. The grid provides a regular spacing reference across the entire site.
+
+`clear_grid()` -- Remove the global structural grid.
+
+`set_site_polygon(corners: str)` -- Set the site boundary as a polygon instead of a rectangle. Width/height are updated to the bounding box.
+
+`export_model(format: str, output_path: str)` -- Export the model to a file. Supports "3dm" (Rhino file, requires rhino3dm) and "text" (full description dump).
+
+### TACT tactile (7 functions, separate server)
+
+All tactile conversion is provided by TACT (tools/tact/). This is the
+sole tactile MCP server -- there are no tactile tools in the main
+layout-jig server. Runs as a separate MCP server process. Install
+with `pip install -e tools/tact` and add the "tactile" entry to
+.mcp.json.
+
+`image_to_piaf(image_path: str, preset: str, options: dict)` -- Convert
+an image to PIAF-ready tactile PDF with advanced processing including
+OCR text detection, Braille annotation, and color-to-tactile mapping.
+
+`list_presets()` -- List available TACT conversion presets with settings.
+
+`analyze_image(image_path: str)` -- Analyze image characteristics for
+tactile conversion planning: color distribution, text regions, density.
+
+`describe_image(image_path: str)` -- Generate architectural description
+of an image using Claude vision (Macro/Meso/Micro format).
+
+`extract_text_with_vision(image_path: str)` -- Extract text from image
+using OCR with position information.
+
+`assess_tactile_quality(image_path: str)` -- Evaluate tactile output
+quality: density, contrast, label clearance, PIAF suitability.
+
+`state_to_piaf(state_path: str, paper_size: str, output_format: str)` --
+Render state.json to a PIAF-ready tactile graphic. Draws columns,
+walls, corridors, apertures, room hatches, labels (English + Braille),
+legend, and section cuts. Output is 300 DPI B&W in PDF or PNG format.
+No Rhino needed. This replaces the former swell-print render_tactile
+function.
 
 
 ## 5. Resources and Prompts

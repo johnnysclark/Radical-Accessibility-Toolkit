@@ -2,13 +2,27 @@
 
 ## Taxonomy (use these terms consistently)
 
-- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, Rhino Viewer.
+- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
 - **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
 - **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a skill: templates replace state, skills replay commands on existing state.
 - **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
 
 When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module. "Template" never means a command sequence.
+
+---
+
+## First-Time Setup
+
+If `controller/state.json` does not exist, this is a fresh clone. Run:
+
+    python setup.py
+
+This installs all dependencies (mcp, tact, easyocr), creates `.mcp.json`,
+and initializes `state.json`. The MCP servers will be available immediately
+after setup completes.
+
+No API keys needed — MCP servers run through the Claude Code subscription.
 
 ---
 
@@ -68,7 +82,7 @@ When writing docs, CLI output, or code comments, use these terms precisely. "Too
 - `--json` flag for machine-readable output (supplements, never replaces, human output).
 - Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
 - **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
-- **Exception:** `tools/swell-print/` and `mcp/` are allowed pip dependencies (Pillow, reportlab, mcp). The controller itself stays stdlib-only.
+- **Exception:** `tools/tact/` and `mcp/` are allowed pip dependencies. The controller itself stays stdlib-only.
 
 ### Watcher Side (IronPython 2.7)
 - Use `rhinoscriptsyntax as rs` for all geometry.
@@ -129,22 +143,27 @@ Branch names must be speakable and understandable when read aloud by a screen re
 
 ---
 
+## Controller Extensions
+
+The Layout Jig controller (`controller/controller_cli.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
+
 ## Student Extensions (Ethan Anderson)
 
 The following tools extend the project with advanced tactile conversion, accessible Rhino design, and screen reader integration.
 
 ### TACT -- Tactile Conversion CLI (tools/tact/)
 
-Converts architectural images to PIAF-ready tactile PDFs. More advanced than tools/swell-print/ with EasyOCR text detection, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys.
+Converts architectural images to PIAF-ready tactile PDFs with EasyOCR text detection, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys. Grade 2 Braille output via liblouis. Also renders state.json directly to tactile PDF via `tact render`.
 
 Key commands:
 - `tact convert IMAGE --preset NAME --verbose` -- convert one image
 - `tact convert IMAGE --detect-text --braille-grade 2 --verbose` -- with Braille
+- `tact render STATE.json --output OUTPUT.pdf` -- render state.json to tactile PDF
 - `tact presets` -- show available presets
 
 Install: `pip install -e tools/tact`
 
-MCP server: `python tools/tact/mcp_entry.py` (6 tools: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality)
+MCP server: `python tools/tact/mcp_entry.py` (7 MCP functions: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality, state_to_piaf)
 
 ### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
 
@@ -159,12 +178,103 @@ Key commands:
 
 Install: `pip install -e tools/tact && pip install -e tools/tasc` (tasc depends on tact)
 
+## Screen Reader Integration
+
 ### acclaude -- Accessible Claude Client (tools/accessible-client/)
 
 JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations.
 
-Requires: Node.js, npx tsx
+Requires: Node.js 18+, npx tsx
 
 ### Screen Reader Hooks (tools/screen-reader-hooks/)
 
-Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API.
+Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: ImageDetector (auto-detect architectural images), ConversionTracker (record conversion settings), FeedbackCapture (capture student ratings).
+
+---
+
+## RhinoScript Quick Reference (IronPython 2.7)
+
+Use this reference FIRST before calling `get_rhinoscript_docs`. Only look up docs for functions not listed here.
+
+### Object Creation
+- `rs.AddPoint(x, y, z)` → guid
+- `rs.AddLine([x1,y1,z1], [x2,y2,z2])` → guid
+- `rs.AddPolyline([[x1,y1,z1], [x2,y2,z2], ...])` → guid (close by repeating first point)
+- `rs.AddCircle([cx,cy,cz], radius)` → guid
+- `rs.AddArc3Pt([x1,y1,z1], [x2,y2,z2], [x3,y3,z3])` → guid
+- `rs.AddRectangle(rs.WorldXYPlane(), width, height)` → guid
+- `rs.AddSphere([cx,cy,cz], radius)` → guid
+- `rs.AddBox([corners_8_points])` → guid
+- `rs.AddCylinder([base_x,base_y,base_z], height, radius)` → guid (or use center+axis form)
+- `rs.AddSrfPt([[p1],[p2],[p3],[p4]])` → guid (surface from 3-4 points)
+- `rs.AddPlanarSrf([curve_id])` → [guid] (planar surface from closed curve)
+- `rs.AddLoftSrf([curve_id_1, curve_id_2, ...])` → [guid]
+- `rs.ExtrudeCurveStraight(curve_id, [start], [end])` → guid
+- `rs.AddText("text", [x,y,z], height)` → guid
+- `rs.AddHatch(curve_id, "Solid")` → guid (hatch patterns: Solid, Grid, Hatch1, etc.)
+
+### Object Queries
+- `rs.ObjectName(guid)` → string (get name)
+- `rs.ObjectName(guid, "new_name")` → sets name
+- `rs.ObjectLayer(guid)` → string (get layer)
+- `rs.ObjectLayer(guid, "layer_name")` → sets layer
+- `rs.ObjectType(guid)` → int (1=point, 4=curve, 8=surface, 16=polysurface, 32=mesh, 131072=hatch, 262144=extrusion)
+- `rs.ObjectsByLayer("layer_name")` → [guid, ...]
+- `rs.BoundingBox(guid)` → [8 points] (corners of axis-aligned box; [0]=min, [6]=max)
+- `rs.CurveLength(curve_id)` → float
+- `rs.SurfaceArea(surface_id)` → (area, error_bound)
+- `rs.IsObject(guid)` → bool
+- `rs.IsCurve(guid)` → bool
+- `rs.IsSurface(guid)` → bool
+
+### Object Transforms
+- `rs.MoveObject(guid, [dx,dy,dz])` → guid
+- `rs.MoveObjects([guid,...], [dx,dy,dz])` → count
+- `rs.RotateObject(guid, [cx,cy,cz], angle_degrees)` → guid (rotates in XY plane)
+- `rs.RotateObject(guid, [cx,cy,cz], angle, [axis_x,axis_y,axis_z])` → guid (3D axis)
+- `rs.ScaleObject(guid, [cx,cy,cz], [sx,sy,sz])` → guid
+- `rs.CopyObject(guid, [dx,dy,dz])` → new_guid
+- `rs.MirrorObject(guid, [start_pt], [end_pt])` → new_guid
+- `rs.DeleteObject(guid)` → bool
+- `rs.DeleteObjects([guid,...])` → count
+
+### Layers
+- `rs.AddLayer("name")` → string
+- `rs.DeleteLayer("name")` → bool
+- `rs.CurrentLayer()` → string
+- `rs.CurrentLayer("name")` → sets current
+- `rs.IsLayer("name")` → bool
+- `rs.LayerVisible("name", True/False)` → sets visibility
+
+### UserText (metadata on objects)
+- `rs.SetUserText(guid, "key", "value")` → sets
+- `rs.GetUserText(guid, "key")` → string
+- `rs.GetUserText(guid)` → [key, ...] (all keys)
+
+### Selection
+- `rs.SelectedObjects()` → [guid, ...]
+- `rs.SelectObject(guid)` → guid
+- `rs.UnselectAllObjects()` → count
+
+### View
+- `rs.ZoomExtents()` → zooms to fit all
+- `rs.ZoomBoundingBox(bbox)` → zooms to box
+- `rs.Redraw()` → forces viewport refresh
+- `rs.EnableRedraw(True/False)` → batch mode
+
+### Booleans & Advanced
+- `rs.BooleanUnion([guid1, guid2])` → [guid]
+- `rs.BooleanDifference([guid_a], [guid_b])` → [guid]
+- `rs.BooleanIntersection([guid_a], [guid_b])` → [guid]
+- `rs.OffsetCurve(curve_id, [direction_pt], distance)` → [guid]
+- `rs.TrimCurve(curve_id, [domain_start, domain_end])` → guid
+- `rs.SplitBrep(brep_id, cutter_id)` → [guid, ...]
+- `rs.ProjectCurveToSurface([curve], [surface], [direction])` → [guid]
+
+### Important Notes
+- IronPython 2.7: use `.format()` not f-strings
+- All coordinates are `[x, y, z]` lists
+- All angles in degrees (not radians) for rs functions
+- `rs.WorldXYPlane()` returns the XY construction plane at origin
+- Many functions accept either a single guid or a list
+- Use `import rhinoscriptsyntax as rs` at the top of every script

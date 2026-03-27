@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessible Rhino Modeling Interface</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #e8e8e8;
+  background: #1a1a2e;
+}
+
+a { color: #7eb8ff; }
+
+/* Header bar */
+.app-header {
+  background: #0f1a30;
+  border-bottom: 2px solid #4a6fa5;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.app-header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #a0c4ff;
+  margin: 0;
+}
+.app-header .app-status {
+  font-size: 0.875rem;
+  color: #6a9fd8;
+}
+
+/* Layout */
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 90rem;
+  margin: 0 auto;
+}
+
+/* Panes */
+.pane {
+  flex: 1 1 30rem;
+  min-width: 20rem;
+  background: #16213e;
+  border: 2px solid #4a6fa5;
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
+h1.pane-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #a0c4ff;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #2a3f5f;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #7eb8ff;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Labels */
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  color: #c0d4e8;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"] {
+  font-size: 1rem;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid #4a6fa5;
+  border-radius: 4px;
+  background: #0f3460;
+  color: #e8e8e8;
+  width: 100%;
+  max-width: 20rem;
+  transition: border-color 150ms;
+}
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: #7eb8ff;
+  outline: 3px solid #7eb8ff;
+  outline-offset: 2px;
+}
+input[type="number"] { max-width: 8rem; }
+input::placeholder { color: #6a7fa0; }
+
+/* Buttons */
+button {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border: 2px solid #6a9fd8;
+  border-radius: 4px;
+  background: #4a6fa5;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+  transition: background 150ms, border-color 150ms;
+}
+button:hover { background: #6a9fd8; border-color: #7eb8ff; }
+button:focus {
+  background: #6a9fd8;
+  outline: 3px solid #7eb8ff;
+  outline-offset: 2px;
+}
+
+/* Chat list */
+.chat-list {
+  list-style: none;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  max-height: 30rem;
+  overflow-y: auto;
+  background: #0f1a30;
+  border: 1px solid #4a6fa5;
+  border-radius: 4px;
+}
+.chat-list li {
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 3px;
+  line-height: 1.5;
+}
+.chat-list li:nth-child(odd) { background: rgba(74, 111, 165, 0.1); }
+.chat-msg-you { color: #7eb8ff; font-weight: 600; }
+.chat-msg-claude { color: #a0c4ff; font-weight: 600; }
+
+/* Chat input row */
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-top: 0.75rem;
+}
+.chat-input-row input { flex: 1; }
+
+/* Status */
+.status {
+  font-weight: 600;
+  margin-top: 0.5rem;
+  color: #a0c4ff;
+  font-size: 0.9rem;
+}
+
+/* Permission prompts */
+.permission-prompt {
+  border: 2px solid #d4a017;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: #2a1a00;
+  color: #ffd666;
+}
+.permission-prompt button {
+  background: #8b6914;
+  border-color: #d4a017;
+  color: #fff;
+}
+.permission-prompt button:hover { background: #d4a017; }
+
+/* Fieldsets (object cards in navigator) */
+fieldset {
+  border: 1px solid #2a3f5f;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #1a2a4a;
+}
+legend {
+  font-weight: 600;
+  color: #c0d4e8;
+  padding: 0 0.25rem;
+}
+
+/* Property rows */
+.prop-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+.prop-row label {
+  display: inline;
+  margin-top: 0;
+  margin-right: 0.25rem;
+  font-weight: 500;
+  color: #8aa4c8;
+}
+.prop-row input[type="number"] { width: 6rem; max-width: 6rem; }
+
+/* Modified indicator */
+.modified {
+  outline: 3px solid #7eb8ff;
+  outline-offset: 1px;
+  background: #1a3a6a;
+}
+
+/* Summary/details (layer groups) */
+details { margin-bottom: 0.5rem; }
+summary {
+  cursor: pointer;
+  padding: 0.25rem 0;
+  border-radius: 3px;
+}
+summary:hover { background: rgba(74, 111, 165, 0.15); }
+summary:focus {
+  outline: 3px solid #7eb8ff;
+  outline-offset: 2px;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* Navigator actions */
+.nav-actions { margin-bottom: 0.75rem; }
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0f1a30; }
+::-webkit-scrollbar-thumb { background: #4a6fa5; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6a9fd8; }
+</style>
+</head>
+<body>
+
+<header class="app-header" role="banner">
+  <h1>Accessible Rhino</h1>
+  <span id="app-connection-status" class="app-status" role="status">Connecting...</span>
+</header>
+
+<div class="layout">
+
+<!-- Chat Pane -->
+<main class="pane" id="chat-pane" aria-label="Chat">
+<h1 class="pane-title">Chat</h1>
+
+<div id="chat-status" class="status" role="status">Connecting...</div>
+
+<ol id="chat-history" class="chat-list" aria-live="polite" aria-label="Chat history">
+</ol>
+
+<div class="chat-input-row">
+  <label for="chat-input" class="sr-only">Message</label>
+  <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+  <button type="button" id="chat-send" aria-label="Send message">Send</button>
+</div>
+</main>
+
+<!-- Model Navigator Pane -->
+<aside class="pane" id="nav-pane" aria-label="Model Navigator">
+<h1 class="pane-title">Model Navigator</h1>
+
+<div class="nav-actions">
+  <button type="button" id="nav-refresh" aria-label="Refresh inventory">Refresh</button>
+  <button type="button" id="nav-apply" aria-label="Apply changes to model">Apply Changes</button>
+  <button type="button" id="nav-discard" aria-label="Discard all changes">Discard Changes</button>
+</div>
+
+<div id="nav-status" class="status" role="status"></div>
+
+<div id="nav-tree" aria-label="Object tree">
+  <p>No inventory loaded. Press Refresh or Alt+R.</p>
+</div>
+</aside>
+
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // -----------------------------------------------------------------------
+  // Element references
+  // -----------------------------------------------------------------------
+  var chatHistory = document.getElementById("chat-history");
+  var chatInput = document.getElementById("chat-input");
+  var chatSend = document.getElementById("chat-send");
+  var chatStatus = document.getElementById("chat-status");
+  var navTree = document.getElementById("nav-tree");
+  var navStatus = document.getElementById("nav-status");
+  var navRefresh = document.getElementById("nav-refresh");
+  var navApply = document.getElementById("nav-apply");
+  var navDiscard = document.getElementById("nav-discard");
+
+  // Track pending edits: object_id -> { property -> new_value }
+  var pendingEdits = {};
+  // Store inventory data for building edits
+  var currentInventory = null;
+
+  // -----------------------------------------------------------------------
+  // SSE connection
+  // -----------------------------------------------------------------------
+  function connectSSE() {
+    chatStatus.textContent = "Connecting...";
+    var source = new EventSource("/events");
+
+    source.onopen = function() {
+      chatStatus.textContent = "Connected";
+      appStatus.textContent = "Connected";
+    };
+
+    source.onerror = function() {
+      chatStatus.textContent = "Disconnected. Retrying...";
+      appStatus.textContent = "Disconnected";
+    };
+
+    source.onmessage = function(event) {
+      var data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (e) {
+        return;
+      }
+
+      if (data.type === "reply") {
+        addChatMessage("Claude", data.text);
+      } else if (data.type === "permission") {
+        addPermissionPrompt(data.request_id, data.tool_name, data.description);
+      } else if (data.type === "inventory") {
+        renderInventoryFromObjects(data.objects || []);
+      }
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Chat functions
+  // -----------------------------------------------------------------------
+  var appStatus = document.getElementById("app-connection-status");
+
+  function addChatMessage(sender, text) {
+    var li = document.createElement("li");
+    var label = document.createElement("span");
+    label.className = sender === "You" ? "chat-msg-you" : "chat-msg-claude";
+    label.textContent = sender + ": ";
+    li.appendChild(label);
+    li.appendChild(document.createTextNode(text));
+    chatHistory.appendChild(li);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    chatStatus.textContent = "Connected";
+    appStatus.textContent = "Connected";
+  }
+
+  function addPermissionPrompt(requestId, toolName, description) {
+    var li = document.createElement("li");
+    li.className = "permission-prompt";
+
+    var msg = document.createElement("span");
+    msg.textContent = "Claude wants to use " + toolName + ". " + description + " ";
+    li.appendChild(msg);
+
+    var allowBtn = document.createElement("button");
+    allowBtn.textContent = "Allow";
+    allowBtn.setAttribute("aria-label", "Allow " + toolName);
+    allowBtn.addEventListener("click", function() {
+      handlePermission(requestId, "allow");
+      li.textContent = "Allowed: " + toolName;
+    });
+    li.appendChild(allowBtn);
+
+    var denyBtn = document.createElement("button");
+    denyBtn.textContent = "Deny";
+    denyBtn.setAttribute("aria-label", "Deny " + toolName);
+    denyBtn.addEventListener("click", function() {
+      handlePermission(requestId, "deny");
+      li.textContent = "Denied: " + toolName;
+    });
+    li.appendChild(denyBtn);
+
+    chatHistory.appendChild(li);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  function sendChat() {
+    var text = chatInput.value.trim();
+    if (!text) return;
+
+    addChatMessage("You", text);
+    chatInput.value = "";
+    chatStatus.textContent = "Waiting for response...";
+
+    fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Sender": "local"
+      },
+      body: JSON.stringify({ text: text, sender: "local" })
+    }).catch(function() {
+      chatStatus.textContent = "ERROR: Failed to send message";
+    });
+  }
+
+  function handlePermission(requestId, behavior) {
+    fetch("/permission", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Sender": "local"
+      },
+      body: JSON.stringify({ request_id: requestId, behavior: behavior })
+    }).catch(function() {
+      chatStatus.textContent = "ERROR: Failed to send permission response";
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Model Navigator functions
+  // -----------------------------------------------------------------------
+  function loadInventory() {
+    navStatus.textContent = "Requesting objects from Rhino...";
+    fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Sender": "local"
+      },
+      body: JSON.stringify({
+        text: "Refresh inventory. Use rhinomcp get_document_info to get all objects. " +
+              "Then call inventory_reply with the objects as a JSON array. " +
+              "Each object needs: name, id, type, layer, and bounding_box with min and max arrays.",
+        sender: "local"
+      })
+    }).then(function() {
+      navStatus.textContent = "Waiting for Rhino object data...";
+    }).catch(function() {
+      navStatus.textContent = "ERROR: Failed to request inventory.";
+    });
+  }
+
+  function renderInventoryFromObjects(objects) {
+    if (!objects || objects.length === 0) {
+      navTree.innerHTML = "<p>No objects in Rhino document.</p>";
+      navStatus.textContent = "No objects found.";
+      return;
+    }
+
+    // Group objects by layer
+    var layerMap = {};
+    for (var i = 0; i < objects.length; i++) {
+      var obj = objects[i];
+      var layer = obj.layer || "Default";
+      if (!layerMap[layer]) layerMap[layer] = [];
+      layerMap[layer].push(obj);
+    }
+
+    // Store for edit reference
+    currentInventory = { layers: layerMap };
+    pendingEdits = {};
+
+    var layerNames = Object.keys(layerMap).sort();
+    var html = "";
+
+    for (var li = 0; li < layerNames.length; li++) {
+      var layerName = layerNames[li];
+      var layerObjects = layerMap[layerName];
+
+      html += '<details open>';
+      html += '<summary><h2 style="display:inline">' + escapeHtml(layerName) + ' (' + layerObjects.length + ' objects)</h2></summary>';
+
+      for (var j = 0; j < layerObjects.length; j++) {
+        html += renderObjectFromRhinoMCP(layerObjects[j]);
+      }
+
+      html += '</details>';
+    }
+
+    navTree.innerHTML = html;
+
+    // Attach change listeners
+    var inputs = navTree.querySelectorAll("input[type='number']");
+    for (var k = 0; k < inputs.length; k++) {
+      inputs[k].addEventListener("change", onPropertyChange);
+    }
+
+    navStatus.textContent = objects.length + " objects loaded.";
+  }
+
+  function renderObjectFromRhinoMCP(obj) {
+    var name = obj.name || "unnamed";
+    var typeName = obj.type || "Object";
+    var id = obj.id || name;
+
+    var html = '<fieldset data-object-id="' + escapeAttr(id) + '" data-object-name="' + escapeAttr(name) + '">';
+    html += '<legend>' + escapeHtml(name) + ' (' + escapeHtml(typeName) + ')</legend>';
+
+    // Position and size from bounding box
+    var minX = 0, minY = 0, minZ = 0;
+    var width = 0, height = 0, depth = 0;
+    if (obj.bounding_box) {
+      var bb = obj.bounding_box;
+      if (bb.min) { minX = roundNum(bb.min[0]); minY = roundNum(bb.min[1]); minZ = roundNum(bb.min[2]); }
+      if (bb.min && bb.max) {
+        width = roundNum(bb.max[0] - bb.min[0]);
+        height = roundNum(bb.max[1] - bb.min[1]);
+        depth = roundNum(bb.max[2] - bb.min[2]);
+      }
+    }
+
+    var prefix = "obj-" + escapeAttr(id).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    html += '<div class="prop-row">';
+    html += '<label for="' + prefix + '-px">Position X</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-px" data-prop="position_x" value="' + minX + '">';
+    html += '<label for="' + prefix + '-py">Y</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-py" data-prop="position_y" value="' + minY + '">';
+    html += '<label for="' + prefix + '-pz">Z</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-pz" data-prop="position_z" value="' + minZ + '">';
+    html += '</div>';
+
+    html += '<div class="prop-row">';
+    html += '<label>Size: ' + width + ' x ' + height + ' x ' + depth + '</label>';
+    html += '</div>';
+
+    html += '</fieldset>';
+    return html;
+  }
+
+  function renderInventory(data) {
+    var layers = data.layers || {};
+    var layerNames = Object.keys(layers);
+
+    if (layerNames.length === 0) {
+      navTree.innerHTML = "<p>No objects in inventory.</p>";
+      return;
+    }
+
+    // Clear pending edits when re-rendering
+    pendingEdits = {};
+    var html = "";
+
+    for (var i = 0; i < layerNames.length; i++) {
+      var layerName = layerNames[i];
+      var objects = layers[layerName];
+      var count = objects ? objects.length : 0;
+
+      html += '<details open>';
+      html += '<summary><h2 style="display:inline">' + escapeHtml(layerName) + ' (' + count + ' objects)</h2></summary>';
+
+      if (objects && objects.length > 0) {
+        for (var j = 0; j < objects.length; j++) {
+          var obj = objects[j];
+          html += renderObject(obj);
+        }
+      } else {
+        html += '<p>No objects in this layer.</p>';
+      }
+
+      html += '</details>';
+    }
+
+    navTree.innerHTML = html;
+
+    // Attach change listeners to all number inputs in the navigator
+    var inputs = navTree.querySelectorAll("input[type='number']");
+    for (var k = 0; k < inputs.length; k++) {
+      inputs[k].addEventListener("change", onPropertyChange);
+    }
+  }
+
+  function renderObject(obj) {
+    var name = obj.name || obj.id || "unnamed";
+    var typeName = objectTypeName(obj.type);
+    var id = obj.id || "";
+
+    var html = '<fieldset data-object-id="' + escapeAttr(id) + '">';
+    html += '<legend>' + escapeHtml(name) + ' (' + escapeHtml(typeName) + ')</legend>';
+
+    // Position from bounding box min
+    var minX = 0, minY = 0, minZ = 0;
+    if (obj.min) {
+      minX = roundNum(obj.min[0]);
+      minY = roundNum(obj.min[1]);
+      minZ = roundNum(obj.min[2]);
+    }
+
+    // Size from bounding box
+    var width = 0, height = 0, depth = 0;
+    if (obj.min && obj.max) {
+      width = roundNum(obj.max[0] - obj.min[0]);
+      height = roundNum(obj.max[1] - obj.min[1]);
+      depth = roundNum(obj.max[2] - obj.min[2]);
+    }
+
+    // Unique field IDs
+    var prefix = "obj-" + escapeAttr(id).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    html += '<div class="prop-row">';
+    html += '<label for="' + prefix + '-px">Position X</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-px" data-prop="position_x" value="' + minX + '">';
+    html += '<label for="' + prefix + '-py">Y</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-py" data-prop="position_y" value="' + minY + '">';
+    html += '<label for="' + prefix + '-pz">Z</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-pz" data-prop="position_z" value="' + minZ + '">';
+    html += '</div>';
+
+    html += '<div class="prop-row">';
+    html += '<label for="' + prefix + '-w">Width</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-w" data-prop="width" value="' + width + '" readonly>';
+    html += '<label for="' + prefix + '-h">Height</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-h" data-prop="height" value="' + height + '" readonly>';
+    html += '<label for="' + prefix + '-d">Depth</label>';
+    html += '<input type="number" step="0.01" id="' + prefix + '-d" data-prop="depth" value="' + depth + '" readonly>';
+    html += '</div>';
+
+    // Metadata (read-only display)
+    if (obj.metadata) {
+      var keys = Object.keys(obj.metadata);
+      for (var m = 0; m < keys.length; m++) {
+        if (keys[m] === "JIG_OWNER" || keys[m] === "JIG_SCHEMA") continue;
+        html += '<div class="prop-row">';
+        html += '<label for="' + prefix + '-meta-' + m + '">' + escapeHtml(keys[m]) + '</label>';
+        html += '<input type="text" id="' + prefix + '-meta-' + m + '" value="' + escapeAttr(obj.metadata[keys[m]]) + '" readonly>';
+        html += '</div>';
+      }
+    }
+
+    html += '</fieldset>';
+    return html;
+  }
+
+  function onPropertyChange(event) {
+    var input = event.target;
+    var fieldset = input.closest("fieldset");
+    if (!fieldset) return;
+
+    var objectId = fieldset.getAttribute("data-object-id");
+    var prop = input.getAttribute("data-prop");
+    var value = parseFloat(input.value);
+
+    if (!objectId || !prop || isNaN(value)) return;
+
+    // Mark as modified
+    input.classList.add("modified");
+
+    // Store the edit
+    if (!pendingEdits[objectId]) {
+      pendingEdits[objectId] = {};
+    }
+    pendingEdits[objectId][prop] = value;
+  }
+
+  function applyEdits() {
+    var objectIds = Object.keys(pendingEdits);
+    if (objectIds.length === 0) {
+      navStatus.textContent = "No changes to apply.";
+      return;
+    }
+
+    // Build edit list for the watcher
+    var edits = [];
+    for (var i = 0; i < objectIds.length; i++) {
+      var oid = objectIds[i];
+      var changes = pendingEdits[oid];
+
+      // Check if position changed
+      if ("position_x" in changes || "position_y" in changes || "position_z" in changes) {
+        // Find original object for name and position
+        var origObj = findObjectById(oid);
+        var origMin = [0, 0, 0];
+        if (origObj && origObj.bounding_box && origObj.bounding_box.min) {
+          origMin = origObj.bounding_box.min;
+        } else if (origObj && origObj.min) {
+          origMin = origObj.min;
+        }
+        var objName = origObj ? (origObj.name || oid) : oid;
+
+        edits.push({
+          object_id: oid,
+          object_name: objName,
+          action: "move",
+          params: {
+            x: changes.position_x !== undefined ? changes.position_x : origMin[0],
+            y: changes.position_y !== undefined ? changes.position_y : origMin[1],
+            z: changes.position_z !== undefined ? changes.position_z : origMin[2]
+          }
+        });
+      }
+    }
+
+    if (edits.length === 0) {
+      navStatus.textContent = "No supported edits to apply.";
+      return;
+    }
+
+    navStatus.textContent = "Applying " + edits.length + " edits...";
+
+    fetch("/edit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Sender": "local"
+      },
+      body: JSON.stringify({ edits: edits })
+    }).then(function(res) {
+      return res.json();
+    }).then(function(data) {
+      if (data.ok) {
+        navStatus.textContent = "Applied " + edits.length + " edits. Waiting for Rhino to rebuild.";
+        pendingEdits = {};
+        clearModifiedMarkers();
+      } else {
+        navStatus.textContent = "ERROR: Failed to apply edits.";
+      }
+    }).catch(function() {
+      navStatus.textContent = "ERROR: Failed to send edits.";
+    });
+  }
+
+  function discardEdits() {
+    pendingEdits = {};
+    clearModifiedMarkers();
+    // Re-render from stored inventory to reset values
+    if (currentInventory) {
+      renderInventory(currentInventory);
+    }
+    navStatus.textContent = "Changes discarded.";
+  }
+
+  function findObjectById(id) {
+    if (!currentInventory || !currentInventory.layers) return null;
+    var layers = currentInventory.layers;
+    var layerNames = Object.keys(layers);
+    for (var i = 0; i < layerNames.length; i++) {
+      var objects = layers[layerNames[i]];
+      if (!objects) continue;
+      for (var j = 0; j < objects.length; j++) {
+        if (objects[j].id === id) return objects[j];
+      }
+    }
+    return null;
+  }
+
+  function clearModifiedMarkers() {
+    var modified = navTree.querySelectorAll(".modified");
+    for (var i = 0; i < modified.length; i++) {
+      modified[i].classList.remove("modified");
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Utility functions
+  // -----------------------------------------------------------------------
+  function objectTypeName(typeCode) {
+    var types = {
+      0: "Unknown",
+      1: "Point",
+      2: "PointCloud",
+      4: "Curve",
+      8: "Surface",
+      16: "Polysurface",
+      32: "Mesh",
+      256: "Light",
+      512: "Annotation",
+      4096: "InstanceReference",
+      8192: "TextDot",
+      65536: "Detail",
+      131072: "Hatch",
+      262144: "Extrusion"
+    };
+    return types[typeCode] || "Object";
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function roundNum(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  // -----------------------------------------------------------------------
+  // Event listeners
+  // -----------------------------------------------------------------------
+  chatSend.addEventListener("click", sendChat);
+
+  chatInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
+  navRefresh.addEventListener("click", loadInventory);
+  navApply.addEventListener("click", applyEdits);
+  navDiscard.addEventListener("click", discardEdits);
+
+  // -----------------------------------------------------------------------
+  // Keyboard shortcuts
+  // -----------------------------------------------------------------------
+  document.addEventListener("keydown", function(e) {
+    // Alt+1: focus chat input
+    if (e.altKey && e.key === "1") {
+      e.preventDefault();
+      chatInput.focus();
+    }
+    // Alt+2: focus model navigator
+    if (e.altKey && e.key === "2") {
+      e.preventDefault();
+      navRefresh.focus();
+    }
+    // Alt+R: refresh inventory
+    if (e.altKey && (e.key === "r" || e.key === "R")) {
+      e.preventDefault();
+      loadInventory();
+    }
+  });
+
+  // -----------------------------------------------------------------------
+  // Initialize
+  // -----------------------------------------------------------------------
+  connectSSE();
+})();
+</script>
+
+</body>
+</html>
