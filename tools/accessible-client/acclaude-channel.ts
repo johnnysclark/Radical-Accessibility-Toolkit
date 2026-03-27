@@ -28,7 +28,6 @@ const INDEX_HTML_PATH = resolve(__dirname, "index.html");
 
 type SSEClient = {
   controller: ReadableStreamDefaultController;
-  sender: string;
 };
 
 const sseClients: Set<SSEClient> = new Set();
@@ -42,20 +41,6 @@ function broadcastSSE(data: Record<string, unknown>): void {
       sseClients.delete(client);
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Sender allowlist
-// ---------------------------------------------------------------------------
-
-const ALLOWED_SENDERS = new Set(["local"]);
-
-function getSender(req: Request): string {
-  return req.headers.get("x-sender") || "local";
-}
-
-function isAllowedSender(req: Request): boolean {
-  return ALLOWED_SENDERS.has(getSender(req));
 }
 
 // ---------------------------------------------------------------------------
@@ -252,7 +237,7 @@ const PORT = 8788;
 
 Bun.serve({
   port: PORT,
-  hostname: "0.0.0.0",
+  hostname: "127.0.0.1",
   idleTimeout: 0,
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -278,10 +263,7 @@ Bun.serve({
     if (method === "GET" && url.pathname === "/events") {
       const stream = new ReadableStream({
         start(controller) {
-          const client: SSEClient = {
-            controller,
-            sender: getSender(req),
-          };
+          const client: SSEClient = { controller };
           sseClients.add(client);
 
           // Send connected event
@@ -313,10 +295,6 @@ Bun.serve({
     // POST /chat — receive chat message, forward as channel notification
     // -----------------------------------------------------------------------
     if (method === "POST" && url.pathname === "/chat") {
-      if (!isAllowedSender(req)) {
-        return new Response("ERROR: Sender not allowed", { status: 403 });
-      }
-
       let body: any;
       try {
         body = await req.json();
@@ -325,7 +303,7 @@ Bun.serve({
       }
 
       const text = body.text ?? "";
-      const sender = body.sender ?? getSender(req);
+      const sender = body.sender ?? "local";
       const chatId = nextChatId();
 
       // Send as channel notification to Claude Code via MCP
@@ -352,10 +330,6 @@ Bun.serve({
     // execute using RhinoMCP modify_object tools.
     // -----------------------------------------------------------------------
     if (method === "POST" && url.pathname === "/edit") {
-      if (!isAllowedSender(req)) {
-        return new Response("ERROR: Sender not allowed", { status: 403 });
-      }
-
       let body: any;
       try {
         body = await req.json();
@@ -414,10 +388,6 @@ Bun.serve({
     // POST /permission — receive permission verdict
     // -----------------------------------------------------------------------
     if (method === "POST" && url.pathname === "/permission") {
-      if (!isAllowedSender(req)) {
-        return new Response("ERROR: Sender not allowed", { status: 403 });
-      }
-
       let body: any;
       try {
         body = await req.json();

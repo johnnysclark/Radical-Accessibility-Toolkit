@@ -9,5 +9,6 @@ if ! command -v claude &>/dev/null; then
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 fi
 
-cd /mnt/c/Users/ethan/Radical-Accessibility-Toolkit || exit 1
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/../.." || exit 1
 exec npx tsx tools/accessible-client/acclaude.ts "$@"

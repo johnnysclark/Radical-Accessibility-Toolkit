@@ -412,8 +412,7 @@ summary:focus {
     fetch("/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Sender": "local"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ text: text, sender: "local" })
     }).catch(function() {
@@ -425,8 +424,7 @@ summary:focus {
     fetch("/permission", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Sender": "local"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ request_id: requestId, behavior: behavior })
     }).catch(function() {
@@ -442,8 +440,7 @@ summary:focus {
     fetch("/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Sender": "local"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         text: "Refresh inventory. Use rhinomcp get_document_info to get all objects. " +
@@ -546,109 +543,6 @@ summary:focus {
     return html;
   }
 
-  function renderInventory(data) {
-    var layers = data.layers || {};
-    var layerNames = Object.keys(layers);
-
-    if (layerNames.length === 0) {
-      navTree.innerHTML = "<p>No objects in inventory.</p>";
-      return;
-    }
-
-    // Clear pending edits when re-rendering
-    pendingEdits = {};
-    var html = "";
-
-    for (var i = 0; i < layerNames.length; i++) {
-      var layerName = layerNames[i];
-      var objects = layers[layerName];
-      var count = objects ? objects.length : 0;
-
-      html += '<details open>';
-      html += '<summary><h2 style="display:inline">' + escapeHtml(layerName) + ' (' + count + ' objects)</h2></summary>';
-
-      if (objects && objects.length > 0) {
-        for (var j = 0; j < objects.length; j++) {
-          var obj = objects[j];
-          html += renderObject(obj);
-        }
-      } else {
-        html += '<p>No objects in this layer.</p>';
-      }
-
-      html += '</details>';
-    }
-
-    navTree.innerHTML = html;
-
-    // Attach change listeners to all number inputs in the navigator
-    var inputs = navTree.querySelectorAll("input[type='number']");
-    for (var k = 0; k < inputs.length; k++) {
-      inputs[k].addEventListener("change", onPropertyChange);
-    }
-  }
-
-  function renderObject(obj) {
-    var name = obj.name || obj.id || "unnamed";
-    var typeName = objectTypeName(obj.type);
-    var id = obj.id || "";
-
-    var html = '<fieldset data-object-id="' + escapeAttr(id) + '">';
-    html += '<legend>' + escapeHtml(name) + ' (' + escapeHtml(typeName) + ')</legend>';
-
-    // Position from bounding box min
-    var minX = 0, minY = 0, minZ = 0;
-    if (obj.min) {
-      minX = roundNum(obj.min[0]);
-      minY = roundNum(obj.min[1]);
-      minZ = roundNum(obj.min[2]);
-    }
-
-    // Size from bounding box
-    var width = 0, height = 0, depth = 0;
-    if (obj.min && obj.max) {
-      width = roundNum(obj.max[0] - obj.min[0]);
-      height = roundNum(obj.max[1] - obj.min[1]);
-      depth = roundNum(obj.max[2] - obj.min[2]);
-    }
-
-    // Unique field IDs
-    var prefix = "obj-" + escapeAttr(id).replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    html += '<div class="prop-row">';
-    html += '<label for="' + prefix + '-px">Position X</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-px" data-prop="position_x" value="' + minX + '">';
-    html += '<label for="' + prefix + '-py">Y</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-py" data-prop="position_y" value="' + minY + '">';
-    html += '<label for="' + prefix + '-pz">Z</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-pz" data-prop="position_z" value="' + minZ + '">';
-    html += '</div>';
-
-    html += '<div class="prop-row">';
-    html += '<label for="' + prefix + '-w">Width</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-w" data-prop="width" value="' + width + '" readonly>';
-    html += '<label for="' + prefix + '-h">Height</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-h" data-prop="height" value="' + height + '" readonly>';
-    html += '<label for="' + prefix + '-d">Depth</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-d" data-prop="depth" value="' + depth + '" readonly>';
-    html += '</div>';
-
-    // Metadata (read-only display)
-    if (obj.metadata) {
-      var keys = Object.keys(obj.metadata);
-      for (var m = 0; m < keys.length; m++) {
-        if (keys[m] === "JIG_OWNER" || keys[m] === "JIG_SCHEMA") continue;
-        html += '<div class="prop-row">';
-        html += '<label for="' + prefix + '-meta-' + m + '">' + escapeHtml(keys[m]) + '</label>';
-        html += '<input type="text" id="' + prefix + '-meta-' + m + '" value="' + escapeAttr(obj.metadata[keys[m]]) + '" readonly>';
-        html += '</div>';
-      }
-    }
-
-    html += '</fieldset>';
-    return html;
-  }
-
   function onPropertyChange(event) {
     var input = event.target;
     var fieldset = input.closest("fieldset");
@@ -718,8 +612,7 @@ summary:focus {
     fetch("/edit", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Sender": "local"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ edits: edits })
     }).then(function(res) {
@@ -741,8 +634,14 @@ summary:focus {
     pendingEdits = {};
     clearModifiedMarkers();
     // Re-render from stored inventory to reset values
-    if (currentInventory) {
-      renderInventory(currentInventory);
+    if (currentInventory && currentInventory.layers) {
+      var allObjects = [];
+      var layerNames = Object.keys(currentInventory.layers);
+      for (var i = 0; i < layerNames.length; i++) {
+        var objs = currentInventory.layers[layerNames[i]];
+        if (objs) allObjects = allObjects.concat(objs);
+      }
+      renderInventoryFromObjects(allObjects);
     }
     navStatus.textContent = "Changes discarded.";
   }
@@ -771,26 +670,6 @@ summary:focus {
   // -----------------------------------------------------------------------
   // Utility functions
   // -----------------------------------------------------------------------
-  function objectTypeName(typeCode) {
-    var types = {
-      0: "Unknown",
-      1: "Point",
-      2: "PointCloud",
-      4: "Curve",
-      8: "Surface",
-      16: "Polysurface",
-      32: "Mesh",
-      256: "Light",
-      512: "Annotation",
-      4096: "InstanceReference",
-      8192: "TextDot",
-      65536: "Detail",
-      131072: "Hatch",
-      262144: "Extrusion"
-    };
-    return types[typeCode] || "Object";
-  }
-
   function escapeHtml(str) {
     var div = document.createElement("div");
     div.appendChild(document.createTextNode(str));

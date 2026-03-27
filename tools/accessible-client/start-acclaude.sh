@@ -3,7 +3,8 @@
 # The channel server starts automatically as an MCP subprocess.
 # Open http://localhost:8788 in your browser after launch.
 
-cd /mnt/c/Users/ethan/Radical-Accessibility-Toolkit || exit 1
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/../.." || exit 1
 
 # Load NVM if needed
 if ! command -v claude &>/dev/null; then
