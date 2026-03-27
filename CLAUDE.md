@@ -5,9 +5,10 @@
 - **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
 - **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
+- **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a skill: templates replace state, skills replay commands on existing state.
 - **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
 
-When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module.
+When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module. "Template" never means a command sequence.
 
 ---
 
@@ -109,6 +110,36 @@ No API keys needed — MCP servers run through the Claude Code subscription.
 - JSON keys: `snake_case`
 - Tool folders: `kebab-case`
 - Rhino layers: `JIG::<Category>` (PascalCase category)
+- Git branches: plain English words only, no random IDs (see below)
+
+### Git Branch Names
+
+Branch names must be speakable and understandable when read aloud by a screen reader or dictated via voice recognition. Random suffixes, hex strings, and cryptic abbreviations are banned.
+
+**Format:** `author/action-topic`
+
+- `author` — first name or GitHub username, lowercase.
+- `action` — what the branch does: `add`, `fix`, `update`, `remove`, `refactor`.
+- `topic` — plain words describing the change, separated by hyphens.
+
+**Good examples:**
+- `john/add-tactile-export`
+- `ethan/fix-watcher-crash-on-empty-state`
+- `claude/update-screen-reader-hooks`
+- `claude/add-bay-rotation-command`
+
+**Bad examples (do not use):**
+- `claude/fix-stuff-eW35T` — random suffix is not speakable.
+- `feature/JIRA-4821-impl` — ticket numbers are not self-describing.
+- `dev-2a9f3b` — hex gibberish.
+- `wip` — says nothing about intent.
+
+**Rules:**
+1. Every word in the branch name must be a real English word or a project term from the Taxonomy section.
+2. No random character suffixes, UUIDs, hex fragments, or session IDs.
+3. Keep it under 6 words after the author prefix.
+4. A person hearing the branch name once should be able to repeat it back.
+5. When Claude creates branches, it must follow this convention and never append generated IDs.
 
 ---
 
@@ -116,7 +147,9 @@ No API keys needed — MCP servers run through the Claude Code subscription.
 
 The Layout Jig controller (`controller/controller_cli.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
 
-## Advanced Tactile Tools
+## Student Extensions (Ethan Anderson)
+
+The following tools extend the project with advanced tactile conversion, accessible Rhino design, and screen reader integration.
 
 ### TACT -- Tactile Conversion CLI (tools/tact/)
 
@@ -131,6 +164,19 @@ Key commands:
 Install: `pip install -e tools/tact`
 
 MCP server: `python tools/tact/mcp_entry.py` (7 MCP functions: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality, state_to_piaf)
+
+### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
+
+Accessible programmatic Rhino design via text commands. Complementary to the Layout Jig -- TASC focuses on site planning (zones, bays, corridors) with live MCP socket connection to Rhino.
+
+Key commands:
+- `tasc site W D` -- site boundary
+- `tasc zone NAME W D --at X,Y` -- program zone
+- `tasc bay NAME NxN --spacing SX SY --at X,Y` -- structural bay
+- `tasc describe` -- full text description
+- `tasc export piaf|3dm|text` -- export
+
+Install: `pip install -e tools/tact && pip install -e tools/tasc` (tasc depends on tact)
 
 ## Screen Reader Integration
 

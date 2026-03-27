@@ -1129,11 +1129,25 @@ def _draw_tactile3d(state):
     should_export = (auto_export or export_once) and export_path and created_ids
     if should_export:
         _export_stl(created_ids, export_path)
-    # Clear the one-shot flag (watcher doesn't write JSON, but
-    # we clear it from the in-memory state so it doesn't re-fire
-    # on the next poll cycle if the file hasn't changed)
+    # Clear the one-shot flag in memory AND in the JSON file.
+    # This is the ONE exception to the "watcher never writes" rule —
+    # without clearing it, the flag stays True and re-triggers on
+    # every watcher restart.
     if export_once:
         t3["_export_once"] = False
+        try:
+            with open(STATE_FILE, "rb") as _f:
+                _disk = json.loads(_f.read().decode("utf-8"))
+            if "_export_once" in _disk.get("tactile3d", {}):
+                _disk["tactile3d"]["_export_once"] = False
+                _tmp = STATE_FILE + ".tmp"
+                with open(_tmp, "wb") as _fw:
+                    _fw.write(json.dumps(_disk, indent=2).encode("utf-8"))
+                os.replace(_tmp, STATE_FILE)
+                # Update mtime so we don't re-trigger a redraw
+                _watcher_state["last_mtime"] = os.stat(STATE_FILE).st_mtime
+        except Exception as _e:
+            print("[PLJ] Could not clear _export_once: {0}".format(_e))
 
 
 def _extrude_wall_box(seg_start, seg_end, fixed_val, axis, half_t,
@@ -1214,16 +1228,90 @@ def _add_clipping_plane(state, cut_height):
 
 
 def _export_stl(obj_ids, filepath):
-    """Select the 3D objects and export as STL."""
-    if not IN_RHINO: return
+    """Convert 3D objects to meshes and write binary STL directly.
+
+    Writes the binary STL format from mesh vertex/face data using
+    struct.pack.  No dependency on Rhino.FileIO.FileStl (which may
+    not exist in all versions) and no interactive Export dialog.
+    Works even when EnableRedraw is off.
+    """
+    if not IN_RHINO:
+        return
     try:
-        rs.UnselectAllObjects()
-        rs.SelectObjects(obj_ids)
-        rs.Command('-Export "{0}" Enter'.format(filepath), False)
-        rs.UnselectAllObjects()
-        print("[PLJ TACTILE3D] Exported {0} objects to {1}".format(len(obj_ids), filepath))
+        import System
+        import struct
+
+        # --- collect meshes from all geometry types ---
+        meshes = []
+        mp = Rhino.Geometry.MeshingParameters.Default
+        for oid in obj_ids:
+            robj = sc.doc.Objects.FindId(System.Guid(str(oid)))
+            if robj is None:
+                continue
+            geom = robj.Geometry
+            if isinstance(geom, Rhino.Geometry.Mesh):
+                meshes.append(geom)
+            elif isinstance(geom, Rhino.Geometry.Brep):
+                ms = Rhino.Geometry.Mesh.CreateFromBrep(geom, mp)
+                if ms:
+                    for m in ms:
+                        meshes.append(m)
+            elif isinstance(geom, Rhino.Geometry.Extrusion):
+                brep = geom.ToBrep()
+                if brep:
+                    ms = Rhino.Geometry.Mesh.CreateFromBrep(brep, mp)
+                    if ms:
+                        for m in ms:
+                            meshes.append(m)
+
+        if not meshes:
+            print("[PLJ TACTILE3D] No meshable geometry found.")
+            return
+
+        # --- join into one mesh, triangulate ---
+        joined = Rhino.Geometry.Mesh()
+        for m in meshes:
+            joined.Append(m)
+        joined.Faces.ConvertQuadsToTriangles()
+        joined.FaceNormals.ComputeFaceNormals()
+
+        # --- ensure output directory ---
+        out_dir = os.path.dirname(filepath)
+        if out_dir and not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        # --- write binary STL ---
+        tri_count = joined.Faces.Count
+        verts = joined.Vertices
+        fnormals = joined.FaceNormals
+
+        f = open(filepath, "wb")
+        try:
+            # 80-byte header
+            hdr = "Binary STL - Layout Jig"
+            hdr = hdr + "\0" * (80 - len(hdr))
+            f.write(hdr.encode("ascii") if hasattr(hdr, "encode") else hdr)
+            # triangle count (uint32 LE)
+            f.write(struct.pack("<I", tri_count))
+            # each triangle: normal(3f) + v0(3f) + v1(3f) + v2(3f) + attr(H)
+            for i in range(tri_count):
+                face = joined.Faces[i]
+                fn = fnormals[i]
+                f.write(struct.pack("<fff",
+                    float(fn.X), float(fn.Y), float(fn.Z)))
+                for vi in [face.A, face.B, face.C]:
+                    v = verts[vi]
+                    f.write(struct.pack("<fff",
+                        float(v.X), float(v.Y), float(v.Z)))
+                f.write(struct.pack("<H", 0))
+        finally:
+            f.close()
+
+        sz = os.path.getsize(filepath)
+        print("[PLJ TACTILE3D] Exported {0} triangles ({1} KB) to {2}".format(
+            tri_count, sz // 1024, filepath))
     except Exception as e:
-        print("[PLJ TACTILE3D] Export: {0}".format(e))
+        print("[PLJ TACTILE3D] Export error: {0}".format(e))
 
 # ══════════════════════════════════════════════════════════
 # MASTER REDRAW

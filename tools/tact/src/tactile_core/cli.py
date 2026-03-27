@@ -849,6 +849,7 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
             click.echo(f"OK: Converted {Path(input_path).name} -> {output_path}")
             click.echo("READY:")
 
+
         except PDFGeneratorError as e:
             logger.error("PDF generation failed", e)
             logger.solution("Check that the output path is writable")

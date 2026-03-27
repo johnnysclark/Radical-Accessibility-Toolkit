@@ -27,7 +27,7 @@ from datetime import datetime
 # Configuration
 # ---------------------------------------------------------------------------
 
-VERSION = "1.0"
+VERSION = "1.1"
 API_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
 MAX_TOKENS = 4096
@@ -35,6 +35,54 @@ ANTHROPIC_VERSION = "2023-06-01"
 HISTORY_FILENAME = "arch_alt_text_history.json"
 
 SUPPORTED_MIME = ("image/jpeg", "image/png", "image/gif", "image/webp")
+
+# ---------------------------------------------------------------------------
+# Mode presets — loaded from patterns/image_description_machine/*.md
+# ---------------------------------------------------------------------------
+
+# Map short mode names to filenames (without .md)
+MODE_FILES = {
+    "general": "image_description_machine",
+    "site-visit": "site_visit",
+    "design-studio": "design_studio",
+    "design-review": "design_review",
+    "structures": "structures_lecture",
+    "history": "history_lecture",
+}
+
+DEFAULT_MODE = "general"
+
+
+def _patterns_dir():
+    """Return the patterns/image_description_machine/ directory."""
+    # Navigate from tools/image-describer/ up to CONTROLLER/patterns/
+    script = os.path.dirname(os.path.abspath(__file__))
+    controller = os.path.dirname(os.path.dirname(script))
+    return os.path.join(controller, "patterns", "image_description_machine")
+
+
+def _load_mode_prompt(mode_name):
+    """Load a system prompt from the patterns directory by mode name.
+
+    Returns the file contents, or None if not found.
+    """
+    filename = MODE_FILES.get(mode_name)
+    if not filename:
+        return None
+    path = os.path.join(_patterns_dir(), filename + ".md")
+    if not os.path.isfile(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+
+def _list_modes():
+    """Return list of (mode_name, available_bool) tuples."""
+    result = []
+    for name in MODE_FILES:
+        path = os.path.join(_patterns_dir(), MODE_FILES[name] + ".md")
+        result.append((name, os.path.isfile(path)))
+    return result
 
 # ---------------------------------------------------------------------------
 # System prompt — the full Arch-Alt-Text persona
@@ -187,12 +235,21 @@ def _resolve_image_path(source):
 # API call
 # ---------------------------------------------------------------------------
 
-def _call_claude(api_key, image_data, media_type, model):
+def _call_claude(api_key, image_data, media_type, model,
+                  system_prompt=None, focus=""):
     """Send image to Claude Messages API.  Returns description text."""
+    prompt = system_prompt if system_prompt else SYSTEM_PROMPT
+
+    # Build the user message — add focus context if set
+    if focus:
+        user_text = "Context: " + focus + "\n\nDescribe this architectural image."
+    else:
+        user_text = "Describe this architectural image."
+
     payload = {
         "model": model,
         "max_tokens": MAX_TOKENS,
-        "system": SYSTEM_PROMPT,
+        "system": prompt,
         "messages": [
             {
                 "role": "user",
@@ -207,7 +264,7 @@ def _call_claude(api_key, image_data, media_type, model):
                     },
                     {
                         "type": "text",
-                        "text": "Describe this architectural image.",
+                        "text": user_text,
                     },
                 ],
             }
@@ -250,14 +307,15 @@ def _call_claude(api_key, image_data, media_type, model):
 # Describe — top-level function
 # ---------------------------------------------------------------------------
 
-def describe_image(api_key, source, model):
+def describe_image(api_key, source, model, system_prompt=None, focus=""):
     """Load image from path or URL, call API, return description."""
     if _is_url(source):
         image_data, media_type = _fetch_url_image(source)
     else:
         source = _resolve_image_path(source)
         image_data, media_type = _encode_local_image(source)
-    return _call_claude(api_key, image_data, media_type, model)
+    return _call_claude(api_key, image_data, media_type, model,
+                        system_prompt=system_prompt, focus=focus)
 
 
 # ---------------------------------------------------------------------------
@@ -311,12 +369,16 @@ def _save_description_to_file(source, description):
 
 HELP_TEXT = f"""
 Arch-Alt-Text v{VERSION} — Architectural Image Description
-==========================================================
 Describes images for blind / low-vision architecture students.
-Uses Claude vision API.  Structured Macro / Meso / Micro output.
+Uses Claude vision API. Structured Macro / Meso / Micro output.
 
 COMMANDS:
   describe <path-or-url> .... Describe an image file or URL
+  mode ....................... Show current mode and list presets
+  mode <name> ................ Switch to a preset (general, site-visit, design-studio, design-review, structures, history)
+  focus ...................... Show current focus
+  focus <your words> ......... Set a context overlay in your own words
+  focus clear ................ Remove the focus
   last ....................... Repeat the last description
   save ....................... Save last description to a text file beside the image
   history .................... List all past descriptions
@@ -326,11 +388,24 @@ COMMANDS:
   help / h / ? ............... This message
   quit / q / exit ............ Exit
 
+MODE PRESETS:
+  general ............. Default prompt, works for any architectural image
+  site-visit .......... On location. Wayfinding, materials, sounds, smells.
+  design-studio ....... Peer work, sketches, models. What is being explored.
+  design-review ....... Boards and crits. Board layout you can reference in conversation.
+  structures .......... Lecture slides, FBDs, equations. Load paths and math.
+  history ............. Lecture slides, engravings, photos. Period context and style.
+
+FOCUS:
+  Add context in your own words. This rides alongside each image.
+  Example: focus steel connection detail, tell me about bolt patterns
+  Example: focus I am in a courtyard and cannot see the roof
+  Example: focus comparing two options side by side for studio tomorrow
+
 EXAMPLES:
-  describe C:/photos/farnsworth.jpg
-  describe plan_sketch.png
-  describe https://example.com/section.jpg
-  save
+  mode site-visit
+  focus construction joint at the base of a concrete column
+  describe photo.jpg
 
 SUPPORTED FORMATS:
   JPEG, PNG, GIF, WebP (up to ~20 MB)
@@ -346,11 +421,19 @@ SETUP:
 # Interactive REPL
 # ---------------------------------------------------------------------------
 
-def _run_interactive(api_key, model):
+def _run_interactive(api_key, model, initial_mode=DEFAULT_MODE,
+                     initial_focus=""):
     """Main interactive loop."""
+    current_mode = initial_mode
+    current_focus = initial_focus
+    active_prompt = _load_mode_prompt(current_mode) or SYSTEM_PROMPT
+
     print(f"Arch-Alt-Text v{VERSION} — Architectural Image Description")
     print(f"Model: {model}")
-    print("Type 'help' for commands.\n")
+    print(f"Mode: {current_mode}")
+    if current_focus:
+        print(f"Focus: {current_focus}")
+    print("Type 'help' for commands.")
 
     last_description = None
     last_source = None
@@ -377,6 +460,51 @@ def _run_interactive(api_key, model):
         # -- Help --
         if cmd in ("help", "h", "?"):
             print(HELP_TEXT)
+            continue
+
+        # -- Mode --
+        if cmd == "mode":
+            if not arg:
+                print(f"Current mode: {current_mode}")
+                modes = _list_modes()
+                for name, available in modes:
+                    marker = " (active)" if name == current_mode else ""
+                    status = "" if available else " (file missing)"
+                    print(f"  {name}{marker}{status}")
+                print("READY:")
+                continue
+            name = arg.lower().strip()
+            if name not in MODE_FILES:
+                print(f"ERROR: Unknown mode '{name}'.")
+                print("Available: " + ", ".join(MODE_FILES.keys()))
+                continue
+            loaded = _load_mode_prompt(name)
+            if not loaded:
+                print(f"ERROR: Prompt file for '{name}' not found.")
+                continue
+            current_mode = name
+            active_prompt = loaded
+            print(f"OK: Mode set to {current_mode}.")
+            print("READY:")
+            continue
+
+        # -- Focus --
+        if cmd == "focus":
+            if not arg:
+                if current_focus:
+                    print(f"Focus: {current_focus}")
+                else:
+                    print("No focus set. Use 'focus <your words>' to add context.")
+                print("READY:")
+                continue
+            if arg.lower() == "clear":
+                current_focus = ""
+                print("OK: Focus cleared.")
+                print("READY:")
+                continue
+            current_focus = arg
+            print(f"OK: Focus set to: {current_focus}")
+            print("READY:")
             continue
 
         # -- Last --
@@ -458,11 +586,19 @@ def _run_interactive(api_key, model):
         if not _is_url(source):
             source = _resolve_image_path(source)
 
-        print(f"Describing: {os.path.basename(source) if not _is_url(source) else source}")
+        status = f"Describing: {os.path.basename(source) if not _is_url(source) else source}"
+        status += f" [mode: {current_mode}]"
+        if current_focus:
+            status += f" [focus: {current_focus}]"
+        print(status)
         print("Processing... this may take a moment.")
 
         try:
-            description = describe_image(api_key, source, model)
+            description = describe_image(
+                api_key, source, model,
+                system_prompt=active_prompt,
+                focus=current_focus,
+            )
             print()
             print(description)
             last_description = description
@@ -470,6 +606,7 @@ def _run_interactive(api_key, model):
             _save_to_history(source, description)
             count = len(_load_history())
             print(f"\nOK: Description complete. History entry {count}.")
+            print("READY:")
         except FileNotFoundError as e:
             print(f"ERROR: {e}")
             print("Check the file path and try again.")
@@ -499,6 +636,15 @@ def main():
         help=f"Claude model ID (default: {DEFAULT_MODEL})"
     )
     ap.add_argument(
+        "--mode", default=DEFAULT_MODE,
+        choices=list(MODE_FILES.keys()),
+        help=f"Description mode preset (default: {DEFAULT_MODE})"
+    )
+    ap.add_argument(
+        "--focus", default="",
+        help="Context overlay in your own words, e.g. 'steel connection detail'"
+    )
+    ap.add_argument(
         "--json", action="store_true",
         help="Output JSON instead of plain text (single-shot mode only)"
     )
@@ -523,6 +669,14 @@ def main():
 
     model = args.model
 
+    # -- Load mode prompt --
+    system_prompt = _load_mode_prompt(args.mode)
+    if not system_prompt:
+        if args.mode != DEFAULT_MODE:
+            print(f"ERROR: Could not load prompt for mode '{args.mode}'. "
+                  "Using default.")
+        system_prompt = SYSTEM_PROMPT
+
     # -- Single-shot mode --
     if args.image:
         source = args.image
@@ -530,7 +684,11 @@ def main():
             source = _resolve_image_path(source)
 
         try:
-            description = describe_image(api_key, source, model)
+            description = describe_image(
+                api_key, source, model,
+                system_prompt=system_prompt,
+                focus=args.focus,
+            )
         except Exception as e:
             print(f"ERROR: {e}")
             sys.exit(1)
@@ -540,6 +698,8 @@ def main():
                 "source": source,
                 "timestamp": _now(),
                 "model": model,
+                "mode": args.mode,
+                "focus": args.focus or None,
                 "description": description,
             }
             print(json.dumps(output, indent=2, ensure_ascii=False))
@@ -557,7 +717,9 @@ def main():
         sys.exit(0)
 
     # -- Interactive mode --
-    _run_interactive(api_key, model)
+    _run_interactive(api_key, model,
+                     initial_mode=args.mode,
+                     initial_focus=args.focus)
 
 
 if __name__ == "__main__":

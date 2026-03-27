@@ -1,0 +1,28 @@
+# Default program types for TASC zones
+# Users can override this file or define program_type inline
+
+program_types:
+  residential:
+    label: "Residential"
+    description: "Living spaces, bedrooms, apartments"
+  commercial:
+    label: "Commercial"
+    description: "Retail, office, mixed-use"
+  circulation:
+    label: "Circulation"
+    description: "Hallways, corridors, ramps, elevators"
+  public:
+    label: "Public"
+    description: "Lobbies, gathering spaces, plazas"
+  service:
+    label: "Service"
+    description: "Mechanical, storage, utilities"
+  outdoor:
+    label: "Outdoor"
+    description: "Courtyards, gardens, terraces"
+  parking:
+    label: "Parking"
+    description: "Vehicle parking, bike storage"
+  amenity:
+    label: "Amenity"
+    description: "Gym, pool, lounge, common areas"
