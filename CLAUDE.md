@@ -143,3 +143,92 @@ Requires: Node.js 18+, npx tsx
 ### Screen Reader Hooks (tools/screen-reader-hooks/)
 
 Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: ImageDetector (auto-detect architectural images), ConversionTracker (record conversion settings), FeedbackCapture (capture student ratings).
+
+---
+
+## RhinoScript Quick Reference (IronPython 2.7)
+
+Use this reference FIRST before calling `get_rhinoscript_docs`. Only look up docs for functions not listed here.
+
+### Object Creation
+- `rs.AddPoint(x, y, z)` → guid
+- `rs.AddLine([x1,y1,z1], [x2,y2,z2])` → guid
+- `rs.AddPolyline([[x1,y1,z1], [x2,y2,z2], ...])` → guid (close by repeating first point)
+- `rs.AddCircle([cx,cy,cz], radius)` → guid
+- `rs.AddArc3Pt([x1,y1,z1], [x2,y2,z2], [x3,y3,z3])` → guid
+- `rs.AddRectangle(rs.WorldXYPlane(), width, height)` → guid
+- `rs.AddSphere([cx,cy,cz], radius)` → guid
+- `rs.AddBox([corners_8_points])` → guid
+- `rs.AddCylinder([base_x,base_y,base_z], height, radius)` → guid (or use center+axis form)
+- `rs.AddSrfPt([[p1],[p2],[p3],[p4]])` → guid (surface from 3-4 points)
+- `rs.AddPlanarSrf([curve_id])` → [guid] (planar surface from closed curve)
+- `rs.AddLoftSrf([curve_id_1, curve_id_2, ...])` → [guid]
+- `rs.ExtrudeCurveStraight(curve_id, [start], [end])` → guid
+- `rs.AddText("text", [x,y,z], height)` → guid
+- `rs.AddHatch(curve_id, "Solid")` → guid (hatch patterns: Solid, Grid, Hatch1, etc.)
+
+### Object Queries
+- `rs.ObjectName(guid)` → string (get name)
+- `rs.ObjectName(guid, "new_name")` → sets name
+- `rs.ObjectLayer(guid)` → string (get layer)
+- `rs.ObjectLayer(guid, "layer_name")` → sets layer
+- `rs.ObjectType(guid)` → int (1=point, 4=curve, 8=surface, 16=polysurface, 32=mesh, 131072=hatch, 262144=extrusion)
+- `rs.ObjectsByLayer("layer_name")` → [guid, ...]
+- `rs.BoundingBox(guid)` → [8 points] (corners of axis-aligned box; [0]=min, [6]=max)
+- `rs.CurveLength(curve_id)` → float
+- `rs.SurfaceArea(surface_id)` → (area, error_bound)
+- `rs.IsObject(guid)` → bool
+- `rs.IsCurve(guid)` → bool
+- `rs.IsSurface(guid)` → bool
+
+### Object Transforms
+- `rs.MoveObject(guid, [dx,dy,dz])` → guid
+- `rs.MoveObjects([guid,...], [dx,dy,dz])` → count
+- `rs.RotateObject(guid, [cx,cy,cz], angle_degrees)` → guid (rotates in XY plane)
+- `rs.RotateObject(guid, [cx,cy,cz], angle, [axis_x,axis_y,axis_z])` → guid (3D axis)
+- `rs.ScaleObject(guid, [cx,cy,cz], [sx,sy,sz])` → guid
+- `rs.CopyObject(guid, [dx,dy,dz])` → new_guid
+- `rs.MirrorObject(guid, [start_pt], [end_pt])` → new_guid
+- `rs.DeleteObject(guid)` → bool
+- `rs.DeleteObjects([guid,...])` → count
+
+### Layers
+- `rs.AddLayer("name")` → string
+- `rs.DeleteLayer("name")` → bool
+- `rs.CurrentLayer()` → string
+- `rs.CurrentLayer("name")` → sets current
+- `rs.IsLayer("name")` → bool
+- `rs.LayerVisible("name", True/False)` → sets visibility
+
+### UserText (metadata on objects)
+- `rs.SetUserText(guid, "key", "value")` → sets
+- `rs.GetUserText(guid, "key")` → string
+- `rs.GetUserText(guid)` → [key, ...] (all keys)
+
+### Selection
+- `rs.SelectedObjects()` → [guid, ...]
+- `rs.SelectObject(guid)` → guid
+- `rs.UnselectAllObjects()` → count
+
+### View
+- `rs.ZoomExtents()` → zooms to fit all
+- `rs.ZoomBoundingBox(bbox)` → zooms to box
+- `rs.Redraw()` → forces viewport refresh
+- `rs.EnableRedraw(True/False)` → batch mode
+
+### Booleans & Advanced
+- `rs.BooleanUnion([guid1, guid2])` → [guid]
+- `rs.BooleanDifference([guid_a], [guid_b])` → [guid]
+- `rs.BooleanIntersection([guid_a], [guid_b])` → [guid]
+- `rs.OffsetCurve(curve_id, [direction_pt], distance)` → [guid]
+- `rs.TrimCurve(curve_id, [domain_start, domain_end])` → guid
+- `rs.SplitBrep(brep_id, cutter_id)` → [guid, ...]
+- `rs.ProjectCurveToSurface([curve], [surface], [direction])` → [guid]
+
+### Important Notes
+- IronPython 2.7: use `.format()` not f-strings
+- All coordinates are `[x, y, z]` lists
+- All angles in degrees (not radians) for rs functions
+- `rs.WorldXYPlane()` returns the XY construction plane at origin
+- Many functions accept either a single guid or a list
+- Use `import rhinoscriptsyntax as rs` at the top of every script

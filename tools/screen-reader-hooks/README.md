@@ -27,8 +27,8 @@ Add hooks to your `~/.claude/settings.json`:
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "/path/to/radical-accessibility/src/hooks/ImageDetector.ts" },
-          { "type": "command", "command": "/path/to/radical-accessibility/src/hooks/FeedbackCapture.ts" }
+          { "type": "command", "command": "tools/screen-reader-hooks/ImageDetector.ts" },
+          { "type": "command", "command": "tools/screen-reader-hooks/FeedbackCapture.ts" }
         ]
       }
     ],
@@ -36,7 +36,7 @@ Add hooks to your `~/.claude/settings.json`:
       {
         "matcher": "mcp__tactile__*",
         "hooks": [
-          { "type": "command", "command": "/path/to/radical-accessibility/src/hooks/ConversionTracker.ts" }
+          { "type": "command", "command": "tools/screen-reader-hooks/ConversionTracker.ts" }
         ]
       }
     ]
@@ -55,7 +55,7 @@ Claude Code supports hooks via `.claude/settings.json` in your project or home d
       {
         "matcher": "mcp__tactile__*",
         "hooks": [
-          { "type": "command", "command": "bun /path/to/radical-accessibility/src/hooks/ConversionTracker.ts" }
+          { "type": "command", "command": "bun tools/screen-reader-hooks/ConversionTracker.ts" }
         ]
       }
     ]

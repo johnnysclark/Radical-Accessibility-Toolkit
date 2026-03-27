@@ -8,7 +8,6 @@ rhino3dm is an optional dependency: pip install rhino3dm
 """
 
 import json
-import os
 
 
 def export_3dm(state, output_path):
