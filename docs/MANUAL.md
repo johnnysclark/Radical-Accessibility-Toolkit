@@ -47,6 +47,32 @@ Setup Script (setup.py)
   validates state.json, and tests MCP server readiness.
   Run: python setup.py
 
+TACT (tools/tact/)
+  Advanced image-to-PIAF tactile conversion with EasyOCR text
+  detection, RainbowTact color-to-tactile patterns, 10 presets,
+  Grade 2 Braille via liblouis. Also renders state.json to tactile
+  PDF. See section 31.
+
+TASC (tools/tasc/)
+  Accessible site-scale Rhino design via text commands. Zones,
+  structural bays, corridors with live RhinoMCP socket connection.
+  See section 31.
+
+Accessible Web UI (tools/accessible-client/)
+  Two-pane browser interface (Chat + Model Navigator) served on
+  localhost:8788 via Claude Code Channels. Connects to Rhino via
+  RhinoMCP. WCAG AAA dark theme, ARIA landmarks, keyboard shortcuts.
+  See section 31.
+
+acclaude (tools/accessible-client/)
+  JAWS/NVDA-compatible terminal wrapper for Claude Code. Strips
+  markdown, ANSI, and emojis. See section 31.
+
+Screen Reader Hooks (tools/screen-reader-hooks/)
+  Claude Code lifecycle hooks for JAWS/NVDA announcements.
+  Image detection, conversion tracking, feedback capture.
+  See section 31.
+
 
 ## 2. Taxonomy
 
@@ -2102,3 +2128,131 @@ undo, status, help, quit, print.
 The function was written to the file but the module could not be
 reloaded. This can happen if the function has a runtime error (not
 a syntax error). Restart the MCP server to pick up the change.
+
+
+## 31. Student Extensions
+
+These tools were contributed by Ethan Anderson and extend the
+toolkit with advanced tactile conversion, accessible Rhino design,
+and screen reader integration.
+
+### TACT -- Tactile Conversion CLI (tools/tact/)
+
+Converts architectural images to PIAF-ready tactile PDFs. Extends
+the built-in swell-print tool with EasyOCR text detection,
+RainbowTact color-to-tactile patterns, 10 presets, auto-scaling,
+abbreviation keys, and Grade 2 Braille output via liblouis.
+
+Install:
+
+    pip install -e tools/tact
+
+Key commands:
+
+    tact convert IMAGE --preset NAME --verbose
+    tact convert IMAGE --detect-text --braille-grade 2 --verbose
+    tact render STATE.json --output OUTPUT.pdf
+    tact presets
+
+MCP server (7 functions):
+
+    python tools/tact/mcp_entry.py
+
+Functions: image_to_piaf, list_presets, analyze_image,
+describe_image, extract_text_with_vision, assess_tactile_quality,
+state_to_piaf.
+
+### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
+
+Accessible programmatic Rhino design via text commands. Focuses on
+site-scale planning (zones, bays, corridors) with live MCP socket
+connection to Rhino on port 1999.
+
+Install (depends on TACT):
+
+    pip install -e tools/tact && pip install -e tools/tasc
+
+Key commands:
+
+    tasc site W D
+    tasc zone NAME W D --at X,Y
+    tasc bay NAME NxN --spacing SX SY --at X,Y
+    tasc describe
+    tasc export piaf|3dm|text
+
+### Accessible Web UI (tools/accessible-client/)
+
+A two-pane browser interface for blind and low-vision users,
+served on localhost:8788 by a Claude Code Channel server. The
+Chat pane sends messages to Claude and displays replies via
+Server-Sent Events. The Model Navigator pane queries Rhino objects
+through RhinoMCP and displays them grouped by layer with editable
+position fields (X, Y, Z).
+
+Requirements: Bun runtime, Claude Code CLI, RhinoMCP plugin in Rhino.
+
+Start the channel server:
+
+    cd Radical-Accessibility-Toolkit
+    bun install --cwd tools/accessible-client
+    claude --dangerously-load-development-channels server:acclaude-channel
+
+Open http://localhost:8788 in your browser.
+
+Accessibility features:
+- Dark theme with WCAG AAA contrast ratios (13:1)
+- ARIA landmarks: banner, main, complementary, status
+- Keyboard shortcuts: Alt+1 (chat), Alt+2 (navigator), Alt+R (refresh)
+- Screen reader live regions (aria-live="polite" on chat history)
+- All inputs have explicit labels
+- Focus indicators: 3px solid outline with 2px offset
+
+Model Navigator workflow:
+1. Press Refresh (or Alt+R) to query Rhino objects
+2. Objects appear grouped by layer in collapsible sections
+3. Edit X/Y/Z position fields (modified fields get a blue outline)
+4. Press Apply Changes to send edits to Rhino via Claude
+5. Press Discard Changes to reset all fields
+
+### acclaude -- Terminal Client (tools/accessible-client/)
+
+A JAWS/NVDA-compatible terminal wrapper around Claude Code that
+bypasses the Ink TUI. Uses claude -p headless mode with
+--resume SESSION_ID for multi-turn conversations. All markdown,
+ANSI codes, and emojis are stripped before output.
+
+Start from WSL2 or Linux:
+
+    ./tools/accessible-client/acclaude
+
+Start from Windows:
+
+    tools\accessible-client\acclaude.bat
+
+Slash commands: /help, /repeat, /history, /new, /quit.
+
+Session history persists at ~/.radical-accessibility/memory/.
+
+### Screen Reader Hooks (tools/screen-reader-hooks/)
+
+Claude Code lifecycle hooks that announce events through JAWS or
+NVDA via a WSL2-to-PowerShell bridge.
+
+Three hooks:
+
+ImageDetector (UserPromptSubmit)
+  Detects architectural images by MIME type, file extension, and
+  keywords. Offers tactile conversion when an image is found.
+
+ConversionTracker (PostToolUse on mcp__tactile__*)
+  Records every tactile conversion attempt with settings, results,
+  and success rates. Learns preferred settings by image type.
+
+FeedbackCapture (UserPromptSubmit)
+  Captures student ratings and feedback. Extracts sentiment and
+  issue tags (too_dense, missing_labels, etc.).
+
+Memory is stored at ~/.radical-accessibility/memory/ as JSONL files.
+
+Configure hooks in ~/.claude/settings.json. See
+tools/screen-reader-hooks/README.md for the full settings block.

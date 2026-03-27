@@ -204,9 +204,17 @@ See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full
 
 ### Screen Reader Integration
 
-Two tools ensure the system works with JAWS and NVDA screen readers on Windows.
+Three tools ensure the system works with JAWS and NVDA screen readers on Windows.
 
-**acclaude (tools/accessible-client/).** A JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI entirely. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations. All markdown, ANSI codes, and emoji are stripped before output. Requires Node.js 18+.
+**Accessible Web UI (tools/accessible-client/acclaude-channel.ts + index.html).** A two-pane browser interface served on localhost:8788 via a Claude Code Channel server. The Chat pane sends messages to Claude and displays replies through Server-Sent Events. The Model Navigator pane queries Rhino objects via RhinoMCP and displays them grouped by layer with editable position fields. Dark theme with WCAG AAA contrast ratios (13:1), ARIA landmarks, and keyboard shortcuts (Alt+1 for chat, Alt+2 for navigator, Alt+R to refresh). Requires Bun and the RhinoMCP plugin in Rhino.
+
+```
+cd Radical-Accessibility-Toolkit
+claude --dangerously-load-development-channels server:acclaude-channel
+# Open http://localhost:8788
+```
+
+**acclaude (tools/accessible-client/acclaude.ts).** A JAWS/NVDA-compatible terminal wrapper around Claude Code that bypasses the Ink TUI entirely. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations. All markdown, ANSI codes, and emoji are stripped before output. Requires Node.js 18+.
 
 **Screen Reader Hooks (tools/screen-reader-hooks/).** Claude Code lifecycle hooks that announce events through JAWS or NVDA. An ImageDetector hook offers tactile conversion when architectural images are detected. A ConversionTracker records conversion settings for learning. A FeedbackCapture hook captures student ratings. All hooks communicate via a WSL2-to-PowerShell bridge that calls the JAWS TTS API (JFWSayString).
 
@@ -639,7 +647,10 @@ radical-accessibility/
       src/tactile_core/ ..... EasyOCR, RainbowTact, presets, Braille, MCP
     tasc/ ................... Accessible Rhino design CLI (Ethan)
       src/tasc_core/ ........ Zones, bays, corridors, Rhino connector
-    accessible-client/ ...... JAWS/NVDA Claude Code wrapper (Ethan)
+    accessible-client/ ...... Accessible web UI + terminal wrapper (Ethan)
+      acclaude-channel.ts ... MCP channel server for web UI
+      index.html ............ Two-pane accessible browser interface
+      acclaude.ts ........... Terminal JAWS/NVDA wrapper
     screen-reader-hooks/ .... Screen reader lifecycle hooks (Ethan)
   tests/
     run_tests.py ............ End-to-end test suite (149 tests)
@@ -666,9 +677,17 @@ Accessible site-scale design via text commands. Zones, structural bays, corridor
 
 Install: `pip install -e tools/tact && pip install -e tools/tasc`
 
+### Accessible Web UI (tools/accessible-client/)
+
+Two-pane browser interface (Chat + Model Navigator) served by a Claude Code Channel server on localhost:8788. Connects to Rhino via RhinoMCP for direct object query and modification. WCAG AAA dark theme, ARIA landmarks, keyboard shortcuts. Start with:
+
+```
+claude --dangerously-load-development-channels server:acclaude-channel
+```
+
 ### acclaude -- Accessible Claude Client (tools/accessible-client/)
 
-JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Multi-turn sessions with text cleaning and screen reader announcements.
+JAWS/NVDA-compatible terminal wrapper around Claude Code that bypasses the Ink TUI. Multi-turn sessions with text cleaning and screen reader announcements.
 
 ### Screen Reader Hooks (tools/screen-reader-hooks/)
 
