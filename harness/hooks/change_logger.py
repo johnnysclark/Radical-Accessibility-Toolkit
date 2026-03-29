@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""PostToolUse hook: log state-modifying MCP calls to changes.jsonl."""
+"""PostToolUse hook: log MCP tool calls to sessions/changes.jsonl."""
 
-import datetime
 import json
 import os
 import sys
+import time
 
 
 def main():
@@ -13,35 +13,28 @@ def main():
     except (json.JSONDecodeError, EOFError):
         return
 
-    tool_name = payload.get("tool_name", "")
-    tool_input = payload.get("tool_input", {})
-    tool_output = payload.get("tool_output", "")
+    tool = payload.get("tool_name", "")
+    if not tool.startswith("mcp__rhino"):
+        return
 
-    summary = ""
-    if isinstance(tool_output, str):
-        for line in tool_output.split("\n"):
-            if line.startswith("OK:") or line.startswith("ERROR:"):
-                summary = line.strip()
-                break
-        if not summary:
-            summary = tool_output[:200].strip()
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    log_path = os.path.join(root, "sessions", "changes.jsonl")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
     entry = {
-        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
-        "tool": tool_name,
-        "input": tool_input,
-        "summary": summary,
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "tool": tool,
+        "input": payload.get("tool_input", {}),
     }
-
-    _root = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))))
-    changes_path = os.path.join(_root, "controller", "changes.jsonl")
+    output = payload.get("tool_output", "")
+    if output:
+        first_line = output.split("\n")[0][:120]
+        entry["result"] = first_line
 
     try:
-        line = json.dumps(entry, separators=(",", ":"))
-        with open(changes_path, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-    except Exception:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+    except OSError:
         pass
 
 

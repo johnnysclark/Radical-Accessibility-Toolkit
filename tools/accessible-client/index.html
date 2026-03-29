@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rhino Automation Harness</title>
+<title>Rhino Harness</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #e8e8e8;
   background: #1a1a2e;
   height: 100vh;
@@ -18,34 +17,24 @@ body {
   flex-direction: column;
 }
 
-a { color: #7eb8ff; }
-
-/* ── Header ── */
-.app-header {
+/* Header */
+.header {
   background: #0f1a30;
   border-bottom: 2px solid #4a6fa5;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
 }
-.app-header h1 { font-size: 1.1rem; font-weight: 600; color: #a0c4ff; }
-.app-header .status-group { display: flex; gap: 1rem; font-size: 0.85rem; }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-.status-dot.on { background: #4caf50; }
-.status-dot.off { background: #f44336; }
-.status-dot.warn { background: #ff9800; }
-.kbd-hint { color: #6a9fd8; font-size: 0.8rem; margin-left: auto; }
+.header h1 { font-size: 1rem; font-weight: 600; color: #a0c4ff; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.dot.on { background: #4caf50; }
+.dot.off { background: #f44336; }
+.header .status { font-size: 0.85rem; color: #6a9fd8; }
 
-/* ── Three-pane layout ── */
-.layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  gap: 2px;
-}
-
+/* Layout */
+.layout { display: flex; flex: 1; min-height: 0; gap: 2px; }
 .pane {
   display: flex;
   flex-direction: column;
@@ -54,38 +43,24 @@ a { color: #7eb8ff; }
   min-width: 0;
   overflow: hidden;
 }
-
-.pane-header {
+.pane-head {
   background: #0f1a30;
-  padding: 0.4rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   border-bottom: 1px solid #2a3f5f;
   font-weight: 600;
   color: #a0c4ff;
-  font-size: 0.95rem;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pane-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.5rem 0.75rem;
-  min-height: 0;
-}
-
-/* Terminal pane: 50% */
-#terminal-pane { flex: 5; }
-/* Data pane: 30% */
-#data-pane { flex: 3; }
-/* Rhino pane: 20% */
-#rhino-pane { flex: 2; }
-
-/* ── Terminal output ── */
-#terminal-output {
-  font-family: 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.pane-body { flex: 1; overflow-y: auto; padding: 0.5rem 0.75rem; min-height: 0; }
+
+#terminal-pane { flex: 5; }
+#data-pane { flex: 3; }
+
+/* Terminal */
+#term-log {
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85rem;
   white-space: pre-wrap;
   word-break: break-word;
   padding: 0.5rem;
@@ -96,17 +71,12 @@ a { color: #7eb8ff; }
   overflow-y: auto;
   min-height: 0;
 }
-.term-line { margin-bottom: 0.15rem; }
-.term-input { color: #7eb8ff; }
-.term-ok { color: #4caf50; }
-.term-error { color: #f44336; }
-.term-info { color: #a0c4ff; }
-.term-plan { color: #ff9800; font-weight: 600; }
-.term-verify { color: #9c27b0; font-weight: 600; }
-.term-milestone { color: #4caf50; font-weight: 600; }
+.t-in { color: #7eb8ff; }
+.t-ok { color: #4caf50; }
+.t-err { color: #f44336; }
+.t-info { color: #a0c4ff; }
 
-/* ── Terminal input ── */
-.terminal-input-row {
+.input-row {
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem;
@@ -114,124 +84,66 @@ a { color: #7eb8ff; }
   border-top: 1px solid #2a3f5f;
   flex-shrink: 0;
 }
-#terminal-input {
+#term-input {
   flex: 1;
-  font-family: 'Cascadia Code', 'Consolas', monospace;
-  font-size: 0.95rem;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 0.9rem;
   padding: 0.4rem 0.6rem;
   border: 2px solid #4a6fa5;
   border-radius: 4px;
   background: #0a0f1e;
   color: #e8e8e8;
 }
-#terminal-input:focus {
-  border-color: #7eb8ff;
-  outline: 3px solid #7eb8ff;
-  outline-offset: 1px;
-}
-#terminal-input::placeholder { color: #4a6fa5; }
-.route-badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 3px;
-  background: #2a3f5f;
-  color: #a0c4ff;
-  align-self: center;
-  min-width: 5rem;
-  text-align: center;
-}
+#term-input:focus { border-color: #7eb8ff; outline: 2px solid #7eb8ff; outline-offset: 1px; }
+#term-input::placeholder { color: #4a6fa5; }
 
-/* ── Tab bar ── */
+/* Data pane */
 .tab-bar {
   display: flex;
-  gap: 0;
   background: #0a0f1e;
   border-bottom: 1px solid #2a3f5f;
   flex-shrink: 0;
-  overflow-x: auto;
 }
 .tab-btn {
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.75rem;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: #6a9fd8;
   cursor: pointer;
-  white-space: nowrap;
   margin: 0;
   border-radius: 0;
 }
-.tab-btn:hover { color: #a0c4ff; background: #16213e; }
+.tab-btn:hover { color: #a0c4ff; }
 .tab-btn:focus { outline: 2px solid #7eb8ff; outline-offset: -2px; }
-.tab-btn[aria-selected="true"] {
-  color: #e8e8e8;
-  border-bottom-color: #7eb8ff;
-  background: #16213e;
-}
-
+.tab-btn[aria-selected="true"] { color: #e8e8e8; border-bottom-color: #7eb8ff; background: #16213e; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
-/* ── Data definitions ── */
 dl { margin: 0.25rem 0; }
 dt { color: #8aa4c8; font-weight: 600; font-size: 0.85rem; margin-top: 0.4rem; }
 dd { color: #e8e8e8; margin-left: 0; padding-left: 0.75rem; font-size: 0.9rem; }
 
-/* ── Tables (accessible, simple) ── */
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.25rem 0; }
-th { text-align: left; color: #8aa4c8; font-weight: 600; padding: 0.25rem 0.5rem; border-bottom: 1px solid #2a3f5f; }
-td { padding: 0.25rem 0.5rem; border-bottom: 1px solid #1a2a4a; }
-tr:hover td { background: rgba(74, 111, 165, 0.1); }
-caption { text-align: left; font-weight: 600; color: #a0c4ff; padding: 0.25rem 0; font-size: 0.9rem; }
+th { text-align: left; color: #8aa4c8; font-weight: 600; padding: 0.2rem 0.5rem; border-bottom: 1px solid #2a3f5f; }
+td { padding: 0.2rem 0.5rem; border-bottom: 1px solid #1a2a4a; }
 
-/* ── Quick-edit button ── */
-.qe-btn {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.5rem;
+.btn {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
   background: #2a3f5f;
   border: 1px solid #4a6fa5;
   color: #a0c4ff;
   border-radius: 3px;
   cursor: pointer;
-  margin: 0;
+  margin: 0.15rem;
 }
-.qe-btn:hover { background: #4a6fa5; }
-.qe-btn:focus { outline: 2px solid #7eb8ff; }
+.btn:hover { background: #4a6fa5; }
+.btn:focus { outline: 2px solid #7eb8ff; }
 
-/* ── Rhino pane ── */
-.rhino-status-item { margin-bottom: 0.5rem; }
-.rhino-layer { padding: 0.15rem 0; font-size: 0.85rem; }
-
-/* ── Permission prompt ── */
-.permission-prompt {
-  border: 2px solid #d4a017;
-  border-radius: 4px;
-  padding: 0.5rem;
-  margin: 0.25rem 0;
-  background: #2a1a00;
-  color: #ffd666;
-}
-.permission-prompt button {
-  background: #8b6914;
-  border: 1px solid #d4a017;
-  color: #fff;
-  padding: 0.25rem 0.75rem;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-right: 0.25rem;
-  font-size: 0.85rem;
-}
-
-/* ── Screen reader only ── */
-.sr-only {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0,0,0,0); border: 0;
-}
-
-/* ── Scrollbar ── */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0a0f1e; }
 ::-webkit-scrollbar-thumb { background: #4a6fa5; border-radius: 3px; }
@@ -239,87 +151,57 @@ caption { text-align: left; font-weight: 600; color: #a0c4ff; padding: 0.25rem 0
 </head>
 <body>
 
-<!-- Header -->
-<header class="app-header" role="banner">
+<header class="header">
   <h1>Rhino Harness</h1>
-  <div class="status-group">
-    <span><span id="dot-server" class="status-dot off"></span><span id="lbl-server">Server: off</span></span>
-    <span><span id="dot-rhino" class="status-dot off"></span><span id="lbl-rhino">Rhino: off</span></span>
-  </div>
-  <span class="kbd-hint" aria-hidden="true">Alt+1 Terminal | Alt+2 Data | Alt+3 Rhino</span>
+  <span class="status"><span id="dot-srv" class="dot off"></span><span id="lbl-srv">Server: off</span></span>
+  <span class="status"><span id="dot-rh" class="dot off"></span><span id="lbl-rh">Rhino: off</span></span>
 </header>
 
 <div class="layout">
 
-<!-- ═══ Terminal Pane ═══ -->
-<section class="pane" id="terminal-pane" aria-label="Terminal">
-  <div class="pane-header">
-    <span>Terminal</span>
-    <span id="terminal-mode" class="route-badge">direct</span>
-  </div>
+<!-- Terminal -->
+<section class="pane" id="terminal-pane">
+  <div class="pane-head">Terminal</div>
   <div class="pane-body" style="display:flex;flex-direction:column;">
-    <div id="terminal-output" role="log" aria-live="polite" aria-label="Terminal output"></div>
+    <div id="term-log" role="log" aria-live="polite" aria-label="Terminal output"></div>
   </div>
-  <div class="terminal-input-row">
-    <label for="terminal-input" class="sr-only">Command input</label>
-    <input type="text" id="terminal-input"
-           placeholder="command | @claude ask | !skill name | ?query | /harness"
-           autocomplete="off" spellcheck="false">
+  <div class="input-row">
+    <label for="term-input" class="sr-only">Command</label>
+    <input type="text" id="term-input" placeholder="Type a message..." autocomplete="off">
   </div>
 </section>
 
-<!-- ═══ Data Pane ═══ -->
-<section class="pane" id="data-pane" aria-label="Data Inspector">
-  <div class="pane-header">Data Inspector</div>
-  <div class="tab-bar" role="tablist" aria-label="Data tabs">
-    <button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-summary" id="btn-summary">Summary</button>
-    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-bays" id="btn-bays">Bays</button>
-    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-apertures" id="btn-apertures">Apertures</button>
-    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-rooms" id="btn-rooms">Rooms</button>
-    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-audit" id="btn-audit">Audit</button>
-    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-harness" id="btn-harness">Harness</button>
+<!-- Data -->
+<section class="pane" id="data-pane">
+  <div class="pane-head">Inspector</div>
+  <div class="tab-bar" role="tablist">
+    <button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-rhino" id="btn-rhino">Rhino</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-layers" id="btn-layers">Layers</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-scripts" id="btn-scripts">Scripts</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-session" id="btn-session">Session</button>
   </div>
   <div class="pane-body">
-    <div class="tab-panel active" role="tabpanel" id="tab-summary" aria-labelledby="btn-summary">
-      <p>Loading state...</p>
-    </div>
-    <div class="tab-panel" role="tabpanel" id="tab-bays" aria-labelledby="btn-bays">
-      <p>No bays loaded.</p>
-    </div>
-    <div class="tab-panel" role="tabpanel" id="tab-apertures" aria-labelledby="btn-apertures">
-      <p>No apertures loaded.</p>
-    </div>
-    <div class="tab-panel" role="tabpanel" id="tab-rooms" aria-labelledby="btn-rooms">
-      <p>No rooms loaded.</p>
-    </div>
-    <div class="tab-panel" role="tabpanel" id="tab-audit" aria-labelledby="btn-audit">
-      <p>Run audit to see results.</p>
-    </div>
-    <div class="tab-panel" role="tabpanel" id="tab-harness" aria-labelledby="btn-harness">
-      <p>No harness data.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ Rhino Pane ═══ -->
-<section class="pane" id="rhino-pane" aria-label="Rhino Status">
-  <div class="pane-header">Rhino</div>
-  <div class="pane-body">
-    <div id="rhino-content">
+    <div class="tab-panel active" role="tabpanel" id="tab-rhino">
       <dl>
-        <dt>Connection</dt>
-        <dd id="rhino-conn">Not connected</dd>
-        <dt>Layers</dt>
-        <dd id="rhino-layers">-</dd>
-        <dt>Objects</dt>
-        <dd id="rhino-objects">-</dd>
-        <dt>Last rebuild</dt>
-        <dd id="rhino-rebuild">-</dd>
+        <dt>Connection</dt><dd id="rh-conn">Unknown</dd>
+        <dt>Objects</dt><dd id="rh-obj">-</dd>
+        <dt>Layers</dt><dd id="rh-lay">-</dd>
+        <dt>Bounds</dt><dd id="rh-bb">-</dd>
+        <dt>Last rebuild</dt><dd id="rh-time">-</dd>
       </dl>
-      <div style="margin-top:0.75rem">
-        <button class="qe-btn" id="rhino-refresh" aria-label="Refresh Rhino status">Refresh</button>
-        <button class="qe-btn" id="rhino-zoom" aria-label="Zoom to fit in Rhino">Zoom Fit</button>
+      <div style="margin-top:0.5rem">
+        <button class="btn" id="btn-refresh">Refresh</button>
+        <button class="btn" id="btn-zoom">Zoom Fit</button>
       </div>
+    </div>
+    <div class="tab-panel" role="tabpanel" id="tab-layers">
+      <div id="layer-list"><p>Press Refresh to load.</p></div>
+    </div>
+    <div class="tab-panel" role="tabpanel" id="tab-scripts">
+      <div id="script-list"><p>No scripts loaded.</p></div>
+    </div>
+    <div class="tab-panel" role="tabpanel" id="tab-session">
+      <div id="session-log"><p>No session log.</p></div>
     </div>
   </div>
 </section>
@@ -330,446 +212,138 @@ caption { text-align: left; font-weight: 600; color: #a0c4ff; padding: 0.25rem 0
 (function() {
   "use strict";
 
-  // ── Element refs ──
-  var termOutput = document.getElementById("terminal-output");
-  var termInput = document.getElementById("terminal-input");
-  var termMode = document.getElementById("terminal-mode");
-  var dotServer = document.getElementById("dot-server");
-  var lblServer = document.getElementById("lbl-server");
-  var dotRhino = document.getElementById("dot-rhino");
-  var lblRhino = document.getElementById("lbl-rhino");
-  var rhinoConn = document.getElementById("rhino-conn");
-  var rhinoLayers = document.getElementById("rhino-layers");
-  var rhinoObjects = document.getElementById("rhino-objects");
-  var rhinoRebuild = document.getElementById("rhino-rebuild");
+  var termLog = document.getElementById("term-log");
+  var termInput = document.getElementById("term-input");
+  var dotSrv = document.getElementById("dot-srv");
+  var lblSrv = document.getElementById("lbl-srv");
+  var dotRh = document.getElementById("dot-rh");
+  var lblRh = document.getElementById("lbl-rh");
 
-  // ── State cache ──
-  var stateCache = null;
-  var lastStateFetch = 0;
-
-  // ── History ──
   var cmdHistory = [];
-  var historyIdx = -1;
+  var histIdx = -1;
 
-  // ═══════════════════════════════════════════════════════
-  // Terminal
-  // ═══════════════════════════════════════════════════════
-
-  function termPrint(text, cls) {
-    var div = document.createElement("div");
-    div.className = "term-line" + (cls ? " " + cls : "");
-    div.textContent = text;
-    termOutput.appendChild(div);
-    termOutput.scrollTop = termOutput.scrollHeight;
+  function print(text, cls) {
+    var d = document.createElement("div");
+    d.className = cls || "";
+    d.textContent = text;
+    termLog.appendChild(d);
+    termLog.scrollTop = termLog.scrollHeight;
   }
 
-  function classifyOutput(text) {
+  function classify(text) {
     if (!text) return "";
-    if (text.startsWith("OK:")) return "term-ok";
-    if (text.startsWith("ERROR:")) return "term-error";
-    if (text.startsWith("PLAN:")) return "term-plan";
-    if (text.startsWith("VERIFY:")) return "term-verify";
-    if (text.startsWith("MILESTONE:")) return "term-milestone";
-    return "term-info";
+    if (text.startsWith("OK:")) return "t-ok";
+    if (text.startsWith("ERROR:") || text.startsWith("OFFLINE:")) return "t-err";
+    return "t-info";
   }
 
-  // ── Input routing ──
-  function routeInput(raw) {
-    var text = raw.trim();
-    if (!text) return;
-
-    cmdHistory.push(text);
-    historyIdx = cmdHistory.length;
-    termPrint("> " + text, "term-input");
-
-    var prefix = text.charAt(0);
-
-    if (prefix === "@") {
-      // Claude AI request
-      termMode.textContent = "claude";
-      sendToChannel(text.substring(1).trim(), "claude");
-    } else if (prefix === "!") {
-      // Skill invocation
-      termMode.textContent = "skill";
-      sendToChannel("Run skill: " + text.substring(1).trim(), "skill");
-    } else if (prefix === "?") {
-      // Query (read-only)
-      termMode.textContent = "query";
-      sendToChannel("Query (read-only): " + text.substring(1).trim(), "query");
-    } else if (prefix === "/") {
-      // Harness command
-      termMode.textContent = "harness";
-      handleHarnessCommand(text.substring(1).trim());
-    } else {
-      // Direct CLI command
-      termMode.textContent = "direct";
-      sendToChannel(text, "direct");
-    }
-  }
-
-  function sendToChannel(text, mode) {
-    fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Sender": "local" },
-      body: JSON.stringify({ text: text, sender: mode || "local" })
-    }).catch(function() {
-      termPrint("ERROR: Failed to send message", "term-error");
-    });
-  }
-
-  function handleHarnessCommand(cmd) {
-    var parts = cmd.split(/\s+/);
-    var action = parts[0];
-
-    if (action === "status") {
-      termPrint("Fetching harness status...", "term-info");
-      sendToChannel("Call read_progress and print the session briefing.", "harness");
-    } else if (action === "eval" || action === "evaluate") {
-      termPrint("Running design evaluation...", "term-info");
-      sendToChannel("Call evaluate_design and present results.", "harness");
-    } else if (action === "intent") {
-      termPrint("Showing design intent...", "term-info");
-      sendToChannel("Read and display design-intent.md.", "harness");
-    } else if (action === "milestone") {
-      var name = parts.slice(1).join(" ") || "checkpoint";
-      termPrint("Recording milestone: " + name, "term-info");
-      sendToChannel("Call progress_update with milestone '" + name + "'.", "harness");
-    } else if (action === "help") {
-      termPrint("Harness commands:", "term-info");
-      termPrint("  /status    — session briefing", "term-info");
-      termPrint("  /eval      — run design evaluation", "term-info");
-      termPrint("  /intent    — show design intent", "term-info");
-      termPrint("  /milestone — record a milestone", "term-info");
-      termPrint("  /help      — this help", "term-info");
-      termPrint("Input routing:", "term-info");
-      termPrint("  bare text  — direct CLI command", "term-info");
-      termPrint("  @message   — ask Claude AI", "term-info");
-      termPrint("  !skill     — run a saved skill", "term-info");
-      termPrint("  ?query     — read-only query", "term-info");
-    } else {
-      termPrint("Unknown harness command: " + action + ". Try /help", "term-error");
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // Data Inspector — Tabs
-  // ═══════════════════════════════════════════════════════
-
-  var tabBtns = document.querySelectorAll(".tab-btn");
-  var tabPanels = document.querySelectorAll(".tab-panel");
-
-  function switchTab(tabId) {
-    for (var i = 0; i < tabBtns.length; i++) {
-      var btn = tabBtns[i];
-      var panel = document.getElementById(btn.getAttribute("aria-controls"));
-      if (btn.getAttribute("aria-controls") === tabId) {
-        btn.setAttribute("aria-selected", "true");
-        panel.classList.add("active");
-      } else {
-        btn.setAttribute("aria-selected", "false");
-        panel.classList.remove("active");
-      }
-    }
-  }
-
-  for (var ti = 0; ti < tabBtns.length; ti++) {
-    tabBtns[ti].addEventListener("click", function() {
-      switchTab(this.getAttribute("aria-controls"));
-    });
-  }
-
-  // ── Render state into tabs ──
-  function renderState(state) {
-    if (!state) return;
-    stateCache = state;
-    renderSummary(state);
-    renderBays(state);
-    renderApertures(state);
-    renderRooms(state);
-  }
-
-  function renderSummary(s) {
-    var bays = s.bays || {};
-    var bayNames = Object.keys(bays).sort();
-    var rooms = s.rooms || {};
-    var zones = s.zones || {};
-    var totalDoors = 0, totalWindows = 0;
-    for (var b in bays) {
-      var aps = bays[b].apertures || [];
-      for (var a = 0; a < aps.length; a++) {
-        if (aps[a].type === "door") totalDoors++;
-        else if (aps[a].type === "window") totalWindows++;
-      }
-    }
-    var corridorCount = 0;
-    for (var bc in bays) {
-      if (bays[bc].corridor && bays[bc].corridor.enabled) corridorCount++;
-    }
-
-    var html = "<dl>";
-    html += "<dt>Schema</dt><dd>" + esc(s.schema || "unknown") + "</dd>";
-    html += "<dt>Bays</dt><dd>" + bayNames.length + (bayNames.length ? " (" + bayNames.join(", ") + ")" : "") + "</dd>";
-    html += "<dt>Doors</dt><dd>" + totalDoors + "</dd>";
-    html += "<dt>Windows</dt><dd>" + totalWindows + "</dd>";
-    html += "<dt>Corridors</dt><dd>" + corridorCount + " enabled</dd>";
-    html += "<dt>Rooms</dt><dd>" + Object.keys(rooms).length + "</dd>";
-    html += "<dt>Zones</dt><dd>" + Object.keys(zones).length + "</dd>";
-    html += "</dl>";
-
-    // Quick actions
-    html += '<div style="margin-top:0.5rem">';
-    html += '<button class="qe-btn" onclick="prefill(\'describe\')">Describe</button> ';
-    html += '<button class="qe-btn" onclick="prefill(\'audit\')">Audit</button> ';
-    html += '<button class="qe-btn" onclick="prefill(\'@evaluate my design\')">Evaluate</button>';
-    html += '</div>';
-
-    document.getElementById("tab-summary").innerHTML = html;
-  }
-
-  function renderBays(s) {
-    var bays = s.bays || {};
-    var names = Object.keys(bays).sort();
-    if (names.length === 0) {
-      document.getElementById("tab-bays").innerHTML = "<p>No bays defined.</p>";
-      return;
-    }
-    var html = '<table><caption>Bay Overview</caption>';
-    html += '<thead><tr><th>Bay</th><th>Grid</th><th>Spacing</th><th>Walls</th><th>Corridor</th><th>Apertures</th><th></th></tr></thead><tbody>';
-    for (var i = 0; i < names.length; i++) {
-      var n = names[i];
-      var b = bays[n];
-      var grid = (b.grid_x || 0) + "x" + (b.grid_y || 0);
-      var sp = (b.spacing_x || 0) + "x" + (b.spacing_y || 0);
-      var walls = b.walls && b.walls.enabled ? "ON" : "off";
-      var cor = b.corridor && b.corridor.enabled ? "ON" : "off";
-      var apCount = (b.apertures || []).length;
-      html += '<tr><td>' + esc(n) + '</td><td>' + grid + '</td><td>' + sp + '</td>';
-      html += '<td>' + walls + '</td><td>' + cor + '</td><td>' + apCount + '</td>';
-      html += '<td><button class="qe-btn" onclick="prefill(\'describe bay ' + esc(n) + '\')">Details</button></td>';
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-    document.getElementById("tab-bays").innerHTML = html;
-  }
-
-  function renderApertures(s) {
-    var bays = s.bays || {};
-    var rows = [];
-    for (var bn in bays) {
-      var aps = bays[bn].apertures || [];
-      for (var a = 0; a < aps.length; a++) {
-        rows.push({ bay: bn, ap: aps[a] });
-      }
-    }
-    if (rows.length === 0) {
-      document.getElementById("tab-apertures").innerHTML = "<p>No apertures defined.</p>";
-      return;
-    }
-    var html = '<table><caption>All Apertures</caption>';
-    html += '<thead><tr><th>Bay</th><th>ID</th><th>Type</th><th>Width</th><th>Height</th><th>Location</th></tr></thead><tbody>';
-    for (var r = 0; r < rows.length; r++) {
-      var ap = rows[r].ap;
-      var loc = ap.axis + "-" + ap.gridline + " corner " + ap.corner;
-      html += '<tr><td>' + esc(rows[r].bay) + '</td><td>' + esc(ap.id) + '</td>';
-      html += '<td>' + esc(ap.type) + '</td><td>' + ap.width + '</td><td>' + ap.height + '</td>';
-      html += '<td>' + esc(loc) + '</td></tr>';
-    }
-    html += '</tbody></table>';
-    document.getElementById("tab-apertures").innerHTML = html;
-  }
-
-  function renderRooms(s) {
-    var rooms = s.rooms || {};
-    var names = Object.keys(rooms).sort();
-    if (names.length === 0) {
-      document.getElementById("tab-rooms").innerHTML = "<p>No rooms defined.</p>";
-      return;
-    }
-    var html = '<table><caption>Rooms</caption>';
-    html += '<thead><tr><th>Name</th><th>Bay</th><th>Cells</th><th>Hatch</th></tr></thead><tbody>';
-    for (var i = 0; i < names.length; i++) {
-      var rm = rooms[names[i]];
-      html += '<tr><td>' + esc(names[i]) + '</td><td>' + esc(rm.bay || "?") + '</td>';
-      html += '<td>' + (rm.cells || []).length + '</td><td>' + esc(rm.hatch || "-") + '</td></tr>';
-    }
-    html += '</tbody></table>';
-    document.getElementById("tab-rooms").innerHTML = html;
-  }
-
-  function renderAudit(text) {
-    var lines = text.split("\n");
-    var html = "<dl>";
-    for (var i = 0; i < lines.length; i++) {
-      var l = lines[i].trim();
-      if (!l) continue;
-      if (l.startsWith("OK:") || l.startsWith("Bay ") || l.startsWith("Site") || l.startsWith("Zones")) {
-        html += "<dt>" + esc(l) + "</dt>";
-      } else {
-        html += "<dd>" + esc(l) + "</dd>";
-      }
-    }
-    html += "</dl>";
-    document.getElementById("tab-audit").innerHTML = html;
-  }
-
-  function renderHarness(data) {
-    var html = "<dl>";
-    if (data.lastMilestone) {
-      html += "<dt>Last Milestone</dt><dd>" + esc(data.lastMilestone) + "</dd>";
-    }
-    if (data.evalScore !== null && data.evalScore !== undefined) {
-      html += "<dt>Eval Score</dt><dd>" + data.evalScore + "/5</dd>";
-    }
-    if (data.criteria) {
-      for (var c in data.criteria) {
-        var cr = data.criteria[c];
-        html += "<dt>" + esc(c) + "</dt><dd>" + cr.score + "/5 — " + esc(cr.notes) + "</dd>";
-      }
-    }
-    html += "</dl>";
-    html += '<div style="margin-top:0.5rem">';
-    html += '<button class="qe-btn" onclick="prefill(\'/status\')">Status</button> ';
-    html += '<button class="qe-btn" onclick="prefill(\'/eval\')">Evaluate</button> ';
-    html += '<button class="qe-btn" onclick="prefill(\'/intent\')">Intent</button>';
-    html += '</div>';
-    document.getElementById("tab-harness").innerHTML = html;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // SSE connection
-  // ═══════════════════════════════════════════════════════
-
+  // SSE
   function connectSSE() {
-    var source = new EventSource("/events");
-    source.onopen = function() {
-      dotServer.className = "status-dot on";
-      lblServer.textContent = "Server: on";
+    var src = new EventSource("/events");
+    src.onopen = function() {
+      dotSrv.className = "dot on";
+      lblSrv.textContent = "Server: on";
     };
-    source.onerror = function() {
-      dotServer.className = "status-dot off";
-      lblServer.textContent = "Server: off";
+    src.onerror = function() {
+      dotSrv.className = "dot off";
+      lblSrv.textContent = "Server: off";
     };
-    source.onmessage = function(event) {
+    src.onmessage = function(e) {
       var data;
-      try { data = JSON.parse(event.data); } catch(e) { return; }
-
+      try { data = JSON.parse(e.data); } catch(x) { return; }
       if (data.type === "reply") {
         var lines = (data.text || "").split("\n");
         for (var i = 0; i < lines.length; i++) {
-          termPrint(lines[i], classifyOutput(lines[i]));
+          print(lines[i], classify(lines[i]));
         }
-        // If it looks like audit output, also update audit tab
-        if (data.text && data.text.indexOf("audit") >= 0) {
-          renderAudit(data.text);
+        if (data.text && data.text.indexOf("ONLINE") >= 0) {
+          dotRh.className = "dot on";
+          lblRh.textContent = "Rhino: on";
         }
       } else if (data.type === "permission") {
-        addPermissionPrompt(data.request_id, data.tool_name, data.description);
+        addPermission(data.request_id, data.tool_name, data.description);
       } else if (data.type === "inventory") {
-        // Legacy support for model navigator
-        updateRhinoFromInventory(data.objects || []);
-      } else if (data.type === "state_update") {
-        renderState(data.state);
-      } else if (data.type === "rhino_status") {
-        updateRhinoStatus(data);
-      } else if (data.type === "harness_update") {
-        renderHarness(data);
+        renderLayers(data.objects || []);
       }
     };
   }
 
-  function addPermissionPrompt(requestId, toolName, description) {
-    var div = document.createElement("div");
-    div.className = "permission-prompt";
-    div.innerHTML = '<span>Allow ' + esc(toolName) + '? ' + esc(description) + ' </span>' +
-      '<button onclick="respondPermission(\'' + esc(requestId) + '\',\'allow\',this)">Allow</button>' +
-      '<button onclick="respondPermission(\'' + esc(requestId) + '\',\'deny\',this)">Deny</button>';
-    termOutput.appendChild(div);
-    termOutput.scrollTop = termOutput.scrollHeight;
+  function addPermission(rid, tool, desc) {
+    var d = document.createElement("div");
+    d.style.cssText = "border:1px solid #d4a017;padding:0.4rem;margin:0.2rem 0;background:#2a1a00;color:#ffd666;border-radius:3px;";
+    d.innerHTML = esc(tool) + ": " + esc(desc) + " " +
+      '<button class="btn" onclick="perm(\'' + esc(rid) + '\',\'allow\',this)">Allow</button>' +
+      '<button class="btn" onclick="perm(\'' + esc(rid) + '\',\'deny\',this)">Deny</button>';
+    termLog.appendChild(d);
+    termLog.scrollTop = termLog.scrollHeight;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // State polling
-  // ═══════════════════════════════════════════════════════
-
-  function fetchState() {
-    fetch("/state").then(function(res) {
-      if (!res.ok) return;
-      return res.json();
-    }).then(function(data) {
-      if (data && data.state) renderState(data.state);
-      if (data && data.harness) renderHarness(data.harness);
-    }).catch(function() {});
-  }
-
-  // Poll state every 3 seconds
-  setInterval(fetchState, 3000);
-
-  // ═══════════════════════════════════════════════════════
-  // Rhino pane
-  // ═══════════════════════════════════════════════════════
-
-  function updateRhinoStatus(data) {
-    if (data.connected) {
-      dotRhino.className = "status-dot on";
-      lblRhino.textContent = "Rhino: on";
-      rhinoConn.textContent = "Connected";
-    } else {
-      dotRhino.className = "status-dot off";
-      lblRhino.textContent = "Rhino: off";
-      rhinoConn.textContent = "Not connected";
-    }
-    if (data.layers) rhinoLayers.textContent = data.layers;
-    if (data.objects !== undefined) rhinoObjects.textContent = data.objects + " objects";
-    if (data.last_rebuild) rhinoRebuild.textContent = data.last_rebuild;
-  }
-
-  function updateRhinoFromInventory(objects) {
-    var count = objects.length;
-    var layerSet = {};
-    for (var i = 0; i < objects.length; i++) {
-      var l = objects[i].layer || "Default";
-      layerSet[l] = (layerSet[l] || 0) + 1;
-    }
-    rhinoObjects.textContent = count + " objects";
-    var layerText = Object.keys(layerSet).map(function(l) {
-      return l + " (" + layerSet[l] + ")";
-    }).join(", ");
-    rhinoLayers.textContent = layerText || "-";
-    dotRhino.className = "status-dot on";
-    lblRhino.textContent = "Rhino: on";
-    rhinoConn.textContent = "Connected (" + count + " objects)";
-  }
-
-  function refreshRhino() {
-    termPrint("Refreshing Rhino status...", "term-info");
-    sendToChannel("Check rhinomcp status. Call get_document_info and report layer count and object count.", "query");
-  }
-
-  function zoomFitRhino() {
-    sendToChannel("In Rhino, run ZoomExtents to fit all objects in the viewport.", "direct");
-  }
-
-  document.getElementById("rhino-refresh").addEventListener("click", refreshRhino);
-  document.getElementById("rhino-zoom").addEventListener("click", zoomFitRhino);
-
-  // ═══════════════════════════════════════════════════════
-  // Global helpers
-  // ═══════════════════════════════════════════════════════
-
-  window.prefill = function(text) {
-    termInput.value = text;
-    termInput.focus();
-  };
-
-  window.respondPermission = function(requestId, behavior, btn) {
+  window.perm = function(rid, behavior, btn) {
     fetch("/permission", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Sender": "local" },
-      body: JSON.stringify({ request_id: requestId, behavior: behavior })
-    }).catch(function() {});
-    var parent = btn.parentElement;
-    if (parent) parent.innerHTML = '<span>' + (behavior === "allow" ? "Allowed" : "Denied") + '</span>';
+      headers: {"Content-Type": "application/json", "X-Sender": "local"},
+      body: JSON.stringify({request_id: rid, behavior: behavior})
+    }).catch(function(){});
+    btn.parentElement.innerHTML = behavior === "allow" ? "Allowed" : "Denied";
   };
+
+  function send(text) {
+    text = text.trim();
+    if (!text) return;
+    cmdHistory.push(text);
+    histIdx = cmdHistory.length;
+    print("> " + text, "t-in");
+    fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-Sender": "local"},
+      body: JSON.stringify({text: text, sender: "local"})
+    }).catch(function() { print("ERROR: Send failed", "t-err"); });
+  }
+
+  // Tabs
+  var tabs = document.querySelectorAll(".tab-btn");
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].addEventListener("click", function() {
+      var id = this.getAttribute("aria-controls");
+      for (var j = 0; j < tabs.length; j++) {
+        tabs[j].setAttribute("aria-selected", "false");
+        document.getElementById(tabs[j].getAttribute("aria-controls")).classList.remove("active");
+      }
+      this.setAttribute("aria-selected", "true");
+      document.getElementById(id).classList.add("active");
+    });
+  }
+
+  document.getElementById("btn-refresh").addEventListener("click", function() {
+    send("Check Rhino status. Call rhino_status, rhino_layers, and rhino_bounds. Report results.");
+  });
+  document.getElementById("btn-zoom").addEventListener("click", function() {
+    send("Run ZoomExtents in Rhino.");
+  });
+
+  function renderLayers(objects) {
+    if (!objects.length) {
+      document.getElementById("layer-list").innerHTML = "<p>No objects.</p>";
+      return;
+    }
+    var map = {};
+    for (var i = 0; i < objects.length; i++) {
+      var l = objects[i].layer || "Default";
+      map[l] = (map[l] || 0) + 1;
+    }
+    var html = "<table><tr><th>Layer</th><th>Objects</th></tr>";
+    var keys = Object.keys(map).sort();
+    for (var k = 0; k < keys.length; k++) {
+      html += "<tr><td>" + esc(keys[k]) + "</td><td>" + map[keys[k]] + "</td></tr>";
+    }
+    html += "</table>";
+    document.getElementById("layer-list").innerHTML = html;
+    document.getElementById("rh-obj").textContent = objects.length + " objects";
+    document.getElementById("rh-lay").textContent = keys.length + " layers";
+    dotRh.className = "dot on";
+    lblRh.textContent = "Rhino: on";
+    document.getElementById("rh-conn").textContent = "Connected";
+  }
 
   function esc(s) {
     var d = document.createElement("div");
@@ -777,60 +351,20 @@ caption { text-align: left; font-weight: 600; color: #a0c4ff; padding: 0.25rem 0
     return d.innerHTML;
   }
 
-  // ═══════════════════════════════════════════════════════
-  // Event listeners
-  // ═══════════════════════════════════════════════════════
-
   termInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      routeInput(termInput.value);
-      termInput.value = "";
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (historyIdx > 0) {
-        historyIdx--;
-        termInput.value = cmdHistory[historyIdx];
-      }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (historyIdx < cmdHistory.length - 1) {
-        historyIdx++;
-        termInput.value = cmdHistory[historyIdx];
-      } else {
-        historyIdx = cmdHistory.length;
-        termInput.value = "";
-      }
-    }
+    if (e.key === "Enter") { e.preventDefault(); send(termInput.value); termInput.value = ""; }
+    else if (e.key === "ArrowUp") { e.preventDefault(); if (histIdx > 0) { histIdx--; termInput.value = cmdHistory[histIdx]; } }
+    else if (e.key === "ArrowDown") { e.preventDefault(); if (histIdx < cmdHistory.length - 1) { histIdx++; termInput.value = cmdHistory[histIdx]; } else { histIdx = cmdHistory.length; termInput.value = ""; } }
   });
 
-  // Update route badge as user types
-  termInput.addEventListener("input", function() {
-    var v = termInput.value;
-    if (v.startsWith("@")) termMode.textContent = "claude";
-    else if (v.startsWith("!")) termMode.textContent = "skill";
-    else if (v.startsWith("?")) termMode.textContent = "query";
-    else if (v.startsWith("/")) termMode.textContent = "harness";
-    else termMode.textContent = "direct";
-  });
-
-  // Keyboard shortcuts
   document.addEventListener("keydown", function(e) {
     if (e.altKey && e.key === "1") { e.preventDefault(); termInput.focus(); }
-    if (e.altKey && e.key === "2") { e.preventDefault(); document.getElementById("btn-summary").focus(); }
-    if (e.altKey && e.key === "3") { e.preventDefault(); document.getElementById("rhino-refresh").focus(); }
+    if (e.altKey && e.key === "2") { e.preventDefault(); document.getElementById("btn-rhino").focus(); }
   });
 
-  // ═══════════════════════════════════════════════════════
-  // Init
-  // ═══════════════════════════════════════════════════════
-
   connectSSE();
-  fetchState();
-  termPrint("Rhino Automation Harness ready.", "term-ok");
-  termPrint("Type /help for command reference.", "term-info");
+  print("Rhino Harness ready. Type a message to start.", "t-ok");
 })();
 </script>
-
 </body>
 </html>

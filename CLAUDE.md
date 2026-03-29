@@ -1,387 +1,164 @@
-# CLAUDE.md — Radical Accessibility Project
+# CLAUDE.md — Rhino Automation Harness
 
-## Taxonomy (use these terms consistently)
+## What This Is
 
-- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
-- **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
-- **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
-- **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a skill: templates replace state, skills replay commands on existing state.
-- **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
+A Claude Code harness for driving Rhino 3D. Claude connects to a watcher process inside Rhino via TCP, executes IronPython scripts, queries model state, and manages reusable scripts and session logs.
 
-When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module. "Template" never means a command sequence.
+The harness is the MCP server at `harness/mcp_server.py`. It is self-contained — no other MCP servers or project-specific tools are required.
 
 ---
 
-## First-Time Setup
+## Setup
 
-If `controller/state.json` does not exist, this is a fresh clone. Run:
-
-    python setup.py
-
-This installs all dependencies (mcp, tact, easyocr), creates `.mcp.json`,
-and initializes `state.json`. The MCP servers will be available immediately
-after setup completes.
-
-No API keys needed — MCP servers run through the Claude Code subscription.
-
----
-
-## Core Principles (do not violate)
-
-### Accessibility-First IO
-- All CLI output must be screen-reader-friendly: short labeled lines, predictable ordering, no dense blocks, no wide tables, no ASCII art.
-- Every command prints a single-line summary of what changed. Silence after a command means something broke.
-- No visual dependencies. Never require the user to look at a screen, inspect a viewport, or click a GUI dialog. If information exists only visually, it's inaccessible and broken.
-- Text is the universal interface. Commands are typed or spoken. Responses are printed or spoken. Everything passes through text.
-
-### Controller / Viewer Separation
-- The CLI controller is authoritative for model intent.
-- Rhino is a **consumer** — it renders and exports, never the source of truth.
-- Rhino must not require UI interaction for core modeling flows.
-
-### Crash-Only Viewer
-- Rhino may crash at any time. The model must remain consistent and recoverable from disk state alone.
-- The user's work lives in the JSON file, not in Rhino's memory. If Rhino crashes, nothing is lost. Restart Rhino, run the watcher, everything rebuilds.
-
-### Determinism and Auditability
-- Same inputs → same `state.json` → same geometry (within tolerance).
-- All mutations produce printed confirmation. Undo is accomplished via the CLI undo stack (and optionally Git history of `state.json`).
-
-### Semantic Over Geometric
-- Describe *what things are* ("bay A", "north corridor", "entry column"), not just coordinates. The JSON state is semantic; the watcher translates to geometry. Maintain this separation.
-- Prefer IDs + names over spatial descriptions unless explicitly requested.
-
-### Physical-Digital Round-Trip
-- Tactile input (pegboard, swell paper, 3D prints) must digitize cleanly. Digital output must physicalize cleanly. The loop must be bidirectional and lossless at the semantic level.
+1. Install the MCP dependency: `pip install mcp`
+2. Add to `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "rhino-harness": {
+      "command": "python3",
+      "args": ["harness/mcp_server.py"]
+    }
+  }
+}
+```
+3. In Rhino, run the watcher: `tools/rhino/rhino_watcher.py`
+4. Verify: call `rhino_status` — should report ONLINE.
 
 ---
 
-## Screen Reader Rules
+## MCP Tools
 
-- Never use progress spinners, animated output, or streaming indicators.
-- Keep responses under 20 lines when possible; offer "more" for longer output.
-- When asking questions, always number options and restate the question clearly.
-- Prefix every response with OK: or ERROR: for quick parsing.
-- No tables, no multi-column layouts, no decorative separators (no box-drawing characters).
-- After completing a command, print READY: so the screen reader detects the state change.
-- Use NVDA with Console Toolkit add-on for best results; run in cmd.exe, not Windows Terminal.
-- For Claude Code headless mode: use `claude -p "prompt" --output-format text` to avoid streaming.
+### Connection
+- `rhino_status` — Check if Rhino is reachable, get object/layer counts.
+- `rhino_connect(host, port)` — Change connection target (default 127.0.0.1:1998).
+
+### Query
+- `rhino_layers` — List layers and object counts.
+- `rhino_objects(layer)` — Object count, optionally by layer.
+- `rhino_bounds` — Bounding box of all geometry.
+
+### Execute
+- `rhino_run(code)` — Run IronPython code in Rhino, return printed output.
+- `rhino_command(command)` — Run a Rhino command-line string.
+
+### Scripts
+- `script_save(name, code, description)` — Save a reusable IronPython script.
+- `script_list` — List saved scripts.
+- `script_show(name)` — Show script contents.
+- `script_run(name)` — Execute a saved script in Rhino.
+- `script_delete(name)` — Delete a script.
+
+### Session
+- `session_log(entry, tag)` — Log a note or milestone.
+- `session_read(last)` — Read recent log entries.
+- `session_clear` — Start a fresh session log.
+- `session_export` — Dump the full session log.
+
+---
+
+## IronPython 2.7 Rules
+
+All code that runs inside Rhino uses IronPython 2.7. Follow these rules:
+
+- **No f-strings** — use `.format()` or `%` formatting.
+- **No pathlib** — use `os.path`.
+- `import rhinoscriptsyntax as rs` at the top of every script.
+- All coordinates are `[x, y, z]` lists.
+- All angles in degrees.
+- `rs.EnableRedraw(False)` before bulk operations, `rs.EnableRedraw(True)` after.
+
+---
+
+## RhinoScript Quick Reference
+
+### Object Creation
+- `rs.AddPoint(x, y, z)` — point
+- `rs.AddLine([x1,y1,z1], [x2,y2,z2])` — line
+- `rs.AddPolyline([[x1,y1,z1], ...])` — polyline (close by repeating first point)
+- `rs.AddCircle([cx,cy,cz], radius)` — circle
+- `rs.AddRectangle(rs.WorldXYPlane(), width, height)` — rectangle
+- `rs.AddSphere([cx,cy,cz], radius)` — sphere
+- `rs.AddBox([corners_8_points])` — box
+- `rs.AddCylinder([base], height, radius)` — cylinder
+- `rs.AddSrfPt([[p1],[p2],[p3],[p4]])` — surface from points
+- `rs.AddPlanarSrf([curve_id])` — planar surface from closed curve
+- `rs.AddLoftSrf([curve1, curve2, ...])` — loft
+- `rs.ExtrudeCurveStraight(curve, [start], [end])` — extrusion
+- `rs.AddText("text", [x,y,z], height)` — text
+- `rs.AddHatch(curve_id, "Solid")` — hatch
+
+### Query
+- `rs.ObjectName(guid)` / `rs.ObjectName(guid, "name")` — get/set name
+- `rs.ObjectLayer(guid)` / `rs.ObjectLayer(guid, "layer")` — get/set layer
+- `rs.ObjectType(guid)` — type code (1=point, 4=curve, 8=surface, 16=polysurface, 32=mesh)
+- `rs.ObjectsByLayer("layer")` — all objects on a layer
+- `rs.BoundingBox(guid)` — 8-point bounding box
+- `rs.CurveLength(id)` — curve length
+- `rs.SurfaceArea(id)` — (area, error)
+- `rs.IsObject(guid)` / `rs.IsCurve(guid)` / `rs.IsSurface(guid)` — type checks
+
+### Transform
+- `rs.MoveObject(guid, [dx,dy,dz])` — move
+- `rs.RotateObject(guid, [cx,cy,cz], angle)` — rotate in XY
+- `rs.ScaleObject(guid, [cx,cy,cz], [sx,sy,sz])` — scale
+- `rs.CopyObject(guid, [dx,dy,dz])` — copy
+- `rs.MirrorObject(guid, [start], [end])` — mirror
+- `rs.DeleteObject(guid)` / `rs.DeleteObjects([guids])` — delete
+
+### Layers
+- `rs.AddLayer("name")` — create layer
+- `rs.DeleteLayer("name")` — delete layer
+- `rs.CurrentLayer()` / `rs.CurrentLayer("name")` — get/set current
+- `rs.LayerVisible("name", True/False)` — visibility
+
+### Metadata
+- `rs.SetUserText(guid, "key", "value")` — set metadata
+- `rs.GetUserText(guid, "key")` — get metadata
+- `rs.GetUserText(guid)` — list all keys
+
+### View
+- `rs.ZoomExtents()` — fit all
+- `rs.Redraw()` — force refresh
+- `rs.EnableRedraw(True/False)` — batch mode
+
+### Booleans
+- `rs.BooleanUnion([guid1, guid2])` — union
+- `rs.BooleanDifference([a], [b])` — difference
+- `rs.BooleanIntersection([a], [b])` — intersection
+- `rs.OffsetCurve(curve, [direction], distance)` — offset
+
+---
+
+## Harness Protocol
+
+### Plan-Execute-Verify
+
+Every non-trivial Rhino operation follows three phases:
+
+1. **Plan** — State what you intend to do and why.
+2. **Execute** — Run the script or commands. One step at a time.
+3. **Verify** — Query Rhino to confirm the change took effect.
+
+### Session Discipline
+
+- Log milestones with `session_log("completed X", tag="milestone")`.
+- Before destructive operations, state what will change.
+- Save reusable operations as scripts with `script_save`.
+- At session end, `session_log` a summary.
+
+### Script Conventions
+
+- Name scripts with lowercase-hyphen: `draw-grid`, `place-columns`, `export-view`.
+- Include a description when saving.
+- Scripts should be self-contained (import rhinoscriptsyntax at the top).
+- Use `rs.EnableRedraw(False/True)` to wrap bulk geometry creation.
 
 ---
 
 ## Code Conventions
 
-### CLI Side (Python 3)
-- **PEP 8** baseline.
-- Command dispatch via `dict` mapping strings to handler functions.
-- Undo via `copy.deepcopy(state)` stored in a stack before each mutation.
-- All file writes through `_atomic_write(path, text)` — write `.tmp`, fsync, then `os.replace`.
-- All user-facing output through `print()` with `OK:` / `ERROR:` prefixes.
-- `--state` flag for custom state file path; default is same-folder.
-- `--verbose` / `-v` flags where appropriate.
-- `--json` flag for machine-readable output (supplements, never replaces, human output).
-- Schema migration on load: detect old schemas, add new fields with defaults, never break old files.
-- **Zero external dependencies** in `controller/`. Python stdlib only. No pip installs, no conda environments.
-- **Exception:** `tools/tact/` and `mcp/` are allowed pip dependencies. The controller itself stays stdlib-only.
-
-### Watcher Side (IronPython 2.7)
-- Use `rhinoscriptsyntax as rs` for all geometry.
-- Hook `Rhino.RhinoApp.Idle += on_idle` for file watching.
-- Check `os.path.getmtime()` to detect changes.
-- Full rebuild on change (correctness > speed). If incremental rebuild is added later, it must be layer-scoped and deterministic.
-- Tag all created objects with `JIG_OWNER`, `JIG_ID`, `JIG_SCHEMA` UserText.
-- Print status to Rhino command line: `"[ToolName] Rebuilt: 42 columns."`.
-- **No f-strings** — IronPython 2.7 doesn't support them. Use `.format()`.
-- **No pathlib** — use `os.path` throughout.
-- **No writing to state.json** — watcher is read-only on the CMA.
-
-### JSON State Files
-- Always include `"schema"` and `"meta"` at top level.
-- Stable IDs for all addressable objects.
-- Human-readable: 2-space indent on write.
-- Descriptive `snake_case` keys.
-
-### Naming Conventions
-- Files: `snake_case.py`
-- Classes: `PascalCase`
-- Functions/methods: `snake_case`
-- Constants: `UPPER_SNAKE_CASE`
-- CLI commands: short lowercase words, space-separated (`set bay A rotation 30`)
-- JSON keys: `snake_case`
-- Tool folders: `kebab-case`
-- Rhino layers: `JIG::<Category>` (PascalCase category)
-- Git branches: plain English words only, no random IDs (see below)
-
-### Git Branch Names
-
-Branch names must be speakable and understandable when read aloud by a screen reader or dictated via voice recognition. Random suffixes, hex strings, and cryptic abbreviations are banned.
-
-**Format:** `author/action-topic`
-
-- `author` — first name or GitHub username, lowercase.
-- `action` — what the branch does: `add`, `fix`, `update`, `remove`, `refactor`.
-- `topic` — plain words describing the change, separated by hyphens.
-
-**Good examples:**
-- `john/add-tactile-export`
-- `ethan/fix-watcher-crash-on-empty-state`
-- `claude/update-screen-reader-hooks`
-- `claude/add-bay-rotation-command`
-
-**Bad examples (do not use):**
-- `claude/fix-stuff-eW35T` — random suffix is not speakable.
-- `feature/JIRA-4821-impl` — ticket numbers are not self-describing.
-- `dev-2a9f3b` — hex gibberish.
-- `wip` — says nothing about intent.
-
-**Rules:**
-1. Every word in the branch name must be a real English word or a project term from the Taxonomy section.
-2. No random character suffixes, UUIDs, hex fragments, or session IDs.
-3. Keep it under 6 words after the author prefix.
-4. A person hearing the branch name once should be able to repeat it back.
-5. When Claude creates branches, it must follow this convention and never append generated IDs.
-
----
-
-## Controller Extensions
-
-The Layout Jig controller (`controller/controller_cli.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
-
-## Student Extensions (Ethan Anderson)
-
-The following tools extend the project with advanced tactile conversion, accessible Rhino design, and screen reader integration.
-
-### TACT -- Tactile Conversion CLI (tools/tact/)
-
-Converts architectural images to PIAF-ready tactile PDFs with EasyOCR text detection, RainbowTact color-to-tactile patterns, 10 presets, auto-scaling, and abbreviation keys. Grade 2 Braille output via liblouis. Also renders state.json directly to tactile PDF via `tact render`.
-
-Key commands:
-- `tact convert IMAGE --preset NAME --verbose` -- convert one image
-- `tact convert IMAGE --detect-text --braille-grade 2 --verbose` -- with Braille
-- `tact render STATE.json --output OUTPUT.pdf` -- render state.json to tactile PDF
-- `tact presets` -- show available presets
-
-Install: `pip install -e tools/tact`
-
-MCP server: `python tools/tact/mcp_entry.py` (7 MCP functions: image_to_piaf, list_presets, analyze_image, describe_image, extract_text_with_vision, assess_tactile_quality, state_to_piaf)
-
-### TASC -- Tactile Architecture Scripting Console (tools/tasc/)
-
-Accessible programmatic Rhino design via text commands. Complementary to the Layout Jig -- TASC focuses on site planning (zones, bays, corridors) with live MCP socket connection to Rhino.
-
-Key commands:
-- `tasc site W D` -- site boundary
-- `tasc zone NAME W D --at X,Y` -- program zone
-- `tasc bay NAME NxN --spacing SX SY --at X,Y` -- structural bay
-- `tasc describe` -- full text description
-- `tasc export piaf|3dm|text` -- export
-
-Install: `pip install -e tools/tact && pip install -e tools/tasc` (tasc depends on tact)
-
-## Screen Reader Integration
-
-### acclaude -- Accessible Claude Client (tools/accessible-client/)
-
-JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations.
-
-Requires: Node.js 18+, npx tsx
-
-### Screen Reader Hooks (tools/screen-reader-hooks/)
-
-Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: ImageDetector (auto-detect architectural images), ConversionTracker (record conversion settings), FeedbackCapture (capture student ratings).
-
----
-
-## RhinoScript Quick Reference (IronPython 2.7)
-
-Use this reference FIRST before calling `get_rhinoscript_docs`. Only look up docs for functions not listed here.
-
-### Object Creation
-- `rs.AddPoint(x, y, z)` → guid
-- `rs.AddLine([x1,y1,z1], [x2,y2,z2])` → guid
-- `rs.AddPolyline([[x1,y1,z1], [x2,y2,z2], ...])` → guid (close by repeating first point)
-- `rs.AddCircle([cx,cy,cz], radius)` → guid
-- `rs.AddArc3Pt([x1,y1,z1], [x2,y2,z2], [x3,y3,z3])` → guid
-- `rs.AddRectangle(rs.WorldXYPlane(), width, height)` → guid
-- `rs.AddSphere([cx,cy,cz], radius)` → guid
-- `rs.AddBox([corners_8_points])` → guid
-- `rs.AddCylinder([base_x,base_y,base_z], height, radius)` → guid (or use center+axis form)
-- `rs.AddSrfPt([[p1],[p2],[p3],[p4]])` → guid (surface from 3-4 points)
-- `rs.AddPlanarSrf([curve_id])` → [guid] (planar surface from closed curve)
-- `rs.AddLoftSrf([curve_id_1, curve_id_2, ...])` → [guid]
-- `rs.ExtrudeCurveStraight(curve_id, [start], [end])` → guid
-- `rs.AddText("text", [x,y,z], height)` → guid
-- `rs.AddHatch(curve_id, "Solid")` → guid (hatch patterns: Solid, Grid, Hatch1, etc.)
-
-### Object Queries
-- `rs.ObjectName(guid)` → string (get name)
-- `rs.ObjectName(guid, "new_name")` → sets name
-- `rs.ObjectLayer(guid)` → string (get layer)
-- `rs.ObjectLayer(guid, "layer_name")` → sets layer
-- `rs.ObjectType(guid)` → int (1=point, 4=curve, 8=surface, 16=polysurface, 32=mesh, 131072=hatch, 262144=extrusion)
-- `rs.ObjectsByLayer("layer_name")` → [guid, ...]
-- `rs.BoundingBox(guid)` → [8 points] (corners of axis-aligned box; [0]=min, [6]=max)
-- `rs.CurveLength(curve_id)` → float
-- `rs.SurfaceArea(surface_id)` → (area, error_bound)
-- `rs.IsObject(guid)` → bool
-- `rs.IsCurve(guid)` → bool
-- `rs.IsSurface(guid)` → bool
-
-### Object Transforms
-- `rs.MoveObject(guid, [dx,dy,dz])` → guid
-- `rs.MoveObjects([guid,...], [dx,dy,dz])` → count
-- `rs.RotateObject(guid, [cx,cy,cz], angle_degrees)` → guid (rotates in XY plane)
-- `rs.RotateObject(guid, [cx,cy,cz], angle, [axis_x,axis_y,axis_z])` → guid (3D axis)
-- `rs.ScaleObject(guid, [cx,cy,cz], [sx,sy,sz])` → guid
-- `rs.CopyObject(guid, [dx,dy,dz])` → new_guid
-- `rs.MirrorObject(guid, [start_pt], [end_pt])` → new_guid
-- `rs.DeleteObject(guid)` → bool
-- `rs.DeleteObjects([guid,...])` → count
-
-### Layers
-- `rs.AddLayer("name")` → string
-- `rs.DeleteLayer("name")` → bool
-- `rs.CurrentLayer()` → string
-- `rs.CurrentLayer("name")` → sets current
-- `rs.IsLayer("name")` → bool
-- `rs.LayerVisible("name", True/False)` → sets visibility
-
-### UserText (metadata on objects)
-- `rs.SetUserText(guid, "key", "value")` → sets
-- `rs.GetUserText(guid, "key")` → string
-- `rs.GetUserText(guid)` → [key, ...] (all keys)
-
-### Selection
-- `rs.SelectedObjects()` → [guid, ...]
-- `rs.SelectObject(guid)` → guid
-- `rs.UnselectAllObjects()` → count
-
-### View
-- `rs.ZoomExtents()` → zooms to fit all
-- `rs.ZoomBoundingBox(bbox)` → zooms to box
-- `rs.Redraw()` → forces viewport refresh
-- `rs.EnableRedraw(True/False)` → batch mode
-
-### Booleans & Advanced
-- `rs.BooleanUnion([guid1, guid2])` → [guid]
-- `rs.BooleanDifference([guid_a], [guid_b])` → [guid]
-- `rs.BooleanIntersection([guid_a], [guid_b])` → [guid]
-- `rs.OffsetCurve(curve_id, [direction_pt], distance)` → [guid]
-- `rs.TrimCurve(curve_id, [domain_start, domain_end])` → guid
-- `rs.SplitBrep(brep_id, cutter_id)` → [guid, ...]
-- `rs.ProjectCurveToSurface([curve], [surface], [direction])` → [guid]
-
-### Important Notes
-- IronPython 2.7: use `.format()` not f-strings
-- All coordinates are `[x, y, z]` lists
-- All angles in degrees (not radians) for rs functions
-- `rs.WorldXYPlane()` returns the XY construction plane at origin
-- Many functions accept either a single guid or a list
-- Use `import rhinoscriptsyntax as rs` at the top of every script
-
----
-
-## Agent Harness
-
-The harness is the orchestration layer that keeps Claude on track during design sessions. It uses structured artifacts, behavioral constraints, and adversarial evaluation to prevent rushing, context loss, and self-congratulatory reviews. Follow these rules during any session involving layout-jig or tactile MCP functions.
-
-### Session Start Protocol
-
-At the start of every design session, before doing anything else:
-1. Call `read_progress` to load design intent, recent milestones, and evaluation results.
-2. Call `describe` for current model state.
-3. Print a 3-line briefing:
-   `RESUME: [project name]. Last milestone: [name].`
-   `Current state: [N bays, N doors, N rooms].`
-   `Next: [what design-intent.md says is next].`
-
-If no design-intent.md exists, ask Daniel what he wants to build and create one via `update_intent`.
-
-### Plan-Execute-Verify Cycle
-
-Every design action follows three phases:
-
-1. **PLAN** — State what you intend to do and why. Reference design-intent.md.
-   Print: `PLAN: [what] because [why]. Expected outcome: [outcome].`
-2. **EXECUTE** — Make MCP calls. One logical step at a time.
-   After each state-modifying MCP call, call `describe` to confirm the change.
-3. **VERIFY** — Run `audit_model` after structural changes. Compare result to plan.
-   Print: `VERIFY: [pass/fail]. [summary of what auditor found].`
-   If fail: state what went wrong, propose fix, ask Daniel before proceeding.
-
-### One-Step-at-a-Time Constraint
-
-- Never make more than 3 state-modifying MCP calls without printing a status update.
-- Never modify more than one bay in a single response without confirming with Daniel.
-- If a task requires more than 10 MCP calls, break it into milestones and confirm the plan with Daniel before starting.
-
-### Milestone Discipline
-
-After completing a logical unit of work (a bay fully configured, a corridor connected, all doors placed), do three things:
-1. Call `progress_update` with a descriptive milestone name and summary.
-2. Print: `MILESTONE: [name]. [1-line summary]. Snapshot saved.`
-
-Before declaring any milestone complete, ask these 5 questions and print honest answers:
-1. Does this meet the dimensional requirements in design-intent.md?
-2. Would the auditor flag any ADA violations?
-3. Are all elements semantically named (not just "Bay A cell 0,0")?
-4. If rendered to tactile PDF at project scale, would labels overlap?
-5. Could Daniel describe this to a sighted collaborator from the text output alone?
-
-If any answer is "no" or "uncertain", fix it before marking the milestone.
-
-### Adversarial Evaluation
-
-When Daniel says "evaluate" or "review my design", call `evaluate_design`. This scores the design on 5 criteria (accessibility, program fit, circulation, tactile readability, semantic completeness) and writes results to eval-results.json. Present findings as numbered issues by severity. Do not praise the work — focus on problems and actionable fixes.
-
-For deeper review, use the `adversarial_review` MCP prompt, which reframes you as a skeptical reviewer with specific grading criteria.
-
-### Clean Handoff Discipline
-
-If the session is ending (context getting long, Daniel says goodbye, or switching topics):
-1. Call `progress_update` with current status.
-2. Update design-intent.md status checkboxes via `update_intent`.
-3. Print: `HANDOFF: Saved [snapshot]. Progress updated. Next session can resume from [milestone].`
-
-### Announce-Before-Destroy Rule
-
-Before any destructive operation (`remove_bay`, `remove_aperture`, `remove_zone`, `load_snapshot`, `template_load`), state what will be lost in plain text. Wait for confirmation unless Daniel explicitly said "replace" or "delete".
-
-### Design Modes
-
-Recognize three working modes based on context. State the active mode when switching.
-
-- **Design mode** (default): Creating or modifying geometry. Use layout-jig MCP functions. Follow Plan-Execute-Verify. Suggest skills/templates that match the task.
-- **Review mode**: Auditing or comparing. Use `audit_model`, `describe_bay`, `describe_circulation`, `measure`, `diff_snapshot`, `evaluate_design`. Never modify state unless explicitly asked.
-- **Export mode**: Producing output. Use `export_model`, `view_plan`, `view_section`, tactile MCP functions. Confirm format and destination before generating.
-
-### MCP Function Groups (for discoverability)
-
-When Daniel asks "what can I do with X?", reference these groups:
-
-- **Bay management**: add_bay, remove_bay, clone_bay, set_bay, list_bays, describe_bay
-- **Walls**: set_walls
-- **Corridors**: set_corridor, auto_corridor_cells, describe_circulation
-- **Apertures**: add_aperture, remove_aperture, modify_aperture
-- **Rooms and cells**: set_cell, room commands
-- **Site and zones**: set_site, add_zone, remove_zone, list_zones, set_grid, clear_grid
-- **Audit**: audit_model, audit_bay, measure, validate_state
-- **Description**: describe, describe_bay, describe_circulation, get_state, get_field
-- **Snapshots**: save_snapshot, load_snapshot, diff_snapshot
-- **Skills and templates**: skill_list, skill_run, skill_save, template_list, template_load
-- **Harness**: read_progress, progress_update, evaluate_design, update_intent
-- **Views**: view_plan, view_section, view_axon, view_elevation
-- **Style**: style_use, style_show, style_set, style_save, style_list
-- **Export**: export_model
-- **Rhino**: rhino_status, rhino_query, rhino_run_script
-- **Tactile** (tactile server): image_to_piaf, state_to_piaf, list_presets
-
-### Workflow Patterns
-
-**New design**: update_intent → template_load or manual setup → add bays → walls/corridors → apertures → name rooms → audit → snapshot → export
-
-**Iteration**: describe → modify → describe → compare with diff_snapshot
-
-**Tactile output**: snapshot → style_use presentation → state_to_piaf → check quality → style_use working
-
-**Teaching**: show_command_source to explain → generate_script with teaching comments → explain line by line → let Daniel modify
+- Python files: PEP 8, snake_case.
+- IronPython scripts: `.format()` strings, `os.path`, no f-strings.
+- JSON: 2-space indent, snake_case keys.
+- Git branches: `author/action-topic` (e.g. `claude/add-grid-script`).

@@ -1,19 +1,8 @@
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "mcp__layout-jig__remove_bay|mcp__layout-jig__remove_zone|mcp__layout-jig__remove_aperture|mcp__layout-jig__template_load|mcp__layout-jig__load_snapshot",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 harness/hooks/snapshot_guard.py"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
-        "matcher": "mcp__layout-jig__set_bay|mcp__layout-jig__set_walls|mcp__layout-jig__set_corridor|mcp__layout-jig__set_site|mcp__layout-jig__set_cell|mcp__layout-jig__set_field|mcp__layout-jig__set_grid|mcp__layout-jig__add_bay|mcp__layout-jig__add_aperture|mcp__layout-jig__add_zone|mcp__layout-jig__remove_bay|mcp__layout-jig__remove_aperture|mcp__layout-jig__remove_zone|mcp__layout-jig__clone_bay|mcp__layout-jig__skill_run|mcp__layout-jig__template_load|mcp__layout-jig__run_command",
+        "matcher": "mcp__rhino-harness",
         "hooks": [
           {
             "type": "command",
