@@ -1,0 +1,11 @@
+{
+  "name": "full-design-review",
+  "description": "Snapshot the current state, run audit, evaluate against design intent, and describe the model. Use after completing a major design phase.",
+  "commands": [
+    "snapshot save review-{timestamp}",
+    "audit",
+    "describe"
+  ],
+  "params": {},
+  "notes": "After running, also call evaluate_design for scored assessment."
+}

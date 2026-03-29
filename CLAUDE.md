@@ -278,3 +278,110 @@ Use this reference FIRST before calling `get_rhinoscript_docs`. Only look up doc
 - `rs.WorldXYPlane()` returns the XY construction plane at origin
 - Many functions accept either a single guid or a list
 - Use `import rhinoscriptsyntax as rs` at the top of every script
+
+---
+
+## Agent Harness
+
+The harness is the orchestration layer that keeps Claude on track during design sessions. It uses structured artifacts, behavioral constraints, and adversarial evaluation to prevent rushing, context loss, and self-congratulatory reviews. Follow these rules during any session involving layout-jig or tactile MCP functions.
+
+### Session Start Protocol
+
+At the start of every design session, before doing anything else:
+1. Call `read_progress` to load design intent, recent milestones, and evaluation results.
+2. Call `describe` for current model state.
+3. Print a 3-line briefing:
+   `RESUME: [project name]. Last milestone: [name].`
+   `Current state: [N bays, N doors, N rooms].`
+   `Next: [what design-intent.md says is next].`
+
+If no design-intent.md exists, ask Daniel what he wants to build and create one via `update_intent`.
+
+### Plan-Execute-Verify Cycle
+
+Every design action follows three phases:
+
+1. **PLAN** — State what you intend to do and why. Reference design-intent.md.
+   Print: `PLAN: [what] because [why]. Expected outcome: [outcome].`
+2. **EXECUTE** — Make MCP calls. One logical step at a time.
+   After each state-modifying MCP call, call `describe` to confirm the change.
+3. **VERIFY** — Run `audit_model` after structural changes. Compare result to plan.
+   Print: `VERIFY: [pass/fail]. [summary of what auditor found].`
+   If fail: state what went wrong, propose fix, ask Daniel before proceeding.
+
+### One-Step-at-a-Time Constraint
+
+- Never make more than 3 state-modifying MCP calls without printing a status update.
+- Never modify more than one bay in a single response without confirming with Daniel.
+- If a task requires more than 10 MCP calls, break it into milestones and confirm the plan with Daniel before starting.
+
+### Milestone Discipline
+
+After completing a logical unit of work (a bay fully configured, a corridor connected, all doors placed), do three things:
+1. Call `progress_update` with a descriptive milestone name and summary.
+2. Print: `MILESTONE: [name]. [1-line summary]. Snapshot saved.`
+
+Before declaring any milestone complete, ask these 5 questions and print honest answers:
+1. Does this meet the dimensional requirements in design-intent.md?
+2. Would the auditor flag any ADA violations?
+3. Are all elements semantically named (not just "Bay A cell 0,0")?
+4. If rendered to tactile PDF at project scale, would labels overlap?
+5. Could Daniel describe this to a sighted collaborator from the text output alone?
+
+If any answer is "no" or "uncertain", fix it before marking the milestone.
+
+### Adversarial Evaluation
+
+When Daniel says "evaluate" or "review my design", call `evaluate_design`. This scores the design on 5 criteria (accessibility, program fit, circulation, tactile readability, semantic completeness) and writes results to eval-results.json. Present findings as numbered issues by severity. Do not praise the work — focus on problems and actionable fixes.
+
+For deeper review, use the `adversarial_review` MCP prompt, which reframes you as a skeptical reviewer with specific grading criteria.
+
+### Clean Handoff Discipline
+
+If the session is ending (context getting long, Daniel says goodbye, or switching topics):
+1. Call `progress_update` with current status.
+2. Update design-intent.md status checkboxes via `update_intent`.
+3. Print: `HANDOFF: Saved [snapshot]. Progress updated. Next session can resume from [milestone].`
+
+### Announce-Before-Destroy Rule
+
+Before any destructive operation (`remove_bay`, `remove_aperture`, `remove_zone`, `load_snapshot`, `template_load`), state what will be lost in plain text. Wait for confirmation unless Daniel explicitly said "replace" or "delete".
+
+### Design Modes
+
+Recognize three working modes based on context. State the active mode when switching.
+
+- **Design mode** (default): Creating or modifying geometry. Use layout-jig MCP functions. Follow Plan-Execute-Verify. Suggest skills/templates that match the task.
+- **Review mode**: Auditing or comparing. Use `audit_model`, `describe_bay`, `describe_circulation`, `measure`, `diff_snapshot`, `evaluate_design`. Never modify state unless explicitly asked.
+- **Export mode**: Producing output. Use `export_model`, `view_plan`, `view_section`, tactile MCP functions. Confirm format and destination before generating.
+
+### MCP Function Groups (for discoverability)
+
+When Daniel asks "what can I do with X?", reference these groups:
+
+- **Bay management**: add_bay, remove_bay, clone_bay, set_bay, list_bays, describe_bay
+- **Walls**: set_walls
+- **Corridors**: set_corridor, auto_corridor_cells, describe_circulation
+- **Apertures**: add_aperture, remove_aperture, modify_aperture
+- **Rooms and cells**: set_cell, room commands
+- **Site and zones**: set_site, add_zone, remove_zone, list_zones, set_grid, clear_grid
+- **Audit**: audit_model, audit_bay, measure, validate_state
+- **Description**: describe, describe_bay, describe_circulation, get_state, get_field
+- **Snapshots**: save_snapshot, load_snapshot, diff_snapshot
+- **Skills and templates**: skill_list, skill_run, skill_save, template_list, template_load
+- **Harness**: read_progress, progress_update, evaluate_design, update_intent
+- **Views**: view_plan, view_section, view_axon, view_elevation
+- **Style**: style_use, style_show, style_set, style_save, style_list
+- **Export**: export_model
+- **Rhino**: rhino_status, rhino_query, rhino_run_script
+- **Tactile** (tactile server): image_to_piaf, state_to_piaf, list_presets
+
+### Workflow Patterns
+
+**New design**: update_intent → template_load or manual setup → add bays → walls/corridors → apertures → name rooms → audit → snapshot → export
+
+**Iteration**: describe → modify → describe → compare with diff_snapshot
+
+**Tactile output**: snapshot → style_use presentation → state_to_piaf → check quality → style_use working
+
+**Teaching**: show_command_source to explain → generate_script with teaching comments → explain line by line → let Daniel modify

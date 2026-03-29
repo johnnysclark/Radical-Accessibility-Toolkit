@@ -22,6 +22,12 @@ import { cleanText } from "./text-cleaner";
 const __dirname = dirname(new URL(import.meta.url).pathname);
 const INDEX_HTML_PATH = resolve(__dirname, "index.html");
 
+// Controller paths for state reading
+const PROJECT_ROOT = resolve(__dirname, "..", "..");
+const STATE_JSON_PATH = resolve(PROJECT_ROOT, "controller", "state.json");
+const PROGRESS_PATH = resolve(PROJECT_ROOT, "controller", "progress.jsonl");
+const EVAL_PATH = resolve(PROJECT_ROOT, "controller", "eval-results.json");
+
 // ---------------------------------------------------------------------------
 // SSE client management
 // ---------------------------------------------------------------------------
@@ -442,6 +448,50 @@ Bun.serve({
 
       return new Response(JSON.stringify({ ok: true }), {
         headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /state — return current state.json + harness metadata
+    // -----------------------------------------------------------------------
+    if (method === "GET" && url.pathname === "/state") {
+      let state: any = null;
+      let harness: any = { lastMilestone: null, evalScore: null, criteria: null };
+
+      try {
+        const raw = readFileSync(STATE_JSON_PATH, "utf-8");
+        state = JSON.parse(raw);
+      } catch {
+        // state.json not found or invalid
+      }
+
+      // Read last milestone from progress.jsonl
+      try {
+        const progRaw = readFileSync(PROGRESS_PATH, "utf-8");
+        const lines = progRaw.trim().split("\n").filter((l: string) => l.trim());
+        if (lines.length > 0) {
+          const last = JSON.parse(lines[lines.length - 1]);
+          harness.lastMilestone = last.milestone || null;
+        }
+      } catch {
+        // no progress file
+      }
+
+      // Read eval results
+      try {
+        const evalRaw = readFileSync(EVAL_PATH, "utf-8");
+        const ev = JSON.parse(evalRaw);
+        harness.evalScore = ev.overall_score ?? null;
+        harness.criteria = ev.criteria ?? null;
+      } catch {
+        // no eval file
+      }
+
+      return new Response(JSON.stringify({ state, harness }), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       });
     }
 

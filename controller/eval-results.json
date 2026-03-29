@@ -1,0 +1,13 @@
+{
+  "timestamp": null,
+  "overall_score": null,
+  "criteria": {
+    "accessibility": {"score": null, "notes": ""},
+    "program_fit": {"score": null, "notes": ""},
+    "circulation": {"score": null, "notes": ""},
+    "tactile_readability": {"score": null, "notes": ""},
+    "semantic_completeness": {"score": null, "notes": ""}
+  },
+  "issues": [],
+  "recommendations": []
+}
