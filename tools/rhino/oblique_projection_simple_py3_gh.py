@@ -181,7 +181,11 @@ if geo_tree is not None and not geo_tree.IsEmpty:
 
 if len(tagged) == 0:
     a = []
-    info = "No geometry connected."
+    # DEBUG: discover the actual output parameter names
+    out_names = []
+    for i, p in enumerate(ghenv.Component.Params.Output):
+        out_names.append(f"Output[{i}]: Name='{p.Name}' NickName='{p.NickName}'")
+    info = "No geo. OUTPUTS: " + " | ".join(out_names)
 else:
     # -- bounding box center as pivot --
     all_pts = []
@@ -257,4 +261,9 @@ else:
     parts.append(f"{total} objects ({type_str})")
     parts.append(f"{len(input_paths)} branches [{counts}]")
     parts.append(f"Make2D: {view} view")
+    # DEBUG: show output parameter names so we can match variable names
+    out_names = []
+    for i, p in enumerate(ghenv.Component.Params.Output):
+        out_names.append(f"Out[{i}]:Name='{p.Name}',Nick='{p.NickName}'")
+    parts.append("OUTPUTS: " + " ".join(out_names))
     info = " | ".join(parts)
