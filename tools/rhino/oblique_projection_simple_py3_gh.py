@@ -40,7 +40,7 @@ import System
 import Rhino
 import Rhino.Geometry as rg
 from Grasshopper.Kernel.Data import GH_Path
-from Grasshopper.Kernel.Types import IGH_Goo
+from Grasshopper.Kernel.Types import IGH_Goo, GH_Brep, GH_Curve, GH_Surface, GH_Mesh
 
 
 def unwrap_goo(item: object) -> object:
@@ -182,19 +182,27 @@ if geo_tree is not None and not geo_tree.IsEmpty:
                     if path not in input_paths:
                         input_paths.append(path)
 
-def _set_output_geo(items, paths=None):
+def _wrap_geo(g):
+    """Wrap raw geometry in the appropriate GH_Goo type so
+    AddVolatileData can serialize it to downstream components."""
+    if isinstance(g, rg.Brep):
+        return GH_Brep(g)
+    if isinstance(g, rg.Curve):
+        return GH_Curve(g)
+    if isinstance(g, rg.Surface):
+        return GH_Surface(g)
+    if isinstance(g, rg.Mesh):
+        return GH_Mesh(g)
+    return g
+
+def _set_output_geo(items):
     """Write geometry directly to the first output parameter.
     Bypasses variable assignment which doesn't work reliably
     in the Python 3 Script component."""
     param = ghenv.Component.Params.Output[0]
     param.ClearData()
-    if paths is not None:
-        for item, path in zip(items, paths):
-            idx = param.VolatileData.get_Branch(path).Count if param.VolatileData.PathExists(path) else 0
-            param.AddVolatileData(path, idx, item)
-    else:
-        for i, item in enumerate(items):
-            param.AddVolatileData(GH_Path(0), i, item)
+    for i, item in enumerate(items):
+        param.AddVolatileData(GH_Path(0), i, _wrap_geo(item))
 
 if len(tagged) == 0:
     _set_output_geo([])
