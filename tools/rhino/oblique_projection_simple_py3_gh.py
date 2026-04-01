@@ -13,6 +13,8 @@
 #   - No clr.AddReference() needed; Script component pre-loads assemblies
 #   - from __future__ import annotations required so X | None type hints
 #     don't crash at runtime (pythonnet CLRMetatype has no __or__)
+#   - Python 3 Script component does NOT auto-unwrap IGH_Goo wrappers
+#     (GH_Brep, GH_Guid, etc.) — must call .Value manually
 #
 # INPUTS:
 #   geo      — Tree Access, type hint: GeometryBase  (merged geometry tree)
@@ -34,6 +36,15 @@ import Rhino
 import Rhino.Geometry as rg
 from Grasshopper import DataTree
 from Grasshopper.Kernel.Data import GH_Path
+from Grasshopper.Kernel.Types import IGH_Goo
+
+
+def unwrap_goo(item: object) -> object:
+    """Unwrap IGH_Goo wrappers (GH_Brep, GH_Guid, etc.) to raw values.
+    The Python 3 Script component does not auto-unwrap like GhPython did."""
+    if isinstance(item, IGH_Goo):
+        return item.Value
+    return item
 
 
 def resolve_geo(item: object) -> rg.GeometryBase | None:
@@ -145,7 +156,8 @@ if geo is not None:
         for path in geo.Paths:
             branch = geo.Branch(path)
             for item in branch:
-                for piece in explode_block(item):
+                raw = unwrap_goo(item)
+                for piece in explode_block(raw):
                     resolved = resolve_geo(piece)
                     if resolved is not None:
                         tagged.append((convert_geo(resolved), path))
@@ -156,7 +168,8 @@ if geo is not None:
         fallback_path = GH_Path(0)
         input_paths.append(fallback_path)
         for item in items:
-            for piece in explode_block(item):
+            raw = unwrap_goo(item)
+            for piece in explode_block(raw):
                 resolved = resolve_geo(piece)
                 if resolved is not None:
                     tagged.append((convert_geo(resolved), fallback_path))
