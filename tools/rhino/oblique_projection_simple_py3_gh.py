@@ -36,9 +36,8 @@ import math
 import System
 import Rhino
 import Rhino.Geometry as rg
-from Grasshopper import DataTree
 from Grasshopper.Kernel.Data import GH_Path
-from Grasshopper.Kernel.Types import IGH_Goo, GH_ObjectWrapper
+from Grasshopper.Kernel.Types import IGH_Goo
 
 
 def unwrap_goo(item: object) -> object:
@@ -181,7 +180,7 @@ if geo_tree is not None and not geo_tree.IsEmpty:
                         input_paths.append(path)
 
 if len(tagged) == 0:
-    a = DataTree[object]()
+    a = []
     info = "No geometry connected."
 else:
     # -- bounding box center as pivot --
@@ -214,35 +213,29 @@ else:
     combined = shear_xform * rot_xform
 
     # ========================================================
-    # TRANSFORM COPIES — build output DataTree
+    # TRANSFORM COPIES
     # ========================================================
-    # Use DataTree[object] and wrap geometry in GH_ObjectWrapper.
-    # The Python 3 Script component cannot marshal DataTree[GeometryBase]
-    # to downstream components — wrapping in Goo solves this.
-    out_tree = DataTree[object]()
-    for path in input_paths:
-        out_tree.EnsurePath(path)
+    out_list = []
     total = 0
     branch_counts = {}
     for g, path in tagged:
         copy = g.Duplicate()
         copy.Transform(combined)
-        out_tree.Add(GH_ObjectWrapper(copy), path)
+        out_list.append(copy)
         total += 1
         key = path.ToString()
         branch_counts[key] = branch_counts.get(key, 0) + 1
 
-    a = out_tree
+    a = out_list
 
     # ========================================================
     # INFO
     # ========================================================
     view = "Top" if is_plan else "Front"
     type_counts = {}
-    for path in out_tree.Paths:
-        for g in out_tree.Branch(path):
-            tn = type(g).__name__
-            type_counts[tn] = type_counts.get(tn, 0) + 1
+    for g in out_list:
+        tn = type(g).__name__
+        type_counts[tn] = type_counts.get(tn, 0) + 1
     type_str = ", ".join(f"{v}x{k}" for k, v in type_counts.items())
 
     branch_strs = []
