@@ -15,9 +15,11 @@
 #     don't crash at runtime (pythonnet CLRMetatype has no __or__)
 #   - Python 3 Script component does NOT auto-unwrap IGH_Goo wrappers
 #     (GH_Brep, GH_Guid, etc.) — must call .Value manually
+#   - Tree input read via ghenv.Component.Params.Input[0].VolatileData
+#     so the script works regardless of the access level setting
 #
 # INPUTS:
-#   geo      — Tree Access, type hint: GeometryBase  (merged geometry tree)
+#   geo      — any Access, type hint: goo or GeometryBase  (merged geometry tree)
 #   preset   — Item Access, type hint: int
 #   angle    — Item Access, type hint: float
 #   depth    — Item Access, type hint: float
@@ -41,8 +43,16 @@ from Grasshopper.Kernel.Types import IGH_Goo
 
 def unwrap_goo(item: object) -> object:
     """Unwrap IGH_Goo wrappers (GH_Brep, GH_Guid, etc.) to raw values.
-    The Python 3 Script component does not auto-unwrap like GhPython did."""
+    The Python 3 Script component does not auto-unwrap like GhPython did.
+    For geometry goo types, try ScriptVariable() first — this resolves
+    referenced geometry to actual GeometryBase without needing Objects.Find."""
     if isinstance(item, IGH_Goo):
+        # ScriptVariable() is what GhPython's type-hint unwrapping called
+        # internally — it resolves Guid references to geometry objects.
+        if hasattr(item, 'ScriptVariable'):
+            sv = item.ScriptVariable()
+            if sv is not None:
+                return sv
         return item.Value
     return item
 
@@ -151,49 +161,28 @@ def convert_geo(g: rg.GeometryBase) -> rg.GeometryBase:
 tagged = []
 input_paths = []
 
-if geo is not None:
-    if hasattr(geo, 'Paths'):
-        for path in geo.Paths:
-            branch = geo.Branch(path)
-            for item in branch:
-                raw = unwrap_goo(item)
-                for piece in explode_block(raw):
-                    resolved = resolve_geo(piece)
-                    if resolved is not None:
-                        tagged.append((convert_geo(resolved), path))
-                        if path not in input_paths:
-                            input_paths.append(path)
-    else:
-        items = geo if hasattr(geo, '__iter__') else [geo]
-        fallback_path = GH_Path(0)
-        input_paths.append(fallback_path)
-        for item in items:
-            raw = unwrap_goo(item)
+# Read the geo tree directly from the component parameter.
+# This bypasses the access-level setting (Item/List/Tree) and gives
+# us the raw GH_Structure with all branches and IGH_Goo items.
+geo_tree = ghenv.Component.Params.Input[0].VolatileData
+
+if geo_tree is not None and not geo_tree.IsEmpty:
+    for path in geo_tree.Paths:
+        branch = geo_tree.get_Branch(path)
+        for goo_item in branch:
+            raw = unwrap_goo(goo_item)
+            if raw is None:
+                continue
             for piece in explode_block(raw):
                 resolved = resolve_geo(piece)
                 if resolved is not None:
-                    tagged.append((convert_geo(resolved), fallback_path))
+                    tagged.append((convert_geo(resolved), path))
+                    if path not in input_paths:
+                        input_paths.append(path)
 
 if len(tagged) == 0:
     a = DataTree[rg.GeometryBase]()
-    # Debug: show what geo actually is so we can diagnose the issue
-    dbg = []
-    dbg.append(f"geo is None: {geo is None}")
-    if geo is not None:
-        dbg.append(f"type(geo): {type(geo)}")
-        dbg.append(f"has Paths: {hasattr(geo, 'Paths')}")
-        dbg.append(f"has __iter__: {hasattr(geo, '__iter__')}")
-        dbg.append(f"dir(geo): {[x for x in dir(geo) if not x.startswith('_')][:20]}")
-        if hasattr(geo, 'Paths'):
-            dbg.append(f"Paths count: {geo.Paths.Count if hasattr(geo.Paths, 'Count') else '?'}")
-            for path in geo.Paths:
-                branch = geo.Branch(path)
-                dbg.append(f"  branch {path}: {branch.Count if hasattr(branch, 'Count') else '?'} items")
-                for item in branch:
-                    dbg.append(f"    item type: {type(item)}, value: {item}")
-                    if hasattr(item, 'Value'):
-                        dbg.append(f"    .Value type: {type(item.Value)}")
-    info = "DEBUG | " + " | ".join(dbg)
+    info = "No geometry connected."
 else:
     # -- bounding box center as pivot --
     all_pts = []
