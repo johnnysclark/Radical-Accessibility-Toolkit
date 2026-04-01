@@ -182,8 +182,22 @@ if geo_tree is not None and not geo_tree.IsEmpty:
                     if path not in input_paths:
                         input_paths.append(path)
 
+def _set_output_geo(items, paths=None):
+    """Write geometry directly to the first output parameter.
+    Bypasses variable assignment which doesn't work reliably
+    in the Python 3 Script component."""
+    param = ghenv.Component.Params.Output[0]
+    param.ClearData()
+    if paths is not None:
+        for item, path in zip(items, paths):
+            idx = param.VolatileData.get_Branch(path).Count if param.VolatileData.PathExists(path) else 0
+            param.AddVolatileData(path, idx, item)
+    else:
+        for i, item in enumerate(items):
+            param.AddVolatileData(GH_Path(0), i, item)
+
 if len(tagged) == 0:
-    out = []
+    _set_output_geo([])
     info = "No geometry connected."
 else:
     # -- bounding box center as pivot --
@@ -229,7 +243,7 @@ else:
         key = path.ToString()
         branch_counts[key] = branch_counts.get(key, 0) + 1
 
-    out = out_list
+    _set_output_geo(out_list)
 
     # ========================================================
     # INFO
