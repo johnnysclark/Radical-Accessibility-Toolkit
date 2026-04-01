@@ -16,7 +16,7 @@ import math
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-sys.path.insert(0, os.path.join(ROOT, "tools", "swell-print"))
+sys.path.insert(0, os.path.join(ROOT, "tools", "tact", "src", "tactile_core", "core"))
 sys.path.insert(0, os.path.join(ROOT, "controller"))
 
 
@@ -186,28 +186,29 @@ def main():
 
     # -- Test 2: Import renderer --
     try:
-        import state_renderer
-        test("import state_renderer", lambda: None)
+        from oblique_renderer import render_oblique, density
+        from state_renderer import render as render_plan
+        test("import oblique_renderer", lambda: None)
     except ImportError as e:
-        test("import state_renderer", lambda: "ERROR: {}".format(e))
-        print("\nERROR: Cannot import state_renderer. Install Pillow: pip install Pillow")
+        test("import oblique_renderer", lambda: "ERROR: {}".format(e))
+        print("\nERROR: Cannot import oblique_renderer. Install Pillow: pip install Pillow")
         _summary()
         return
 
     # -- Test 3: render_oblique exists --
     test("render_oblique function exists",
-         lambda: None if hasattr(state_renderer, 'render_oblique') else "ERROR: missing")
+         lambda: None if callable(render_oblique) else "ERROR: missing")
 
     # -- Test 4: Render oblique at 3m cut (10 ft) --
     cut_height_ft = 10.0  # 3 meters
     try:
-        img = state_renderer.render_oblique(state, cut_height=cut_height_ft, dpi=150)
+        img = render_oblique(state, cut_height=cut_height_ft, dpi=150)
         test("render_oblique returns Image",
              lambda: None if hasattr(img, 'mode') else "ERROR: not an image")
         test("render_oblique is mode '1' (B&W)",
              lambda: None if img.mode == '1' else "ERROR: mode={}".format(img.mode))
 
-        d = state_renderer.density(img)
+        d = density(img)
         test("density is numeric",
              lambda: None if isinstance(d, (int, float)) else
              "ERROR: type={}".format(type(d).__name__))
@@ -226,10 +227,10 @@ def main():
 
     # -- Test 5: Different cut heights produce different images --
     try:
-        img_low = state_renderer.render_oblique(state, cut_height=5.0, dpi=72)
-        img_high = state_renderer.render_oblique(state, cut_height=30.0, dpi=72)
-        d_low = state_renderer.density(img_low)
-        d_high = state_renderer.density(img_high)
+        img_low = render_oblique(state, cut_height=5.0, dpi=72)
+        img_high = render_oblique(state, cut_height=30.0, dpi=72)
+        d_low = density(img_low)
+        d_high = density(img_high)
         test("different cut heights produce different densities",
              lambda: None if abs(d_low - d_high) > 0.1 else
              "ERROR: densities too similar ({:.1f} vs {:.1f})".format(d_low, d_high))
@@ -238,10 +239,10 @@ def main():
 
     # -- Test 6: Oblique differs from plain plan --
     try:
-        img_plan = state_renderer.render(state, dpi=72)
-        img_obl = state_renderer.render_oblique(state, cut_height=cut_height_ft, dpi=72)
-        d_plan = state_renderer.density(img_plan)
-        d_obl = state_renderer.density(img_obl)
+        img_plan = render_plan(state, dpi=72)
+        img_obl = render_oblique(state, cut_height=cut_height_ft, dpi=72)
+        d_plan = density(img_plan)
+        d_obl = density(img_obl)
         test("oblique differs from plan (density)",
              lambda: None if abs(d_plan - d_obl) > 0.1 else
              "ERROR: too similar ({:.1f} vs {:.1f})".format(d_plan, d_obl))
@@ -250,7 +251,7 @@ def main():
 
     # -- Test 7: Cabinet oblique (z_scale=0.5) --
     try:
-        img_cab = state_renderer.render_oblique(
+        img_cab = render_oblique(
             state, cut_height=cut_height_ft, z_scale=0.5, dpi=72)
         test("cabinet oblique (z_scale=0.5) renders",
              lambda: None if hasattr(img_cab, 'mode') else "ERROR: not an image")
@@ -259,7 +260,7 @@ def main():
 
     # -- Test 8: High-res render for visual inspection --
     try:
-        img_hires = state_renderer.render_oblique(
+        img_hires = render_oblique(
             state, cut_height=cut_height_ft, dpi=300, paper_size="tabloid")
         out_hires = os.path.join(HERE, "oblique_sonsbeek_hires.png")
         img_hires.save(out_hires, dpi=(300, 300))

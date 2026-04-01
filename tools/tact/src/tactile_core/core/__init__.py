@@ -8,6 +8,7 @@ from tactile_core.core.converter import (
     ConversionResult,
     ConversionError
 )
+from oblique_renderer import ObliqueRenderer, render_oblique
 
 __all__ = [
     "ImageProcessor",
@@ -15,5 +16,7 @@ __all__ = [
     "TactileConverter",
     "ConversionParams",
     "ConversionResult",
-    "ConversionError"
+    "ConversionError",
+    "ObliqueRenderer",
+    "render_oblique",
 ]

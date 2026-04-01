@@ -2668,23 +2668,24 @@ def _view_oblique(state, tokens, sm, out_dir):
     if cut_height is None:
         cut_height = state.get("tactile3d", {}).get("cut_height", 10.0)
 
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
+    _tact_core = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "..", "tools", "tact", "src",
+                              "tactile_core", "core")
+    if os.path.isdir(_tact_core) and _tact_core not in sys.path:
+        sys.path.insert(0, _tact_core)
 
     try:
-        import state_renderer as _sr
+        from oblique_renderer import render_oblique, density
     except ImportError:
-        raise ValueError("swell-print not installed.")
+        raise ValueError("oblique_renderer not found.")
 
     paper = sm.get("layout.paper", "letter")
     dpi = 300
 
-    img = _sr.render_oblique(state, cut_height=cut_height,
-                              z_angle=z_angle, z_scale=z_scale,
-                              dpi=dpi, paper_size=paper,
-                              style_manager=sm)
+    img = render_oblique(state, cut_height=cut_height,
+                         z_angle=z_angle, z_scale=z_scale,
+                         dpi=dpi, paper_size=paper,
+                         style_manager=sm)
 
     suffix = "_cabinet" if z_scale < 1.0 else ""
     out_name = "oblique{}.png".format(suffix)
@@ -2701,7 +2702,7 @@ def _view_oblique(state, tokens, sm, out_dir):
     except ImportError:
         pass
 
-    d = _sr.density(img)
+    d = density(img)
     mode = "military" if z_scale >= 1.0 else "cabinet"
     return state, "OK: Rendered {} ({} oblique, cut at {:.0f} ft, density {:.1f}%)".format(
         out_name, mode, cut_height, d)
