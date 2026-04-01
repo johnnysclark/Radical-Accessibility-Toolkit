@@ -38,7 +38,7 @@ import Rhino
 import Rhino.Geometry as rg
 from Grasshopper import DataTree
 from Grasshopper.Kernel.Data import GH_Path
-from Grasshopper.Kernel.Types import IGH_Goo
+from Grasshopper.Kernel.Types import IGH_Goo, GH_ObjectWrapper
 
 
 def unwrap_goo(item: object) -> object:
@@ -181,7 +181,7 @@ if geo_tree is not None and not geo_tree.IsEmpty:
                         input_paths.append(path)
 
 if len(tagged) == 0:
-    a = DataTree[rg.GeometryBase]()
+    a = DataTree[object]()
     info = "No geometry connected."
 else:
     # -- bounding box center as pivot --
@@ -216,7 +216,10 @@ else:
     # ========================================================
     # TRANSFORM COPIES — build output DataTree
     # ========================================================
-    out_tree = DataTree[rg.GeometryBase]()
+    # Use DataTree[object] and wrap geometry in GH_ObjectWrapper.
+    # The Python 3 Script component cannot marshal DataTree[GeometryBase]
+    # to downstream components — wrapping in Goo solves this.
+    out_tree = DataTree[object]()
     for path in input_paths:
         out_tree.EnsurePath(path)
     total = 0
@@ -224,7 +227,7 @@ else:
     for g, path in tagged:
         copy = g.Duplicate()
         copy.Transform(combined)
-        out_tree.Add(copy, path)
+        out_tree.Add(GH_ObjectWrapper(copy), path)
         total += 1
         key = path.ToString()
         branch_counts[key] = branch_counts.get(key, 0) + 1
