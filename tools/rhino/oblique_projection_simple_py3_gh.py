@@ -11,6 +11,8 @@
 #   - DataTree output works correctly in Rhino 8 SR8+
 #   - .format() calls replaced with f-strings
 #   - No clr.AddReference() needed; Script component pre-loads assemblies
+#   - from __future__ import annotations required so X | None type hints
+#     don't crash at runtime (pythonnet CLRMetatype has no __or__)
 #
 # INPUTS:
 #   geo      — Tree Access, type hint: GeometryBase  (merged geometry tree)
@@ -23,6 +25,8 @@
 # OUTPUTS (rename via right-click):
 #   a    — projected geometry (DataTree — same branches as input)
 #   info — text summary
+
+from __future__ import annotations
 
 import math
 import System
