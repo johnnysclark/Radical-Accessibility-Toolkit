@@ -26,8 +26,11 @@
 #   rotation — Item Access, type hint: float
 #   plan_ob  — Item Access, type hint: bool
 #
-# OUTPUTS (rename via right-click):
-#   a    — projected geometry (DataTree — same branches as input)
+# OUTPUTS:
+#   out  — projected geometry (list — connect to Explode Tree for branches)
+#          The Python 3 Script component names its first output "out" internally.
+#          The NickName shown on the component can be renamed to "a" via right-click,
+#          but the script variable must always be "out".
 #   info — text summary
 
 from __future__ import annotations
@@ -180,12 +183,8 @@ if geo_tree is not None and not geo_tree.IsEmpty:
                         input_paths.append(path)
 
 if len(tagged) == 0:
-    a = []
-    # DEBUG: discover the actual output parameter names
-    out_names = []
-    for i, p in enumerate(ghenv.Component.Params.Output):
-        out_names.append(f"Output[{i}]: Name='{p.Name}' NickName='{p.NickName}'")
-    info = "No geo. OUTPUTS: " + " | ".join(out_names)
+    out = []
+    info = "No geometry connected."
 else:
     # -- bounding box center as pivot --
     all_pts = []
@@ -230,12 +229,7 @@ else:
         key = path.ToString()
         branch_counts[key] = branch_counts.get(key, 0) + 1
 
-    # DEBUG: test what types the 'a' output can actually pass through.
-    # Uncomment ONE of these lines at a time to test:
-    a = f"DEBUG: {total} items, first type={type(out_list[0]).__name__}"  # test: string
-    # a = out_list[0]          # test: single Brep object
-    # a = out_list             # test: Python list of Breps
-    # a = rg.Point3d(0, 0, 0)  # test: single Point3d
+    out = out_list
 
     # ========================================================
     # INFO
@@ -261,9 +255,4 @@ else:
     parts.append(f"{total} objects ({type_str})")
     parts.append(f"{len(input_paths)} branches [{counts}]")
     parts.append(f"Make2D: {view} view")
-    # DEBUG: show output parameter names so we can match variable names
-    out_names = []
-    for i, p in enumerate(ghenv.Component.Params.Output):
-        out_names.append(f"Out[{i}]:Name='{p.Name}',Nick='{p.NickName}'")
-    parts.append("OUTPUTS: " + " ".join(out_names))
     info = " | ".join(parts)
