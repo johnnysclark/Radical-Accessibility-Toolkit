@@ -176,7 +176,24 @@ if geo is not None:
 
 if len(tagged) == 0:
     a = DataTree[rg.GeometryBase]()
-    info = "No geometry connected."
+    # Debug: show what geo actually is so we can diagnose the issue
+    dbg = []
+    dbg.append(f"geo is None: {geo is None}")
+    if geo is not None:
+        dbg.append(f"type(geo): {type(geo)}")
+        dbg.append(f"has Paths: {hasattr(geo, 'Paths')}")
+        dbg.append(f"has __iter__: {hasattr(geo, '__iter__')}")
+        dbg.append(f"dir(geo): {[x for x in dir(geo) if not x.startswith('_')][:20]}")
+        if hasattr(geo, 'Paths'):
+            dbg.append(f"Paths count: {geo.Paths.Count if hasattr(geo.Paths, 'Count') else '?'}")
+            for path in geo.Paths:
+                branch = geo.Branch(path)
+                dbg.append(f"  branch {path}: {branch.Count if hasattr(branch, 'Count') else '?'} items")
+                for item in branch:
+                    dbg.append(f"    item type: {type(item)}, value: {item}")
+                    if hasattr(item, 'Value'):
+                        dbg.append(f"    .Value type: {type(item.Value)}")
+    info = "DEBUG | " + " | ".join(dbg)
 else:
     # -- bounding box center as pivot --
     all_pts = []
