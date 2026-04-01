@@ -226,7 +226,12 @@ else:
         key = path.ToString()
         branch_counts[key] = branch_counts.get(key, 0) + 1
 
-    a = out_list
+    # DEBUG: test what types the 'a' output can actually pass through.
+    # Uncomment ONE of these lines at a time to test:
+    a = f"DEBUG: {total} items, first type={type(out_list[0]).__name__}"  # test: string
+    # a = out_list[0]          # test: single Brep object
+    # a = out_list             # test: Python list of Breps
+    # a = rg.Point3d(0, 0, 0)  # test: single Point3d
 
     # ========================================================
     # INFO
