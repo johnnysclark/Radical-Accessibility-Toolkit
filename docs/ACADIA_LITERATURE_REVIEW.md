@@ -4,7 +4,7 @@
 **Last updated:** 2026-04-04
 **Project:** Radical Accessibility Project (UIUC School of Architecture)
 **PI:** John Clark
-**Sources:** 163 entries across ACADIA, CumInCAD, CHI, ASSETS, NeurIPS, IEEE VIS, and cross-disciplinary foundations
+**Sources:** 176 entries across ACADIA, CumInCAD, CHI, ASSETS, NeurIPS, CVPR, ICML, ICCV, IEEE VIS, and cross-disciplinary foundations
 **ACADIA 2026:** "Humanism Recoded: Reframing Computation and Making through Embodiment and Culture" -- Lawrence Technological University, Southfield MI, October 22--24. Full papers due April 19, 2026.
 
 ---
@@ -639,6 +639,95 @@ These papers represent the rapidly expanding field of using language models to g
 - **Summary:** Proposes ConvoAI, an agentic multimodal LLM integrating behavioral modes and self-iteration for conversational design. Validated in a six-week studio with 11 master's students. Three engagement patterns emerged: Design Partner (problem-space redefinition), Concept Clarifier (visualization + dialogue), Design Assistant (workflow acceleration).
 - **Relevance:** New entrant in conversational AI for architecture. The "Design Partner" mode -- AI reframing design problems through dialogue -- is most relevant to the project's MCP direction. A conversational agent helping Daniel explore design alternatives through text dialogue rather than visual manipulation. The behavioral modes concept (different AI personas for different design phases) could inform how the project structures its MCP integration.
 
+### H.15 Zhang, L., Le, B., Akhtar, N., Lam, S.-K., & Ngo, T. (2025). "Large Language Models for Computer-Aided Design: A Survey."
+- **Venue:** arXiv:2505.08137, May 2025
+- **URL:** https://arxiv.org/abs/2505.08137
+- **GitHub:** https://github.com/lichengzhanguom/LLMs-CAD-Survey-Taxonomy
+- **Summary:** The first systematic survey of LLMs in CAD. Proposes a six-area taxonomy: (1) CAD program generation from text/images, (2) design optimization, (3) manufacturing process planning, (4) design analysis, (5) CAD code completion, and (6) design retrieval. Reviews closed-source (GPT-4, Claude) and open-source models. Identifies spatial reasoning, prompt dependency, and visual verification as persistent challenges.
+- **Relevance:** The definitive survey of the field the project operates in. The six-area taxonomy helps position the project: the CLI is primarily area 1 (CAD program generation from text) but uniquely designed for a blind user. The survey's identification of "visual verification" as a persistent challenge is the exact problem the project solves architecturally -- the CLI does not require visual verification. The project can argue it addresses a fundamental limitation the survey identifies but none of the surveyed systems solve.
+
+### H.16 Li, Y., Ma, X., Li, L., Lou, Y., Zhou, L., & Zhou, Y. (2025). "CAD-Llama: Leveraging Large Language Models for Computer-Aided Design Parametric 3D Model Generation."
+- **Venue:** CVPR 2025 (poster). Fudan University.
+- **URL:** https://arxiv.org/abs/2505.04481
+- **Summary:** Introduces Structured Parametric CAD Code (SPCC) -- a Python-like pseudo-code format that converts CAD command sequences into an LLM-friendly text format via a hierarchical annotation pipeline. Fine-tunes LLMs using this format. Significantly outperforms prior autoregressive methods and LLM baselines for parametric CAD generation.
+- **Relevance:** SPCC is a text format for describing geometry -- functionally similar to the project's JSON state model. Both represent the same insight: geometry is more tractable for language models when expressed as structured text rather than coordinates. The project's CLI commands and JSON state are domain-specific instances of the same pattern CVPR now validates at scale.
+
+### H.17 Wang, R., Yuan, Y., Sun, S., & Bian, J. (2025). "CADFusion: Text-to-CAD Generation Through Infusing Visual Feedback in Large Language Models."
+- **Venue:** ICML 2025. Microsoft Research.
+- **URL:** https://arxiv.org/abs/2501.19054
+- **GitHub:** https://github.com/microsoft/CADFusion
+- **Summary:** Alternates between sequential learning (ground-truth parametric sequences) and visual feedback (reward/penalize based on rendered appearance). Addresses the many-to-one problem: multiple parametric sequences can render to visually similar objects. Visual feedback stage trains the LLM to understand how output will be perceived.
+- **Relevance:** CADFusion's "visual feedback" stage assumes a sighted verification loop -- the LLM learns to generate geometry that *looks* correct. The project's architecture replaces visual feedback with semantic feedback (text descriptions, tactile output, dimensional queries). This is a fundamental divergence: CADFusion optimizes for visual perception; the project optimizes for non-visual comprehension. Both are valid; the project's approach may be more robust since it does not depend on rendering fidelity.
+
+### H.18 Xu, W., et al. (2024/2025). "CAD-MLLM: Unifying Multimodality-Conditioned CAD Generation With MLLM."
+- **Venue:** arXiv:2411.04954 (November 2024); ICCV 2025 submission.
+- **URL:** https://cad-mllm.github.io/
+- **GitHub:** https://github.com/CAD-MLLM/CAD-MLLM
+- **Summary:** First system generating parametric CAD models from multimodal inputs -- text, images, point clouds, or combinations. Introduces Omni-CAD, a 450K-instance multimodal CAD dataset with text descriptions, multi-view images, points, and command sequences for each model. Significantly outperforms existing conditional generative methods.
+- **Relevance:** CAD-MLLM accepts text as one of several input modalities -- demonstrating that text-to-CAD is now a standard capability. The project's CLI-only pathway is a subset of CAD-MLLM's input space, but with a critical advantage: it works without any visual input or output modality. Where CAD-MLLM uses multimodality to improve accuracy, the project uses text-only interaction as a design constraint that produces different (and for blind users, essential) tool properties.
+
+### H.19 Mallis, D., et al. (2025). "CAD-Assistant: Tool-Augmented VLLMs as Generic CAD Task Solvers."
+- **Venue:** ICCV 2025.
+- **URL:** https://cadassistant.github.io/
+- **GitHub:** https://github.com/dimitrismallis/CAD-Assistant
+- **Summary:** General-purpose CAD agent using GPT-4o as a vision-language planner. Generates Python code for FreeCAD, evaluates rendering results, and adapts subsequent actions. Training-free, zero-shot across diverse CAD tasks. Includes sketch parameterizer, rendering modules, and 2D cross-section tools. Outperforms supervised task-specific methods.
+- **Relevance:** CAD-Assistant's agent architecture -- plan, execute, evaluate, adapt -- parallels the project's CLI command-response loop. The critical difference: CAD-Assistant's evaluation step is visual (rendering), while the project's is textual/tactile. The training-free, zero-shot approach suggests that the project's future MCP-based conversational design could work without task-specific fine-tuning.
+
+### H.20 Ocker, F., Menzel, S., Sadik, A., & Rios, T. (2025). "From Idea to CAD: A Language Model-Driven Multi-Agent System for Collaborative Design."
+- **Venue:** arXiv:2503.04417, March 2025
+- **URL:** https://arxiv.org/abs/2503.04417
+- **Summary:** VLM-based multi-agent system with agents for requirements engineering, CAD engineering, and vision-based quality assurance. Generates parametric CAD models from sketches and/or text descriptions. Iterative validation loop with user for refinement.
+- **Relevance:** The multi-agent decomposition (requirements -> modeling -> validation) maps onto a potential evolution of the project's architecture: one agent interprets Daniel's commands, another generates geometry, a third validates through non-visual means (dimensional checks, spatial relationship audits). The collaborative refinement loop is exactly what the CLI already provides -- the "agents" are just the command handlers.
+
+### H.21 Fan, F., et al. (2025). "CADDesigner: Conceptual Design of CAD Models Based on General-Purpose Agent."
+- **Venue:** arXiv:2508.01031, August 2025 (updated December 2025)
+- **URL:** https://arxiv.org/abs/2508.01031
+- **Summary:** LLM-powered agent for CAD conceptual design. Accepts text and sketches, engages in interactive dialogue to refine requirements, generates CAD code via Explicit Context Imperative Paradigm (ECIP), incorporates iterative visual feedback. Stores design cases in a knowledge base for continuous improvement.
+- **Relevance:** The "interactive dialogue to refine requirements" pattern is exactly what the CLI provides -- Daniel types commands, receives feedback, adjusts. CADDesigner formalizes this into an agent architecture. The knowledge base concept (storing past design solutions) parallels the project's skill/template system. Again, visual feedback assumed; the project substitutes textual/tactile feedback.
+
+### H.22 Zhong, X., Li, Y., Fricker, P., & Zhang, X. (2025). "From Automation to Intelligence: An AI Agent for Spatial Reasoning and 3D Co-Design."
+- **Venue:** eCAADe 2025, METU Ankara, pp. 431-440
+- **URL:** https://research.aalto.fi/en/publications/from-automation-to-intelligence-an-ai-agent-for-spatial-reasoning/
+- **Summary:** 3D Co-Design Assistant integrating spatial perception, reasoning, and modeling via an LLM-driven agent framework. Real-time perception-reasoning-action loop enables AI to generate design suggestions and autonomously execute modeling commands. Produces interpretable design logic grounded in structured scene data -- unlike black-box generative models.
+- **Relevance:** The emphasis on *interpretable* design logic -- structured scene data driving transparent decisions -- directly parallels the project's JSON state model and the CLI's deterministic, auditable command-response pattern. The "co-design" framing (human and AI collaborating) aligns with Daniel's relationship to the tools. Pia Fricker's involvement connects to the computational design pedagogy lineage (J.3).
+
+### H.23 Savov, A., Yoo, A., Lin, C.W., & Dillenburger, B. (2025). "Generalist Generative Agent: Open-Ended Design Exploration with Large Language Models."
+- **Venue:** CAADRIA 2025, Tokyo. ETH Zurich Design++.
+- **URL:** https://www.researchgate.net/publication/389961122
+- **Summary:** Multi-agent framework where specialized agents translate conceptual metaphors into structured briefs, generate Python scripts for parametric modeling in Rhino/Grasshopper, and evaluate geometry. Three use cases: conceptual form-finding, programmatic multi-story layout, and facade design. Shows LLMs can engage with unstructured, multi-modal architectural design intent.
+- **Relevance:** The "conceptual metaphor to parametric model" pipeline is the LLM equivalent of the project's "CLI command to JSON state to Rhino geometry" pipeline. Savov's agents translate abstract intent into concrete geometry through text -- exactly what the CLI does for Daniel. The difference: Savov's system generates Grasshopper scripts (visual); the project generates JSON state (text-native). ETH's institutional backing signals the field's direction.
+
+### H.24 Htet Kyaw, A., et al. (2025). "Speech to Reality: On-Demand Production using Natural Language, 3D Generative AI, and Discrete Robotic Assembly."
+- **Venue:** ACM Symposium on Computational Fabrication (SCF '25), MIT, November 2025
+- **URL:** https://arxiv.org/abs/2409.18390
+- **Summary:** End-to-end pipeline from spoken natural language to physical fabricated objects. Speech recognition -> LLM processing -> 3D generative AI -> voxelization -> robotic assembly. Creates furniture (stools, shelves, chairs) in minutes via voice commands. MIT Media Lab.
+- **Relevance:** The most complete speech-to-physical-object pipeline published. Directly validates the project's vision of voice-driven architectural design: a blind user could speak design intent, the system generates geometry, and fabrication produces a tactile model. The project's pipeline is more conservative (text commands -> JSON -> Rhino -> PIAF/3D print) but shares the same speech-to-physical trajectory. Demonstrates that the project's ambitions are technically feasible.
+
+### H.25 Khurana, S., et al. (2025). "From Text to Design: A Framework to Leverage LLM Agents for Automated CAD Generation."
+- **Venue:** Proceedings of the Design Society (ICED25), August 2025
+- **URL:** https://www.cambridge.org/core/journals/proceedings-of-the-design-society/article/from-text-to-design-a-framework-to-leverage-llm-agents-for-automated-cad-generation/5BD8D63CFCED28BDD7A01313162FFBE7
+- **Summary:** Framework for automating CAD geometry generation using LLMs with function calling and agent workflows. Evaluates five LLMs across four agent workflows. Key finding: the agent workflow incorporating automated visual feedback outperforms others, especially with multimodal LLMs like GPT-4o. Case study in topology optimization and additive manufacturing.
+- **Relevance:** Directly comparable to the project's architecture. The "function calling" pattern maps to MCP tool invocation; the "agent workflows" map to the CLI's command dispatch. The finding that visual feedback improves output raises the question: what replaces visual feedback for a blind user? The project's answer -- textual audit commands, dimensional queries, and tactile output -- is an alternative agent workflow that this paper's framework does not consider.
+
+### H.26 Khurana, S., et al. (2025). "Augmented Design Automation: Leveraging Parametric Designs using Large Language Models."
+- **Venue:** Proceedings of the Design Society (ICED25), August 2025
+- **URL:** https://www.cambridge.org/core/journals/proceedings-of-the-design-society/article/augmented-design-automation-leveraging-parametric-designs-using-large-language-models/CFB521C3560A3785CBFB856248BF420A
+- **Summary:** Integrates LLMs with script-driven CAD kernels (CadQuery) for context-sensitive, natural-language-driven parametric design. Experiments on a sandal model demonstrate diverse design variations from abstract prompts. Adds a semantic layer to interpret functional, constructional, and aesthetic user requests.
+- **Relevance:** The "semantic layer" concept -- interpreting natural language intent into CAD operations -- is precisely what the project's CLI provides. The CLI is a hand-crafted semantic layer for architectural design; this paper's approach uses LLMs to generate it automatically. Both validate the principle that natural language should drive parametric geometry.
+
+### H.27 Commercial AI-CAD Tools Ecosystem (2025-2026).
+
+Multiple commercial tools now offer LLM-driven CAD interaction, validating the text-to-geometry paradigm at scale:
+
+- **Ant** (Food4Rhino, February 2026): AI copilot for Grasshopper; translates natural language to node graphs. Understands canvas context. URL: https://blog.rhino3d.com/2026/02/ant-your-ai-copilot-for-grasshopper-new.html
+- **Raven** (UC Berkeley / commercial, 2024-2026): AI assistant for Grasshopper. Text prompts construct parametric workflows. URL: https://www.raven.build/
+- **BIMLOGIQ Copilot** (Autodesk App Store, March 2025): GPT-4-powered natural language automation for Revit. Type text commands, actions execute in Revit. URL: https://bimlogiq.com/copilot/homepage
+- **Glyph Copilot** (EvolveLab, 2024-2026): Text-to-Revit-action via GPT. Automates view creation, dimensioning, tagging. URL: https://www.evolvelab.io/glyph
+- **RhinoMCP** (Jingcheng Chen, open source, March 2025): MCP server connecting Claude to Rhino. Bidirectional AI-Rhino communication. URL: https://github.com/jingcheng-chen/rhinomcp
+- **Grasshopper MCP Servers** (multiple, 2025): At least three independent MCP servers for Grasshopper, including ML-based layout optimization. URLs: https://www.pulsemcp.com/servers/veoery-grasshopper-3d, https://lobehub.com/mcp/dongwoosuk-rhino-grasshopper-mcp
+
+- **Relevance:** The commercial ecosystem confirms a market-wide convergence on text/speech-driven CAD. Every major platform (Rhino, Grasshopper, Revit) now has at least one AI copilot accepting natural language. The project anticipated this direction by necessity; the industry arrived at it by convenience. The critical gap: **none of these tools address screen reader compatibility, non-visual feedback, or blind user workflows.** They all assume a sighted user verifying results visually. The project is the only system in this ecosystem designed for non-visual use. This is the paper's strongest positioning argument.
+
 ---
 
 ## Section I: Accessible Tools, Modeling & Visualization for Blind Users
@@ -1041,6 +1130,23 @@ These entries cover multimodal LLM capabilities for image understanding and the 
 | 155 | Gurari et al., VizWiz Grand Challenge | 2018/2024 | CVPR / ongoing | O |
 | 156 | Inclusion Through Sound (systematic review) | 2025 | AHFE | O |
 | 157 | Microsoft Soundscape (open-sourced) | 2020/2023 | Microsoft Research | O |
+| 158 | Zhang et al., "LLMs for CAD: A Survey" | 2025 | arXiv | H |
+| 159 | Li et al., "CAD-Llama" | 2025 | CVPR | H |
+| 160 | Wang et al., "CADFusion" | 2025 | ICML (Microsoft) | H |
+| 161 | Xu et al., "CAD-MLLM" | 2024/2025 | arXiv / ICCV | H |
+| 162 | Mallis et al., "CAD-Assistant" | 2025 | ICCV | H |
+| 163 | Ocker et al., "From Idea to CAD" | 2025 | arXiv | H |
+| 164 | Fan et al., "CADDesigner" | 2025 | arXiv | H |
+| 165 | Zhong et al., "From Automation to Intelligence" | 2025 | eCAADe | H |
+| 166 | Savov et al., "Generalist Generative Agent" | 2025 | CAADRIA (ETH) | H |
+| 167 | Htet Kyaw et al., "Speech to Reality" | 2025 | ACM SCF (MIT) | H |
+| 168 | Ant (AI copilot for Grasshopper) | 2026 | Food4Rhino | H |
+| 169 | BIMLOGIQ Copilot (AI for Revit) | 2025 | Autodesk App Store | H |
+| 170 | Glyph Copilot (AI for Revit) | 2024-2026 | EvolveLab | H |
+| 171 | RhinoMCP (Claude-Rhino bridge) | 2025 | Open source | H |
+| 172 | Grasshopper MCP Servers (multiple) | 2025 | Open source | H |
+| 173 | Khurana et al., "From Text to Design" | 2025 | ICED25 | H |
+| 174 | Khurana et al., "Augmented Design Automation" | 2025 | ICED25 | H |
 
 | # | Citation | Year | Venue | S |
 |---|---------|------|-------|---|
@@ -1217,9 +1323,29 @@ Blesser & Salter (E.7) define aural architecture and map spatial properties to s
 
 Charlton's "nothing about us without us" (C.2) is the foundational principle. Costanza-Chock (C.15) extends it to design justice. Vermeersch et al. (B.14) apply participatory methods with blind users in architectural design. But no ACADIA or CumInCAD paper describes a computational design tool co-designed with a blind architecture student as a research partner -- not a user study subject recruited for evaluation, but a collaborator who shapes tool requirements, evaluates outputs, identifies spatial relationships sighted developers miss, and uses the tools in graduate studio work. Daniel is not a test subject; he is a co-designer. Every tool exists because he identified a need. The project's methodology is itself a contribution.
 
-### The LLM-to-CAD explosion strengthens positioning
+### The LLM-to-CAD explosion strengthens positioning (updated April 2026)
 
-Between 2022 and 2026, text-to-geometry became a mainstream research direction: Text2CAD (H.5), CAD-LLM (H.7), Raven (H.6), Ant (H.11), CADialogue (H.9), 3D-GPT (H.4), ShapeCrafter (H.2), Kakadoo (H.8), LLMto3D (H.12), AIDL (H.13), ConvoAI (H.14). The architecture community has independently converged on text-to-geometry as the future of design interaction. AIDL (H.13) is particularly striking: MIT CSAIL designed a CAD language explicitly for "blind" AI code generation -- eliminating the need for visual verification of spatial output. The project arrived at the same architecture by a different route -- necessity, not convenience. The ACADIA paper can argue: we built this because a blind user cannot interact with Grasshopper's visual canvas at all; the fact that the field is now building the same pipeline for everyone validates both the approach and the broader claim that designing for exclusion reveals better design patterns.
+Between 2022 and 2026, text-to-geometry became the dominant research direction in computational design. The field has exploded since the original review:
+
+**Academic milestones (past 12 months):**
+- **CVPR 2025:** CAD-Llama (H.16) introduces Structured Parametric CAD Code -- a text format for geometry, validating the project's JSON state model.
+- **ICML 2025:** CADFusion (H.17, Microsoft) alternates sequential learning with visual feedback -- but assumes sighted verification.
+- **ICCV 2025:** CAD-Assistant (H.19) and CAD-MLLM (H.18) demonstrate zero-shot, multimodal CAD generation at scale.
+- **eCAADe 2025:** "From Automation to Intelligence" (H.22, Aalto/ETH) builds an LLM-driven co-design agent with interpretable spatial reasoning.
+- **CAADRIA 2025:** Savov et al. (H.23, ETH) translate conceptual metaphors into parametric Rhino geometry via multi-agent LLMs.
+- **ACM SCF 2025:** "Speech to Reality" (H.24, MIT) achieves end-to-end voice-to-fabricated-object in minutes.
+- **ICED25:** Two papers (H.25, H.26) formalize LLM agent workflows for automated CAD generation.
+- **arXiv 2025:** The first comprehensive survey of LLMs for CAD (H.15) and two agentic design systems -- CADDesigner (H.21) and "From Idea to CAD" (H.20).
+
+**Commercial deployment (past 6 months):**
+- Ant (H.27, Grasshopper AI copilot), BIMLOGIQ Copilot (H.27, Revit AI), Glyph Copilot (H.27, Revit AI), and multiple MCP servers for Rhino/Grasshopper (H.27) are now commercially available or open-source.
+- RhinoMCP (H.27) connects Claude to Rhino via Model Context Protocol -- the same protocol the project uses.
+
+**The positioning argument is now stronger than ever:**
+
+The entire field has converged on text/speech-driven CAD interaction. Every major platform (Rhino, Grasshopper, Revit, FreeCAD) now has at least one AI copilot accepting natural language. The survey paper (H.15) identifies "visual verification" as a persistent challenge across all systems. AIDL (H.13, MIT CSAIL) designed a CAD language explicitly for "blind" AI code generation. CADFusion (H.17, Microsoft) optimizes for visual perception.
+
+**None of these systems address blind users.** Not one paper in this explosion of LLM-to-CAD research considers screen reader compatibility, non-visual feedback, or accessibility. The project arrived at text-driven CAD architecture by necessity; the field arrived at it by convenience. The project's paper can now make the definitive argument: we built this because a blind user cannot interact with Grasshopper's visual canvas; the fact that the entire field is now building the same pipeline validates both the approach and the broader claim that designing for exclusion reveals better design patterns.
 
 ### "Designing While Blind" validates the authorship thesis
 
