@@ -20,7 +20,7 @@ Steps:
   5. Write .mcp.json for Claude Code
   6. Validate state.json
   7. Test MCP server import
-  8. Check acclaude dependencies (optional, Node.js)
+  8. Check webui dependencies (optional, Node.js)
   9. Print summary
 
 All output uses OK: / ERROR: / WARNING: prefixes for screen readers.
@@ -29,6 +29,7 @@ No API keys needed — MCP servers run through the Claude Code subscription.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -110,9 +111,9 @@ def install_tact(project_root):
     # Check if already installed
     try:
         subprocess.check_output(
-            [sys.executable, "-c", "import tactile_core"],
+            [sys.executable, "-c", "import tact"],
             stderr=subprocess.DEVNULL, timeout=10)
-        _ok("TACT (tactile-core) already installed.")
+        _ok("TACT already installed.")
         return True
     except Exception:
         pass
@@ -166,41 +167,60 @@ def create_state_json(project_root):
         return False
 
 
-def check_acclaude(project_root):
-    """Check if acclaude dependencies are available (optional)."""
-    acclaude_dir = os.path.join(project_root, "tools", "accessible-client")
-    if not os.path.isdir(acclaude_dir):
-        _warn("tools/accessible-client/ not found. Skipping acclaude check.")
+def check_web_client(project_root):
+    """Check if webui dependencies are available (optional)."""
+    web_client_dir = os.path.join(project_root, "tools", "webui")
+    if not os.path.isdir(web_client_dir):
+        _warn("tools/webui/ not found. Skipping webui check.")
         return False
     try:
         result = subprocess.check_output(
             ["node", "--version"],
             stderr=subprocess.DEVNULL, timeout=5).decode().strip()
-        _ok("Node.js {} found (acclaude ready).".format(result))
+        _ok("Node.js {} found (webui ready).".format(result))
         return True
     except Exception:
-        _warn("Node.js not found. acclaude requires Node.js 18+.")
-        _warn("acclaude is optional. It provides a screen-reader-friendly Claude Code wrapper.")
+        _warn("Node.js not found. webui requires Node.js 18+.")
+        _warn("webui is optional. It provides a screen-reader-friendly Claude Code wrapper.")
         return False
 
 
 def setup_mcp_json(project_root):
-    """Create or fix .mcp.json for Claude Code. Always includes tactile server."""
+    """Create or fix .mcp.json for Claude Code.
+
+    Includes: layout-jig, tact, webui, and rhinomcp servers.
+    Uses python3 (not python) and absolute paths for shell wrappers.
+    """
     mcp_path = os.path.join(project_root, ".mcp.json")
+
+    # Detect python command (python3 on most Linux/WSL, python on some Windows)
+    py_cmd = "python3" if shutil.which("python3") else "python"
+
+    # Absolute paths for shell wrappers (Claude Code needs these)
+    channel_script = os.path.join(project_root, "tools", "webui", "start-channel.sh")
+    rhinomcp_script = os.path.join(project_root, "tools", "rhino", "start-rhinomcp.sh")
 
     correct_config = {
         "mcpServers": {
             "layout-jig": {
-                "command": "python",
+                "command": py_cmd,
                 "args": [
                     "mcp/mcp_server.py",
                     "--state",
                     "controller/state.json"
                 ]
             },
-            "tactile": {
-                "command": "python",
+            "tact": {
+                "command": py_cmd,
                 "args": ["tools/tact/mcp_entry.py"]
+            },
+            "webui": {
+                "command": "bash",
+                "args": [channel_script]
+            },
+            "rhinomcp": {
+                "command": "bash",
+                "args": [rhinomcp_script]
             }
         }
     }
@@ -210,16 +230,31 @@ def setup_mcp_json(project_root):
         try:
             with open(mcp_path, "r") as f:
                 existing = json.load(f)
-            if existing == correct_config:
+            # Check if all required servers are present
+            existing_servers = set(existing.get("mcpServers", {}).keys())
+            required_servers = set(correct_config["mcpServers"].keys())
+            if required_servers.issubset(existing_servers):
                 needs_write = False
-                _ok(".mcp.json already correct at {}".format(mcp_path))
+                _ok(".mcp.json already has all required servers at {}".format(mcp_path))
         except (json.JSONDecodeError, IOError):
             _warn(".mcp.json exists but is invalid. Overwriting.")
 
     if needs_write:
+        # Merge with existing config to preserve any user-added servers
+        merged = correct_config
+        if os.path.isfile(mcp_path):
+            try:
+                with open(mcp_path, "r") as f:
+                    existing = json.load(f)
+                if "mcpServers" in existing:
+                    for name, cfg in existing["mcpServers"].items():
+                        if name not in merged["mcpServers"]:
+                            merged["mcpServers"][name] = cfg
+            except (json.JSONDecodeError, IOError):
+                pass
         try:
             with open(mcp_path, "w") as f:
-                json.dump(correct_config, f, indent=2)
+                json.dump(merged, f, indent=2)
                 f.write("\n")
             _ok(".mcp.json written to {}".format(mcp_path))
         except IOError as e:
@@ -322,8 +357,8 @@ def main():
     if not test_mcp_server(project_root):
         errors += 1
 
-    # 8. Check acclaude (optional, never an error)
-    check_acclaude(project_root)
+    # 8. Check webui (optional, never an error)
+    check_web_client(project_root)
 
     # 9. Summary
     print("")

@@ -2,8 +2,8 @@
 
 import pytest
 
-from tasc_core.core.model import Site, Zone
-from tasc_core.core.validation import (
+from tasc.core.model import Site, Zone
+from tasc.core.validation import (
     check_zone_in_boundary,
     check_zone_overlaps,
     validate_site,

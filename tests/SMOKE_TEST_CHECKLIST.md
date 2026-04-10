@@ -130,8 +130,8 @@ Requires: JAWS running, cmd.exe (not Windows Terminal).
 
 - [ ] 1. Open cmd.exe
 
-- [ ] 2. Launch acclaude:
-  `tools\accessible-client\acclaude.bat`
+- [ ] 2. Launch web client:
+  `tools\webui\start-webui.bat`
   - Expect: JAWS announces "Accessible Claude. Ready."
 
 - [ ] 3. Type: "describe the current model"

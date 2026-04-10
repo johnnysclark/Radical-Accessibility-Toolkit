@@ -35,8 +35,8 @@ TACT -- Tactile Conversion (tools/tact/)
   detection, color-to-tactile pattern mapping, Grade 2 Braille, and
   7 MCP functions. Optional.
 
-acclaude -- Accessible Claude Client (tools/accessible-client/)
-  Screen-reader-friendly Claude Code wrapper. Bypasses the
+Web Client (tools/webui/)
+  Accessible web UI for Claude Code. Bypasses the
   Ink TUI for JAWS/NVDA compatibility. Optional.
 
 ## Three Output Modes
@@ -274,28 +274,28 @@ server, not in the main layout-jig server.
 ## Step 7: Set Up Accessible Client (Optional)
 
 If you use JAWS or NVDA and find Claude Code's Ink TUI difficult
-to read, use acclaude instead. It wraps Claude Code in headless
-mode with plain text output.
+to read, use the web client instead. It serves an accessible web UI
+with plain text output.
 
-Requirements: Node.js 18 or later, Claude Code CLI installed.
+Requirements: Node.js 18 or later, bun, Claude Code CLI installed.
 
 Windows:
 
 ```
-tools\accessible-client\acclaude.bat
+tools\webui\start-webui.bat
 ```
 
 WSL2 or Linux:
 
 ```
-./tools/accessible-client/acclaude
+bash tools/webui/start-webui.sh
 ```
 
 Type /help at the prompt for available commands. Sessions persist
 across restarts at ~/.radical-accessibility/memory/.
 
 For screen reader event hooks (automatic image detection, conversion
-tracking), see tools/screen-reader-hooks/README.md for installation
+tracking), see tools/webui/hooks/README.md for installation
 into your Claude Code settings.
 
 ## Quick Start Workflow: Design to Tactile Print
@@ -359,7 +359,7 @@ Python 3.10 or later (stdlib only — no pip install needed for the CLI).
 Rhino 7 or 8 with IronPython 2.7 (only if you want the visual viewer).
 For MCP + TACT: python setup.py (installs everything).
 No API keys needed — MCP servers run through the Claude Code subscription.
-For acclaude: Node.js 18+ and Claude Code CLI.
+For web client: Node.js 18+, bun, and Claude Code CLI.
 
 ## Full Documentation
 
@@ -378,5 +378,5 @@ Test walkthrough — how to verify everything works:
 Tactile conversion (TACT):
   tools/tact/README.md
 
-Accessible client (acclaude):
-  tools/accessible-client/README.md
+Accessible web client:
+  tools/webui/README.md

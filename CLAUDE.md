@@ -125,7 +125,7 @@ Branch names must be speakable and understandable when read aloud by a screen re
 **Good examples:**
 - `john/add-tactile-export`
 - `ethan/fix-watcher-crash-on-empty-state`
-- `claude/update-screen-reader-hooks`
+- `claude/update-webui-hooks`
 - `claude/add-bay-rotation-command`
 
 **Bad examples (do not use):**
@@ -180,15 +180,15 @@ Install: `pip install -e tools/tact && pip install -e tools/tasc` (tasc depends 
 
 ## Screen Reader Integration
 
-### acclaude -- Accessible Claude Client (tools/accessible-client/)
+### Web Client (tools/webui/)
 
-JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations.
+Accessible web UI for Claude Code, served via MCP channel server. Bypasses the Ink TUI for JAWS/NVDA compatibility. Includes chat, Model Navigator, and script editing panes.
 
-Requires: Node.js 18+, npx tsx
+Entry points: `start-webui.bat` (Windows), `start-webui.sh` (WSL). Requires: Node.js 18+, bun.
 
-### Screen Reader Hooks (tools/screen-reader-hooks/)
+### Screen Reader Hooks (tools/webui/hooks/)
 
-Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: ImageDetector (auto-detect architectural images), ConversionTracker (record conversion settings), FeedbackCapture (capture student ratings).
+Claude Code lifecycle hooks for JAWS/NVDA announcements. Includes WSL2-to-PowerShell bridge for JAWS TTS via JFWSayString API. Hooks: image-detector (auto-detect architectural images), conversion-tracker (record conversion settings), feedback-capture (capture student ratings).
 
 ---
 

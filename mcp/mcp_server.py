@@ -108,7 +108,10 @@ import braille
 # ── Import engines (lazy-safe: all stdlib-only) ────────
 import auditor
 import skill_manager
-import template_manager
+try:
+    import template_manager
+except ImportError:
+    template_manager = None
 import rhino_client
 
 # ── MCP dependency ─────────────────────────────────────
@@ -2250,6 +2253,9 @@ try:
 except ImportError:
     _style_mgr = None
     _style_available = False
+
+# Swell-print merged into style system; alias for backwards compat
+_swell_available = _style_available
 
 
 @mcp.tool()

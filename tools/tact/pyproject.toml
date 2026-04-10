@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tactile-core"
+name = "tact"
 version = "1.0.0"
 description = "Convert images to tactile-ready formats for PIAF printing - accessible architectural graphics"
 readme = "README.md"
@@ -60,8 +60,8 @@ dev = [
 ]
 
 [project.scripts]
-tact = "tactile_core.cli:main"
-tact-mcp = "tactile_core.mcp_server.server:main"
+tact = "tact.cli:main"
+tact-mcp = "tact.mcp_server.server:main"
 
 [project.urls]
 Homepage = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit"
@@ -69,7 +69,7 @@ Documentation = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit/t
 Repository = "https://github.com/johnnysclark/Radical-Accessibility-Toolkit"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tactile_core"]
+packages = ["src/tact"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -78,8 +78,8 @@ include = [
 
 [tool.hatch.build]
 include = [
-    "src/tactile_core/**/*.py",
-    "src/tactile_core/data/**/*",
+    "src/tact/**/*.py",
+    "src/tact/data/**/*",
 ]
 
 [tool.ruff]
