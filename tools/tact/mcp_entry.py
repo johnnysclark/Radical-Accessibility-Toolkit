@@ -23,7 +23,7 @@ from pathlib import Path
 lib_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(lib_path))
 
-from tactile_core.mcp_server.server import main
+from tact.mcp_server.server import main
 
 if __name__ == "__main__":
     main()

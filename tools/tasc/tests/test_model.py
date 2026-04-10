@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tasc_core.core.model import (
+from tasc.core.model import (
     Bay,
     BayVoid,
     Corridor,

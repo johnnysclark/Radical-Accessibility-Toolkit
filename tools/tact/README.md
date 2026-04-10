@@ -69,7 +69,7 @@ tact presets
 ## Python API
 
 ```python
-from tactile_core import ImageProcessor, PIAFPDFGenerator
+from tact import ImageProcessor, PIAFPDFGenerator
 
 # Process an image
 processor = ImageProcessor()

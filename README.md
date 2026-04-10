@@ -70,7 +70,7 @@ Tools are organized by how you access them:
 
 **AI integration (MCP).** The MCP server bridges Claude Code to all design and output tools. TACT runs a separate MCP server for its 7 tactile conversion functions.
 
-**Accessibility layer.** acclaude wraps Claude Code for JAWS/NVDA screen readers. Screen Reader Hooks announce events via the JAWS TTS API.
+**Accessibility layer.** The web client wraps Claude Code for JAWS/NVDA screen readers. Screen reader hooks announce events via the JAWS TTS API.
 
 ---
 
@@ -206,9 +206,9 @@ See [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md) for architecture, setup, and the full
 
 Two tools ensure the system works with JAWS and NVDA screen readers on Windows.
 
-**acclaude (tools/accessible-client/).** A JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI entirely. Uses `claude -p` headless mode with `--resume SESSION_ID` for multi-turn conversations. All markdown, ANSI codes, and emoji are stripped before output. Requires Node.js 18+.
+**Web Client (tools/webui/).** An accessible web UI for Claude Code that bypasses the Ink TUI entirely. Served via an MCP channel server with chat, Model Navigator, and script editing panes. All markdown, ANSI codes, and emoji are stripped before output. Requires Node.js 18+, bun.
 
-**Screen Reader Hooks (tools/screen-reader-hooks/).** Claude Code lifecycle hooks that announce events through JAWS or NVDA. An ImageDetector hook offers tactile conversion when architectural images are detected. A ConversionTracker records conversion settings for learning. A FeedbackCapture hook captures student ratings. All hooks communicate via a WSL2-to-PowerShell bridge that calls the JAWS TTS API (JFWSayString).
+**Screen Reader Hooks (tools/webui/hooks/).** Claude Code lifecycle hooks that announce events through JAWS or NVDA. An image-detector hook offers tactile conversion when architectural images are detected. A conversion-tracker records conversion settings for learning. A feedback-capture hook captures student ratings. All hooks communicate via a WSL2-to-PowerShell bridge that calls the JAWS TTS API (JFWSayString).
 
 ---
 
@@ -599,7 +599,7 @@ The system's separation of input, logic, and output means different disabilities
 - **PIAF machine + laser printer with carbon-based toner** (for tactile paper output)
 - **Bambu Lab P1S 3D printer** (for tactile model output)
 - **META Ray-Ban glasses** (optional — for spoken/vision features)
-- **Node.js 18+** (optional — for acclaude accessible client)
+- **Node.js 18+** (optional — for web client)
 - **Tesseract** (optional — fallback OCR for TACT; EasyOCR is installed by default)
 - **liblouis** (optional — for Grade 2 Braille in TACT)
 
@@ -636,11 +636,11 @@ radical-accessibility/
       pdf_generator.py ...... Wrap B&W images in PIAF-ready PDF
       requirements.txt ...... Python dependencies (Pillow, reportlab)
     tact/ ................... Advanced tactile conversion (Ethan)
-      src/tactile_core/ ..... EasyOCR, RainbowTact, presets, Braille, MCP
+      src/tact/ ............. EasyOCR, RainbowTact, presets, Braille, MCP
     tasc/ ................... Accessible Rhino design CLI (Ethan)
-      src/tasc_core/ ........ Zones, bays, corridors, Rhino connector
-    accessible-client/ ...... JAWS/NVDA Claude Code wrapper (Ethan)
-    screen-reader-hooks/ .... Screen reader lifecycle hooks (Ethan)
+      src/tasc/ ............. Zones, bays, corridors, Rhino connector
+    webui/ ............. Accessible web UI for Claude Code (Ethan)
+      hooks/ ................ Screen reader lifecycle hooks
   tests/
     run_tests.py ............ End-to-end test suite (149 tests)
   docs/
@@ -666,11 +666,11 @@ Accessible site-scale design via text commands. Zones, structural bays, corridor
 
 Install: `pip install -e tools/tact && pip install -e tools/tasc`
 
-### acclaude -- Accessible Claude Client (tools/accessible-client/)
+### Web Client (tools/webui/)
 
-JAWS/NVDA-compatible wrapper around Claude Code that bypasses the Ink TUI. Multi-turn sessions with text cleaning and screen reader announcements.
+Accessible web UI for Claude Code that bypasses the Ink TUI. Chat, Model Navigator, and script editing via MCP channel server.
 
-### Screen Reader Hooks (tools/screen-reader-hooks/)
+### Screen Reader Hooks (tools/webui/hooks/)
 
 Claude Code lifecycle hooks for JAWS/NVDA announcements via WSL2-to-PowerShell bridge.
 

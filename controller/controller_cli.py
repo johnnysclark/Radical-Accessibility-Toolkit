@@ -2849,7 +2849,7 @@ def do_print(state, state_file):
         else:
             # Try as Python module
             result = subprocess.run(
-                [sys.executable, "-m", "tactile_core.cli", "render",
+                [sys.executable, "-m", "tact.cli", "render",
                  os.path.abspath(state_file),
                  "--paper-size", paper, "--output-format", fmt,
                  "--dpi", str(dpi)],

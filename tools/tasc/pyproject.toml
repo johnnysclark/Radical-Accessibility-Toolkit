@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tasc-core"
+name = "tasc"
 version = "0.1.0"
 description = "Tactile Architecture Scripting Console - accessible programmatic Rhino design"
 readme = "README.md"
@@ -17,20 +17,20 @@ dependencies = [
     "PyYAML>=6.0",
     "rich>=13.0.0",
     "rhino3dm>=8.0.0",
-    "tactile-core>=1.0.0",
+    "tact>=1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "ruff>=0.1.0"]
 
 [project.scripts]
-tasc = "tasc_core.cli:main"
+tasc = "tasc.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tasc_core"]
+packages = ["src/tasc"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/tasc_core"]
+include = ["src/tasc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

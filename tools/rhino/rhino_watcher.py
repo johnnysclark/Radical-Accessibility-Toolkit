@@ -1388,6 +1388,165 @@ def redraw(state):
     print("[PLJ] Redrawn: {0} bays, {1} apertures, {2} rooms{3}{4}".format(
         len(state["bays"]), total_aps, len(state.get("rooms", {})), leg_s, t3_s))
     _audio_feedback(state)
+    _export_inventory(state)
+
+
+# ══════════════════════════════════════════════════════════
+# OBJECT INVENTORY EXPORT (for accessible web/TUI navigator)
+# ══════════════════════════════════════════════════════════
+
+def _export_inventory(state):
+    """Write object_inventory.json for the accessible Model Navigator.
+
+    Called after redraw() and after _apply_pending_edits().
+    The channel server watches this file and pushes SSE updates.
+    """
+    if not IN_RHINO:
+        return
+    inv_path = os.path.join(os.path.dirname(STATE_FILE), "object_inventory.json")
+    try:
+        inventory = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "layers": {}}
+        for lname in LAYERS:
+            if not rs.IsLayer(lname):
+                continue
+            objs = rs.ObjectsByLayer(lname)
+            if not objs:
+                inventory["layers"][lname] = []
+                continue
+            layer_items = []
+            for obj_id in objs:
+                item = {
+                    "id": str(obj_id),
+                    "name": rs.ObjectName(obj_id) or "",
+                    "type": rs.ObjectType(obj_id),
+                    "layer": lname,
+                }
+                bb = rs.BoundingBox(obj_id)
+                if bb and len(bb) >= 8:
+                    item["min"] = [round(bb[0][0], 4), round(bb[0][1], 4), round(bb[0][2], 4)]
+                    item["max"] = [round(bb[6][0], 4), round(bb[6][1], 4), round(bb[6][2], 4)]
+                keys = rs.GetUserText(obj_id)
+                if keys:
+                    meta = {}
+                    for k in keys:
+                        meta[k] = rs.GetUserText(obj_id, k)
+                    item["metadata"] = meta
+                layer_items.append(item)
+            inventory["layers"][lname] = layer_items
+        tmp_path = inv_path + ".tmp"
+        with io.open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(inventory, indent=2, ensure_ascii=False))
+            f.flush()
+        if os.path.exists(inv_path):
+            os.remove(inv_path)
+        os.rename(tmp_path, inv_path)
+    except Exception as e:
+        print("[PLJ] WARNING: inventory export failed: {0}".format(e))
+
+
+# ══════════════════════════════════════════════════════════
+# PENDING EDITS READER (direct file bridge for precision edits)
+# ══════════════════════════════════════════════════════════
+
+def _apply_pending_edits():
+    """Apply edits from pending_edits.json on the main thread.
+
+    Called from _on_idle(). Each rs.* call enters Rhino's undo stack.
+    Deletes the file after processing, then re-exports inventory.
+    """
+    if not IN_RHINO:
+        return
+    edits_path = os.path.join(os.path.dirname(STATE_FILE), "pending_edits.json")
+    if not os.path.exists(edits_path):
+        return
+    try:
+        with io.open(edits_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        os.remove(edits_path)
+    except Exception as e:
+        print("[PLJ] WARNING: reading pending edits failed: {0}".format(e))
+        return
+    edits = data.get("edits", [])
+    if not edits:
+        return
+    applied = 0
+    for edit in edits:
+        obj_id = edit.get("object_id", "")
+        action = edit.get("action", "")
+        params = edit.get("params", {})
+        try:
+            if not rs.IsObject(obj_id):
+                print("[PLJ] WARNING: object {0} not found, skipping".format(obj_id))
+                continue
+            if action == "move":
+                bb = rs.BoundingBox(obj_id)
+                if bb:
+                    cur = bb[0]
+                    dx = params.get("x", cur[0]) - cur[0]
+                    dy = params.get("y", cur[1]) - cur[1]
+                    dz = params.get("z", cur[2]) - cur[2]
+                    rs.MoveObject(obj_id, (dx, dy, dz))
+                    applied += 1
+            elif action == "rotate":
+                angle = params.get("angle", 0)
+                cx = params.get("center_x", 0)
+                cy = params.get("center_y", 0)
+                rs.RotateObject(obj_id, (cx, cy, 0), angle)
+                applied += 1
+            elif action == "scale":
+                factor = params.get("factor", 1.0)
+                cx = params.get("center_x", 0)
+                cy = params.get("center_y", 0)
+                rs.ScaleObject(obj_id, (cx, cy, 0), (factor, factor, factor))
+                applied += 1
+            elif action == "delete":
+                rs.DeleteObject(obj_id)
+                applied += 1
+            elif action == "rename":
+                rs.ObjectName(obj_id, params.get("name", ""))
+                applied += 1
+            elif action == "layer":
+                new_layer = params.get("layer", "")
+                if rs.IsLayer(new_layer):
+                    rs.ObjectLayer(obj_id, new_layer)
+                    applied += 1
+            else:
+                print("[PLJ] WARNING: unknown edit action '{0}'".format(action))
+        except Exception as e:
+            print("[PLJ] WARNING: edit {0} on {1} failed: {2}".format(action, obj_id, e))
+    if applied > 0:
+        print("[PLJ] Applied {0} edits.".format(applied))
+        state = _load_state()
+        if state:
+            _export_inventory(state)
+
+
+# ══════════════════════════════════════════════════════════
+# PENDING SCRIPT RUNNER (rhinoscript execution from web/TUI)
+# ══════════════════════════════════════════════════════════
+
+def _run_pending_script():
+    """Execute a rhinoscript file written by the accessible interface.
+
+    Called from _on_idle(). Runs on main thread so rs.* calls are safe.
+    """
+    if not IN_RHINO:
+        return
+    script_path = os.path.join(os.path.dirname(STATE_FILE), "pending_script.py")
+    if not os.path.exists(script_path):
+        return
+    try:
+        with io.open(script_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        os.remove(script_path)
+        exec(code)
+        print("[PLJ] Script executed successfully.")
+        state = _load_state()
+        if state:
+            _export_inventory(state)
+    except Exception as e:
+        print("[PLJ] Script error: {0}".format(e))
+
 
 # ══════════════════════════════════════════════════════════
 # TCP QUERY LISTENER (v3.0)
@@ -1582,6 +1741,8 @@ def _on_idle(sender, args):
         return
     _watcher_state["last_check"] = now
     try:
+        _apply_pending_edits()
+        _run_pending_script()
         mt = _state_mtime()
         if mt > _watcher_state["last_mtime"]:
             _watcher_state["last_mtime"] = mt

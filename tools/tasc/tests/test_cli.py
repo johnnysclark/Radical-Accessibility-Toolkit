@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from tasc_core.cli import main
+from tasc.cli import main
 
 
 @pytest.fixture

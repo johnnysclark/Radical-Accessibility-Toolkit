@@ -7,8 +7,8 @@ import time
 
 import pytest
 
-from tasc_core.rhino.connector import MCPClient, RhinoCodeClient, RhinoConnector
-from tasc_core.rhino.protocol import (
+from tasc.rhino.connector import MCPClient, RhinoCodeClient, RhinoConnector
+from tasc.rhino.protocol import (
     create_layer_cmd,
     create_line_cmd,
     create_polyline_cmd,

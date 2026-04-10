@@ -75,7 +75,7 @@ tasc reset
 Create a file called `my_site.py`:
 
 ```python
-from tasc_core.dsl.api import *
+from tasc.dsl.api import *
 
 boundary(200, 150, units="feet")
 grid(10)
@@ -402,7 +402,7 @@ tasc run my_site.py --no-rhino       # skip Rhino connection
 For script mode, import everything from the DSL:
 
 ```python
-from tasc_core.dsl.api import *
+from tasc.dsl.api import *
 ```
 
 ### `boundary(width, depth, units="feet")`
