@@ -37,6 +37,7 @@ from parsing import (
     parse_corner,
     parse_corners,
 )
+from output import format_ok, format_error, READY
 
 try:
     import template_manager as _tmpl_mgr
@@ -95,10 +96,13 @@ def _speak(text, rate=2):
     Returns True on success, False if speech fails.
     """
     clean = text.strip()
-    for prefix in ("OK: ", "ERROR: ", "CHANGED: "):
+    for prefix in ("OK: ", "ERROR: ", "CHANGED: ", "WARNING: "):
         if clean.startswith(prefix):
             clean = clean[len(prefix):]
             break
+    # Drop trailing READY: marker -- it's a screen-reader signal, not speech.
+    if clean.rstrip().endswith("READY:"):
+        clean = clean.rstrip()[:-len("READY:")].rstrip()
     # Escape single quotes for PowerShell
     escaped = clean.replace("'", "''")
     ps_cmd = (
@@ -3052,30 +3056,34 @@ def main():
         if not raw: continue
         tokens = tokenize(raw); before = copy.deepcopy(state)
         try: state, msg = apply_command(state, tokens, state_file=state_file)
-        except Exception as e: _out(f"Error: {e}"); continue
+        except Exception as e: _out(format_error(e)); continue
         if msg == "__QUIT__": break
         if msg == "__HELP__": print(HELP_TEXT); continue
         if msg == "__STATUS__":
-            print(f"State: {state_file}")
-            try: st = os.stat(state_file); print(f"Modified: {time.ctime(st.st_mtime)}  Size: {st.st_size} bytes")
+            lines = [f"State: {state_file}"]
+            try:
+                st = os.stat(state_file)
+                lines.append(f"Modified: {time.ctime(st.st_mtime)}  Size: {st.st_size} bytes")
             except: pass
-            print(f"History: {history_seq} entries")
+            lines.append(f"History: {history_seq} entries")
+            _out(format_ok("\n".join(lines)))
             continue
-        if msg == "__DESCRIBE__": _out(describe(state)); continue
-        if msg == "__LIST_BAYS__": _out(list_bays(state)); continue
+        if msg == "__DESCRIBE__": _out(format_ok(describe(state))); continue
+        if msg == "__LIST_BAYS__": _out(format_ok(list_bays(state))); continue
         if msg == "__UNDO__":
             if undo_stack:
                 state = undo_stack.pop()
                 save_state(state_file, state)
                 _history_delete_last(state_file, history_seq)
                 history_seq = max(0, history_seq - 1)
-                _out("Undo.")
-            else: _out("Nothing to undo.")
+                _out(format_ok("Undo."))
+            else: _out(format_ok("Nothing to undo."))
             continue
-        if msg == "__PRINT__": undo_stack.append(before); _out(do_print(state, state_file)); continue
+        if msg == "__PRINT__":
+            undo_stack.append(before); _out(format_ok(do_print(state, state_file))); continue
         undo_stack.append(before)
         try:
-            save_state(state_file, state); _out(msg)
+            save_state(state_file, state); _out(format_ok(msg))
             history_seq += 1
             _history_save(state_file, state, history_seq)
             # Clear one-shot export flag after save so it doesn't
@@ -3089,12 +3097,12 @@ def main():
                 try:
                     import tactile_print as _tp
                     _export_msg = _tp.do_export(state, _export_path)
-                    _out("AUTO-EXPORT: " + _export_msg)
+                    _out(format_ok("AUTO-EXPORT: " + _export_msg))
                 except ImportError:
                     pass  # tactile_print not available; silent skip
                 except Exception as _e:
-                    _out(f"[WARNING] Auto-export failed: {_e}")
-        except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")
+                    _out(format_error("Auto-export failed: {}".format(_e)))
+        except Exception as e: state = before; undo_stack.pop(); _out(format_error(e))
     try: save_state(state_file, state)
     except: pass
 
