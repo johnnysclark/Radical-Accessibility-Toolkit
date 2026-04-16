@@ -320,24 +320,24 @@ mcp = FastMCP("layout-jig")
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def run_command(command: str) -> str:
+def command_run(command: str) -> str:
     """Execute any Layout Jig CLI command as a raw string.
 
     This is the escape hatch for advanced or rare commands not covered
     by the semantic tools. Prefer the typed tools when available.
 
     Examples:
-        run_command("set bay A rotation 30")
-        run_command("block door symbol arc_swing")
-        run_command("legend position bottom-left")
-        run_command("tactile3d wall_height 12")
-        run_command("section x 50")
+        command_run("set bay A rotation 30")
+        command_run("block door symbol arc_swing")
+        command_run("legend position bottom-left")
+        command_run("tactile3d wall_height 12")
+        command_run("section x 50")
     """
     return _run(command)
 
 
 @mcp.tool()
-def describe() -> str:
+def model_describe() -> str:
     """Get a full text description of the current model state.
 
     Returns all settings: site, style, bays, corridors, walls,
@@ -348,7 +348,7 @@ def describe() -> str:
 
 
 @mcp.tool()
-def list_bays() -> str:
+def bay_list() -> str:
     """Get a compact table of all bays with key properties.
 
     Shows: name, grid type, z-order, anchor, rotation, columns,
@@ -359,7 +359,7 @@ def list_bays() -> str:
 
 
 @mcp.tool()
-def get_state() -> str:
+def state_get() -> str:
     """Get the raw JSON contents of the state file.
 
     Returns the complete Canonical Model Artifact (CMA) as a
@@ -370,7 +370,7 @@ def get_state() -> str:
 
 
 @mcp.tool()
-def get_help() -> str:
+def help_get() -> str:
     """Get the full command reference for the Layout Jig CLI.
 
     Lists all available commands with syntax and examples.
@@ -383,7 +383,7 @@ def get_help() -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_apertures(bay: str) -> str:
+def aperture_list(bay: str) -> str:
     """List all apertures for a bay with full details.
 
     Args:
@@ -393,7 +393,7 @@ def list_apertures(bay: str) -> str:
 
 
 @mcp.tool()
-def list_cells(bay: str) -> str:
+def cell_list(bay: str) -> str:
     """List all cells in a rectangular bay with names, areas, and hatches.
 
     Args:
@@ -403,13 +403,13 @@ def list_cells(bay: str) -> str:
 
 
 @mcp.tool()
-def list_rooms() -> str:
+def room_list() -> str:
     """List all named rooms with type, label, braille, and hatch info."""
     return _run("room list")
 
 
 @mcp.tool()
-def list_snapshots() -> str:
+def snapshot_list() -> str:
     """List all named snapshots with size and modification time."""
     return _run("snapshot list")
 
@@ -419,7 +419,7 @@ def list_snapshots() -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def set_bay(bay: str, field: str, value: str) -> str:
+def bay_set(bay: str, field: str, value: str) -> str:
     """Set a bay property.
 
     This is the main tool for configuring bay parameters. Pass the
@@ -457,7 +457,7 @@ def set_bay(bay: str, field: str, value: str) -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def set_walls(bay: str, enabled: bool, thickness: float = None) -> str:
+def walls_set(bay: str, enabled: bool, thickness: float = None) -> str:
     """Toggle walls on/off for a bay, optionally setting thickness.
 
     Args:
@@ -477,7 +477,7 @@ def set_walls(bay: str, enabled: bool, thickness: float = None) -> str:
 
 
 @mcp.tool()
-def set_corridor(
+def corridor_set(
     bay: str,
     enabled: bool,
     field: str = None,
@@ -512,7 +512,7 @@ def set_corridor(
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def add_aperture(
+def aperture_add(
     bay: str,
     id: str,
     type: str,
@@ -541,7 +541,7 @@ def add_aperture(
 
 
 @mcp.tool()
-def remove_aperture(bay: str, id: str) -> str:
+def aperture_remove(bay: str, id: str) -> str:
     """Remove an aperture from a bay.
 
     Args:
@@ -552,7 +552,7 @@ def remove_aperture(bay: str, id: str) -> str:
 
 
 @mcp.tool()
-def modify_aperture(bay: str, id: str, field: str, value: str) -> str:
+def aperture_modify(bay: str, id: str, field: str, value: str) -> str:
     """Modify a property of an existing aperture.
 
     Args:
@@ -577,7 +577,7 @@ def modify_aperture(bay: str, id: str, field: str, value: str) -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def set_cell(
+def cell_set(
     bay: str,
     col: int,
     row: int,
@@ -607,7 +607,7 @@ def set_cell(
 
 
 @mcp.tool()
-def auto_corridor_cells(bay: str) -> str:
+def cell_auto_corridor(bay: str) -> str:
     """Auto-name cells in the corridor zone as "Corridor".
 
     Detects which cells overlap the corridor and marks them.
@@ -624,7 +624,7 @@ def auto_corridor_cells(bay: str) -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def set_site(field: str, value: float) -> str:
+def site_set(field: str, value: float) -> str:
     """Set site dimensions.
 
     Args:
@@ -635,7 +635,7 @@ def set_site(field: str, value: float) -> str:
 
 
 @mcp.tool()
-def set_style(field: str, value: str) -> str:
+def drawing_set(field: str, value: str) -> str:
     """Set a drawing style parameter.
 
     Args:
@@ -661,7 +661,7 @@ def set_style(field: str, value: str) -> str:
 # ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def save_snapshot(name: str) -> str:
+def snapshot_save(name: str) -> str:
     """Save the current state as a named snapshot.
 
     Use this before making significant changes so you can restore later.
@@ -673,7 +673,7 @@ def save_snapshot(name: str) -> str:
 
 
 @mcp.tool()
-def load_snapshot(name: str) -> str:
+def snapshot_load(name: str) -> str:
     """Restore a previously saved named snapshot.
 
     This replaces the current state with the snapshot contents.
@@ -689,7 +689,7 @@ def load_snapshot(name: str) -> str:
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def audit_model() -> str:
+def model_audit() -> str:
     """Run all validation checks on the current model.
 
     Checks for: overlapping bays, bays outside site, aperture errors,
@@ -705,7 +705,7 @@ def audit_model() -> str:
 
 
 @mcp.tool()
-def audit_bay(bay: str) -> str:
+def bay_audit(bay: str) -> str:
     """Deep audit of a single bay with all properties and issues.
 
     Reports: grid type, dimensions, area, column count, walls, corridor,
@@ -719,7 +719,7 @@ def audit_bay(bay: str) -> str:
 
 
 @mcp.tool()
-def describe_bay(bay: str) -> str:
+def bay_describe(bay: str) -> str:
     """Rich narrative description of a single bay for screen readers.
 
     More detailed than the main describe() output. Includes spatial
@@ -734,7 +734,7 @@ def describe_bay(bay: str) -> str:
 
 
 @mcp.tool()
-def describe_circulation() -> str:
+def circulation_describe() -> str:
     """Describe corridor connectivity across all bays.
 
     Reports which bays have corridors, their alignment, whether doors
@@ -990,7 +990,7 @@ def rhino_run_script(code: str) -> str:
 
 
 @mcp.tool()
-def setup_rhino(rhino_path: str = "") -> str:
+def rhino_setup(rhino_path: str = "") -> str:
     """Launch Rhino with the watcher auto-loaded and units set to Feet.
 
     Automates the manual startup workflow: opens Rhino, runs the watcher
@@ -1023,7 +1023,7 @@ def setup_rhino(rhino_path: str = "") -> str:
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def extend_controller(function_name: str, code: str) -> str:
+def extension_add(function_name: str, code: str) -> str:
     """Add a new command handler function to the controller CLI.
 
     This extends the Layout Jig with new commands at runtime. The
@@ -1146,11 +1146,11 @@ def extend_controller(function_name: str, code: str) -> str:
         pass  # non-fatal
 
     return (f"OK: Added command '{cmd_word}' via {function_name}(). "
-            f"Controller reloaded. Test with: run_command(\"{cmd_word} ...\")")
+            f"Controller reloaded. Test with: command_run(\"{cmd_word} ...\")")
 
 
 @mcp.tool()
-def list_extensions() -> str:
+def extension_list() -> str:
     """List all command handler extensions added via extend_controller.
 
     Shows function name, command word, and when it was added.
@@ -1174,7 +1174,7 @@ def list_extensions() -> str:
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def get_field(path: str) -> str:
+def field_get(path: str) -> str:
     """Read a specific field from state.json by dot-notation path.
 
     Use this to read individual values without loading the entire state.
@@ -1204,7 +1204,7 @@ def get_field(path: str) -> str:
 
 
 @mcp.tool()
-def set_field(path: str, value: str) -> str:
+def field_set(path: str, value: str) -> str:
     """Write a specific field in state.json by dot-notation path.
 
     This writes directly to the JSON, bypassing CLI validation.
@@ -1240,7 +1240,7 @@ def set_field(path: str, value: str) -> str:
 
 
 @mcp.tool()
-def list_fields(path: str = "") -> str:
+def field_list(path: str = "") -> str:
     """List all keys at a given path in state.json.
 
     Use this to explore the state structure without reading the
@@ -1306,7 +1306,7 @@ def list_fields(path: str = "") -> str:
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def add_bay(name: str, grid_type: str = "rectangular",
+def bay_add(name: str, grid_type: str = "rectangular",
             origin_x: float = 0.0, origin_y: float = 0.0) -> str:
     """Create a new bay with default settings.
 
@@ -1340,7 +1340,7 @@ def add_bay(name: str, grid_type: str = "rectangular",
 
 
 @mcp.tool()
-def remove_bay(name: str) -> str:
+def bay_remove(name: str) -> str:
     """Remove a bay and its room references from the model.
 
     This permanently deletes the bay. Room references are
@@ -1365,7 +1365,7 @@ def remove_bay(name: str) -> str:
 
 
 @mcp.tool()
-def clone_bay(source: str, target: str,
+def bay_clone(source: str, target: str,
               origin_x: float = None,
               origin_y: float = None) -> str:
     """Duplicate a bay with a new name and optional new position.
@@ -1407,7 +1407,7 @@ def clone_bay(source: str, target: str,
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def list_commands() -> str:
+def command_list() -> str:
     """List all available CLI commands with handler functions.
 
     Shows every command the controller understands, organized by
@@ -1463,7 +1463,7 @@ def list_commands() -> str:
 
 
 @mcp.tool()
-def show_command_source(command: str) -> str:
+def command_show(command: str) -> str:
     """Show the source code of a CLI command handler function.
 
     Use this to understand how existing commands work before
@@ -1503,7 +1503,7 @@ def show_command_source(command: str) -> str:
 
     if start is None:
         return (f"ERROR: Function for '{command}' not found. "
-                f"Try list_commands() to see available commands.")
+                f"Try command_list() to see available commands.")
 
     # Find function end (next def at same or lower indentation)
     indent = len(lines[start]) - len(lines[start].lstrip())
@@ -1527,7 +1527,7 @@ def show_command_source(command: str) -> str:
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def diff_snapshot(snapshot_name: str) -> str:
+def snapshot_diff(snapshot_name: str) -> str:
     """Compare current state to a named snapshot.
 
     Shows which fields differ between the current state.json and
@@ -1545,7 +1545,7 @@ def diff_snapshot(snapshot_name: str) -> str:
         history_dir, f"snapshot_{snapshot_name}.json")
     if not os.path.exists(snap_path):
         return (f"ERROR: Snapshot '{snapshot_name}' not found. "
-                f"Use list_snapshots() to see available snapshots.")
+                f"Use snapshot_list() to see available snapshots.")
 
     try:
         with open(snap_path, "r", encoding="utf-8") as f:
@@ -1579,7 +1579,7 @@ def diff_snapshot(snapshot_name: str) -> str:
 
 
 @mcp.tool()
-def validate_state() -> str:
+def state_validate() -> str:
     """Validate the current state.json for structural correctness.
 
     Checks that state.json is valid JSON, has required top-level
@@ -1878,7 +1878,7 @@ def _safe_script_name(name):
 
 
 @mcp.tool()
-def generate_script(name: str, description: str, code: str,
+def script_generate(name: str, description: str, code: str,
                     teach: bool = True) -> str:
     """Generate an editable IronPython 2.7 script file for Rhino.
 
@@ -1970,7 +1970,7 @@ def generate_script(name: str, description: str, code: str,
 
 
 @mcp.tool()
-def list_scripts() -> str:
+def script_list() -> str:
     """List all generated script files in the scripts/ folder.
 
     Shows name, description, size, and modification date for each .py file.
@@ -2012,7 +2012,7 @@ def list_scripts() -> str:
 
 
 @mcp.tool()
-def show_script(name: str) -> str:
+def script_show(name: str) -> str:
     """Show the full contents of a generated script file.
 
     Args:
@@ -2050,7 +2050,7 @@ def show_script(name: str) -> str:
 
 
 @mcp.tool()
-def add_zone(name: str, width: float, depth: float,
+def zone_add(name: str, width: float, depth: float,
              x: float = 0.0, y: float = 0.0,
              program_type: str = "") -> str:
     """Add a rectangular program zone to the site plan.
@@ -2079,7 +2079,7 @@ def add_zone(name: str, width: float, depth: float,
 
 
 @mcp.tool()
-def add_zone_polygon(name: str, corners: str,
+def zone_add_polygon(name: str, corners: str,
                      program_type: str = "") -> str:
     """Add a polygon zone defined by corner points.
 
@@ -2099,7 +2099,7 @@ def add_zone_polygon(name: str, corners: str,
 
 
 @mcp.tool()
-def remove_zone(name: str) -> str:
+def zone_remove(name: str) -> str:
     """Remove a zone from the site plan.
 
     Args:
@@ -2116,7 +2116,7 @@ def remove_zone(name: str) -> str:
 
 
 @mcp.tool()
-def list_zones() -> str:
+def zone_list() -> str:
     """List all program zones with dimensions and area."""
     state = _load_state()
     tokens = ["zone", "list"]
@@ -2128,7 +2128,7 @@ def list_zones() -> str:
 
 
 @mcp.tool()
-def set_zone_label(name: str, label: str,
+def zone_label_set(name: str, label: str,
                    braille: str = "") -> str:
     """Set the display label and optional braille text for a zone.
 
@@ -2154,7 +2154,7 @@ def set_zone_label(name: str, label: str,
 
 
 @mcp.tool()
-def set_grid(spacing: float, rotation: float = 0.0,
+def grid_set(spacing: float, rotation: float = 0.0,
              origin_x: float = 0.0, origin_y: float = 0.0) -> str:
     """Set a global structural grid overlay.
 
@@ -2186,7 +2186,7 @@ def set_grid(spacing: float, rotation: float = 0.0,
 
 
 @mcp.tool()
-def clear_grid() -> str:
+def grid_clear() -> str:
     """Remove the global structural grid."""
     state = _load_state()
     tokens = ["grid", "clear"]
@@ -2199,7 +2199,7 @@ def clear_grid() -> str:
 
 
 @mcp.tool()
-def set_site_polygon(corners: str) -> str:
+def site_polygon_set(corners: str) -> str:
     """Set the site boundary as a polygon.
 
     Replaces the rectangular site with a polygon boundary.
@@ -2219,7 +2219,7 @@ def set_site_polygon(corners: str) -> str:
 
 
 @mcp.tool()
-def export_model(format: str = "3dm",
+def model_export(format: str = "3dm",
                  output_path: str = "") -> str:
     """Export the model to a file.
 

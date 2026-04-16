@@ -15,7 +15,7 @@ MCP stands for Model Context Protocol, a standard created by Anthropic that lets
 
 Without MCP: you type `set bay A rotation 30` into a terminal.
 
-With MCP: you say "rotate bay A by 30 degrees" and Claude calls `set_bay(bay="A", field="rotation", value="30")`.
+With MCP: you say "rotate bay A by 30 degrees" and Claude calls `bay_set(bay="A", field="rotation", value="30")`.
 
 The MCP server is the translator between Claude's intent and your CLI.
 
@@ -23,7 +23,7 @@ MCP also enables the code generation workflow. The AI can inspect the current mo
 
 The same model drives three physical output modes: 2D plan drawings for pen plotting and PDF export, PIAF swell paper tactile graphics for reading floor plans by touch, and 3D printed tactile models via the Bambu pipeline. All three are configured and triggered through the same MCP functions.
 
-When TTS is enabled (`tts on` in the CLI), the `describe` and `list_bays` commands speak their output aloud via Windows SpeechSynthesizer, in addition to printing to the terminal.
+When TTS is enabled (`tts on` in the CLI), the `describe` and `bay_list` commands speak their output aloud via Windows SpeechSynthesizer, in addition to printing to the terminal.
 
 
 ## 2. Architecture
@@ -84,9 +84,9 @@ Supporting modules:
 
 ### Data flow: what happens when Claude says "rotate bay A by 30 degrees"
 
-Step 1. Claude reads the set_bay MCP function description.
+Step 1. Claude reads the bay_set MCP function description.
 
-Step 2. Claude calls set_bay(bay="A", field="rotation", value="30").
+Step 2. Claude calls bay_set(bay="A", field="rotation", value="30").
 
 Step 3. MCP server receives the call.
 
@@ -243,59 +243,59 @@ If Rhino is not running, those functions return OFFLINE messages. Everything els
 
 Semantic wrappers around CLI commands. These all go through `_run()` which delegates to the controller for validation and state mutation.
 
-`run_command(command: str)` -- Execute any raw CLI command string. Escape hatch for commands not covered by typed functions.
+`command_run(command: str)` -- Execute any raw CLI command string. Escape hatch for commands not covered by typed functions.
 
 `describe()` -- Full text description of the entire model: site, style, every bay with all properties, rooms, legend, print settings, totals.
 
-`list_bays()` -- Compact summary of all bays.
+`bay_list()` -- Compact summary of all bays.
 
-`get_state()` -- Raw JSON contents of state.json. Useful when the AI needs to inspect specific values or generate code targeting exact coordinates.
+`state_get()` -- Raw JSON contents of state.json. Useful when the AI needs to inspect specific values or generate code targeting exact coordinates.
 
-`get_help()` -- The full CLI command reference.
+`help_get()` -- The full CLI command reference.
 
-`list_apertures(bay: str)` -- All doors, windows, and portals on a specific bay with full details.
+`aperture_list(bay: str)` -- All doors, windows, and portals on a specific bay with full details.
 
-`list_cells(bay: str)` -- All cells in a rectangular bay's grid with names, areas, and hatch patterns.
+`cell_list(bay: str)` -- All cells in a rectangular bay's grid with names, areas, and hatch patterns.
 
-`list_rooms()` -- All named rooms across the entire model.
+`room_list()` -- All named rooms across the entire model.
 
-`list_snapshots()` -- All saved snapshots with file sizes and timestamps.
+`snapshot_list()` -- All saved snapshots with file sizes and timestamps.
 
-`set_bay(bay: str, field: str, value: str)` -- Set any bay property. The field parameter determines what gets set: origin, rotation, bays, spacing, spacing_x, spacing_y, grid_type, rings, ring_spacing, arms, arc_deg, arc_start_deg, label, braille, z_order, void_center, void_size, void_shape.
+`bay_set(bay: str, field: str, value: str)` -- Set any bay property. The field parameter determines what gets set: origin, rotation, bays, spacing, spacing_x, spacing_y, grid_type, rings, ring_spacing, arms, arc_deg, arc_start_deg, label, braille, z_order, void_center, void_size, void_shape.
 
-`set_walls(bay: str, enabled: bool, thickness: float = None)` -- Toggle walls on/off and optionally set thickness in feet.
+`walls_set(bay: str, enabled: bool, thickness: float = None)` -- Toggle walls on/off and optionally set thickness in feet.
 
-`set_corridor(bay: str, enabled: bool, field: str = None, value: str = None)` -- Toggle corridor and configure properties: axis, position, width, loading, hatch, hatch_scale.
+`corridor_set(bay: str, enabled: bool, field: str = None, value: str = None)` -- Toggle corridor and configure properties: axis, position, width, loading, hatch, hatch_scale.
 
-`add_aperture(bay: str, id: str, type: str, axis: str, gridline: int, corner: float, width: float, height: float)` -- Add a door, window, or portal. Walls must be enabled first.
+`aperture_add(bay: str, id: str, type: str, axis: str, gridline: int, corner: float, width: float, height: float)` -- Add a door, window, or portal. Walls must be enabled first.
 
-`remove_aperture(bay: str, id: str)` -- Remove an aperture by ID.
+`aperture_remove(bay: str, id: str)` -- Remove an aperture by ID.
 
-`modify_aperture(bay: str, id: str, field: str, value: str)` -- Change one property of an existing aperture: type, axis, gridline, corner, width, height, hinge, swing.
+`aperture_modify(bay: str, id: str, field: str, value: str)` -- Change one property of an existing aperture: type, axis, gridline, corner, width, height, hinge, swing.
 
-`set_cell(bay: str, col: int, row: int, field: str, value: str)` -- Set a property on one cell: name, label, braille, hatch, hatch_scale, hatch_rotation.
+`cell_set(bay: str, col: int, row: int, field: str, value: str)` -- Set a property on one cell: name, label, braille, hatch, hatch_scale, hatch_rotation.
 
-`auto_corridor_cells(bay: str)` -- Automatically name all cells overlapping the corridor zone as "Corridor".
+`cell_auto_corridor(bay: str)` -- Automatically name all cells overlapping the corridor zone as "Corridor".
 
-`set_site(field: str, value: float)` -- Set site width or height in feet.
+`site_set(field: str, value: float)` -- Set site width or height in feet.
 
-`set_style(field: str, value: str)` -- Set drawing style parameter: heavy, light, corridor, wall, text_height, braille_height, dash_len, gap_len, bg_pad, label_offset, arc_segments.
+`drawing_set(field: str, value: str)` -- Set drawing style parameter: heavy, light, corridor, wall, text_height, braille_height, dash_len, gap_len, bg_pad, label_offset, arc_segments.
 
-`save_snapshot(name: str)` -- Save current state to history/snapshot_{name}.json.
+`snapshot_save(name: str)` -- Save current state to history/snapshot_{name}.json.
 
-`load_snapshot(name: str)` -- Restore a previously saved snapshot.
+`snapshot_load(name: str)` -- Restore a previously saved snapshot.
 
 ### Auditor (5 functions)
 
 These call directly into auditor.py, passing the loaded state dict. No CLI commands involved. All are read-only.
 
-`audit_model()` -- Run all validation checks: bay overlap, site bounds, aperture validity, apertures without walls, corridor sizing, ADA door widths (min 3 ft), ADA corridor widths (min 5 ft), orphaned room references, missing labels. Returns a numbered list of issues or "0 issues found."
+`model_audit()` -- Run all validation checks: bay overlap, site bounds, aperture validity, apertures without walls, corridor sizing, ADA door widths (min 3 ft), ADA corridor widths (min 5 ft), orphaned room references, missing labels. Returns a numbered list of issues or "0 issues found."
 
-`audit_bay(bay: str)` -- Deep audit of a single bay covering all the same checks scoped to that bay.
+`bay_audit(bay: str)` -- Deep audit of a single bay covering all the same checks scoped to that bay.
 
-`describe_bay(bay: str)` -- Rich narrative description of one bay: grid type, dimensions, area, column count, walls, corridor, each aperture, void, cell rooms, and spatial relationships to every other bay (distance and direction).
+`bay_describe(bay: str)` -- Rich narrative description of one bay: grid type, dimensions, area, column count, walls, corridor, each aperture, void, cell rooms, and spatial relationships to every other bay (distance and direction).
 
-`describe_circulation()` -- Corridor connectivity analysis: which bays have corridors, their configuration, doors and portals near corridors, dead-end warnings, potential inter-bay connections (bays within 10 ft of each other).
+`circulation_describe()` -- Corridor connectivity analysis: which bays have corridors, their configuration, doors and portals near corridors, dead-end warnings, potential inter-bay connections (bays within 10 ft of each other).
 
 `measure(from_location: str, to_location: str)` -- Distance between semantic locations like "bay A origin" and "bay B center". Returns straight-line, horizontal (X), and vertical (Y) distances.
 
@@ -321,73 +321,73 @@ TCP client connecting to port 1998 on localhost, where the Rhino watcher listens
 
 `rhino_run_script(code: str)` -- Run a Python snippet inside Rhino's IronPython engine. The watcher blocks geometry-modifying calls (AddLine, DeleteObject, etc.) so this is strictly read-only. Important: IronPython 2.7 -- use .format() not f-strings.
 
-`setup_rhino(rhino_path: str = "")` -- Launch Rhino with the watcher auto-loaded and units set to Feet. If already connected, returns current status instead. Searches standard install locations if no path given.
+`rhino_setup(rhino_path: str = "")` -- Launch Rhino with the watcher auto-loaded and units set to Feet. If already connected, returns current status instead. Searches standard install locations if no path given.
 
 ### Controller extension (2 functions)
 
 The most experimental capability. Lets Claude write new command handlers and register them at runtime.
 
-`extend_controller(function_name: str, code: str)` -- Add a new CLI command. Validates syntax with ast.parse(), checks function signature (must accept state, tokens), checks for name conflicts, appends to controller_cli.py, adds dispatch line, reloads module, records in state metadata.
+`extension_add(function_name: str, code: str)` -- Add a new CLI command. Validates syntax with ast.parse(), checks function signature (must accept state, tokens), checks for name conflicts, appends to controller_cli.py, adds dispatch line, reloads module, records in state metadata.
 
-`list_extensions()` -- Show all extensions that have been added to the controller.
+`extension_list()` -- Show all extensions that have been added to the controller.
 
 ### State introspection (7 functions)
 
 Direct state access using dot-notation paths like "bays.A.corridor.width" or "meta.notes". These bypass the controller -- use for fields that have no CLI command.
 
-`get_field(path: str)` -- Read the value of a single field. Example: get_field("site.width") returns "OK: site.width = 200.0".
+`field_get(path: str)` -- Read the value of a single field. Example: field_get("site.width") returns "OK: site.width = 200.0".
 
-`set_field(path: str, value: str)` -- Write a value directly to state.json. The value is parsed as JSON. Bypasses CLI validation. Use for fields like meta.notes, print.dpi, bambu.printer_ip that have no CLI command.
+`field_set(path: str, value: str)` -- Write a value directly to state.json. The value is parsed as JSON. Bypasses CLI validation. Use for fields like meta.notes, print.dpi, bambu.printer_ip that have no CLI command.
 
-`list_fields(path: str = "")` -- List all keys at a path. Use to explore the schema. Example: list_fields("bays.A") lists all bay A properties.
+`field_list(path: str = "")` -- List all keys at a path. Use to explore the schema. Example: field_list("bays.A") lists all bay A properties.
 
-`add_bay(name: str, grid_type: str = "rectangular", origin_x: float = 0.0, origin_y: float = 0.0)` -- Create a new bay with default settings: 3x3 rectangular grid, 24 ft spacing, walls off, corridor off. Room references are regenerated automatically.
+`bay_add(name: str, grid_type: str = "rectangular", origin_x: float = 0.0, origin_y: float = 0.0)` -- Create a new bay with default settings: 3x3 rectangular grid, 24 ft spacing, walls off, corridor off. Room references are regenerated automatically.
 
-`remove_bay(name: str)` -- Permanently delete a bay and regenerate room references. Use save_snapshot first if you might want to undo.
+`bay_remove(name: str)` -- Permanently delete a bay and regenerate room references. Use snapshot_save first if you might want to undo.
 
-`clone_bay(source: str, target: str, origin_x: float = 0.0, origin_y: float = 0.0)` -- Deep copy all properties from an existing bay. Only the label and origin change.
+`bay_clone(source: str, target: str, origin_x: float = 0.0, origin_y: float = 0.0)` -- Deep copy all properties from an existing bay. Only the label and origin change.
 
-`list_commands()` -- Parse controller_cli.py and list all commands organized by category. Useful before writing extensions.
+`command_list()` -- Parse controller_cli.py and list all commands organized by category. Useful before writing extensions.
 
 ### State comparison (3 functions)
 
-`show_command_source(command: str)` -- Read the full function definition for a command handler. Accepts either the command word ("corridor") or the function name ("cmd_corridor", "_cmd_set_bay").
+`command_show(command: str)` -- Read the full function definition for a command handler. Accepts either the command word ("corridor") or the function name ("cmd_corridor", "_cmd_set_bay").
 
-`diff_snapshot(snapshot_name: str)` -- Compare the current state.json to a saved snapshot and list all fields that differ. Like "git diff" for your model.
+`snapshot_diff(snapshot_name: str)` -- Compare the current state.json to a saved snapshot and list all fields that differ. Like "git diff" for your model.
 
-`validate_state()` -- Check that state.json is structurally correct: valid JSON, required sections present, bay fields have correct types. This is different from audit_model which checks spatial/ADA rules. validate_state checks JSON structure. Use after hand-editing state.json or after set_field changes.
+`state_validate()` -- Check that state.json is structurally correct: valid JSON, required sections present, bay fields have correct types. This is different from model_audit which checks spatial/ADA rules. state_validate checks JSON structure. Use after hand-editing state.json or after field_set changes.
 
 ### Script generation (3 functions)
 
 Mode 3: Learning Rhino Python. These tools generate editable IronPython 2.7 scripts that the user can open, study, modify, and run in Rhino. The goal is to build scripting fluency over time so the user is not permanently dependent on the AI.
 
-`generate_script(name: str, description: str, code: str, teach: bool)` -- Create a .py file in the scripts/ folder. Validates for IronPython 2.7 compatibility (rejects f-strings and pathlib). If teach=True (default), prepends commented learning notes. Returns the file path and instructions for running in Rhino's EditPythonScript.
+`script_generate(name: str, description: str, code: str, teach: bool)` -- Create a .py file in the scripts/ folder. Validates for IronPython 2.7 compatibility (rejects f-strings and pathlib). If teach=True (default), prepends commented learning notes. Returns the file path and instructions for running in Rhino's EditPythonScript.
 
-`list_scripts()` -- List all .py files in scripts/ with name, description, and size.
+`script_list()` -- List all .py files in scripts/ with name, description, and size.
 
-`show_script(name: str)` -- Return the full contents of a script. Supports fuzzy name matching if the exact name is not found.
+`script_show(name: str)` -- Return the full contents of a script. Supports fuzzy name matching if the exact name is not found.
 
 ### Zone, grid, and export (9 functions)
 
 Site-scale planning, structural grid management, and model export. These commands manage zones (named functional areas), a global structural grid, and export to multiple formats. All go through `_run()` or direct CLI dispatch.
 
-`add_zone(name: str, width: float, depth: float, x: float, y: float, program_type: str)` -- Add a rectangular program zone to the site plan. Zones define functional areas (residential, service, circulation) separately from rooms.
+`zone_add(name: str, width: float, depth: float, x: float, y: float, program_type: str)` -- Add a rectangular program zone to the site plan. Zones define functional areas (residential, service, circulation) separately from rooms.
 
-`add_zone_polygon(name: str, corners: str, program_type: str)` -- Add a polygon zone defined by corner points. Corners are space-separated "X1,Y1 X2,Y2 X3,Y3 ..." pairs.
+`zone_add_polygon(name: str, corners: str, program_type: str)` -- Add a polygon zone defined by corner points. Corners are space-separated "X1,Y1 X2,Y2 X3,Y3 ..." pairs.
 
-`remove_zone(name: str)` -- Remove a zone from the site plan by name.
+`zone_remove(name: str)` -- Remove a zone from the site plan by name.
 
-`list_zones()` -- List all program zones with dimensions and area.
+`zone_list()` -- List all program zones with dimensions and area.
 
-`set_zone_label(name: str, label: str, braille: str)` -- Set the display label and optional braille text for a zone.
+`zone_label_set(name: str, label: str, braille: str)` -- Set the display label and optional braille text for a zone.
 
-`set_grid(spacing: float, rotation: float, origin_x: float, origin_y: float)` -- Set a global structural grid overlay. The grid provides a regular spacing reference across the entire site.
+`grid_set(spacing: float, rotation: float, origin_x: float, origin_y: float)` -- Set a global structural grid overlay. The grid provides a regular spacing reference across the entire site.
 
-`clear_grid()` -- Remove the global structural grid.
+`grid_clear()` -- Remove the global structural grid.
 
-`set_site_polygon(corners: str)` -- Set the site boundary as a polygon instead of a rectangle. Width/height are updated to the bounding box.
+`site_polygon_set(corners: str)` -- Set the site boundary as a polygon instead of a rectangle. Width/height are updated to the bounding box.
 
-`export_model(format: str, output_path: str)` -- Export the model to a file. Supports "3dm" (Rhino file, requires rhino3dm) and "text" (full description dump).
+`model_export(format: str, output_path: str)` -- Export the model to a file. Supports "3dm" (Rhino file, requires rhino3dm) and "text" (full description dump).
 
 ### TACT tactile (7 functions, separate server)
 
@@ -459,11 +459,11 @@ Pre-built prompts for common design workflows. These load the current model stat
     User: Start a new school layout. I need a main building 6 bays by 3 bays
           at 24-foot spacing, with a central east-west corridor.
 
-    AI calls: set_bay(bay="A", field="bays", value="6 3")
-    AI calls: set_bay(bay="A", field="spacing", value="24 24")
-    AI calls: set_corridor(bay="A", enabled=True, field="axis", value="x")
-    AI calls: set_corridor(bay="A", enabled=True, field="width", value="8")
-    AI calls: set_walls(bay="A", enabled=True)
+    AI calls: bay_set(bay="A", field="bays", value="6 3")
+    AI calls: bay_set(bay="A", field="spacing", value="24 24")
+    AI calls: corridor_set(bay="A", enabled=True, field="axis", value="x")
+    AI calls: corridor_set(bay="A", enabled=True, field="width", value="8")
+    AI calls: walls_set(bay="A", enabled=True)
     AI calls: describe()
 
     AI: OK. Bay A is now a 6x3 rectangular grid at 24-foot spacing.
@@ -477,16 +477,16 @@ Pre-built prompts for common design workflows. These load the current model stat
           Put crosshatch on classrooms and dots on labs. Then add a door
           to each classroom from the corridor.
 
-    AI calls: set_cell(bay="A", col=0, row=2, field="name", value="Classroom")
+    AI calls: cell_set(bay="A", col=0, row=2, field="name", value="Classroom")
               ... (repeats for cols 1-5, row 2)
-    AI calls: set_cell(bay="A", col=0, row=2, field="hatch", value="crosshatch")
+    AI calls: cell_set(bay="A", col=0, row=2, field="hatch", value="crosshatch")
               ... (repeats for all classroom cells)
-    AI calls: set_cell(bay="A", col=0, row=0, field="name", value="Lab")
+    AI calls: cell_set(bay="A", col=0, row=0, field="name", value="Lab")
               ... (repeats for cols 0-5, row 0)
-    AI calls: set_cell(bay="A", col=0, row=0, field="hatch", value="dots")
+    AI calls: cell_set(bay="A", col=0, row=0, field="hatch", value="dots")
               ... (repeats for all lab cells)
-    AI calls: auto_corridor_cells(bay="A")
-    AI calls: add_aperture(bay="A", id="d1", type="door", axis="x",
+    AI calls: cell_auto_corridor(bay="A")
+    AI calls: aperture_add(bay="A", id="d1", type="door", axis="x",
                            gridline=2, corner=10.0, width=3.0, height=7.0)
               ... (repeats for each classroom)
 
@@ -511,10 +511,10 @@ Pre-built prompts for common design workflows. These load the current model stat
 
     User: Good catches. Add lab doors and save a snapshot.
 
-    AI calls: add_aperture(bay="A", id="lab-d1", type="door", axis="x",
+    AI calls: aperture_add(bay="A", id="lab-d1", type="door", axis="x",
                            gridline=1, corner=10.0, width=3.0, height=7.0)
               ... (repeats for each lab)
-    AI calls: save_snapshot(name="school-v1-rooms-and-doors")
+    AI calls: snapshot_save(name="school-v1-rooms-and-doors")
 
     AI: OK. 6 lab doors added at gridline 1. Snapshot saved as
         school-v1-rooms-and-doors.
@@ -524,15 +524,15 @@ Pre-built prompts for common design workflows. These load the current model stat
     User: Set up the drawing for PIAF swell paper. Make sure every
           room has a different hatch and braille labels are on.
 
-    AI calls: run_command("legend on")
-    AI calls: run_command("legend show_braille on")
-    AI calls: run_command("legend show_hatches on")
-    AI calls: set_cell(bay="A", col=0, row=2, field="hatch", value="crosshatch")
-    AI calls: set_cell(bay="A", col=0, row=0, field="hatch", value="dots")
-    AI calls: run_command("set style heavy 1.4")
-    AI calls: run_command("set style light 0.08")
-    AI calls: run_command("set print scale 4")
-    AI calls: run_command("set print paper 11x11.5")
+    AI calls: command_run("legend on")
+    AI calls: command_run("legend show_braille on")
+    AI calls: command_run("legend show_hatches on")
+    AI calls: cell_set(bay="A", col=0, row=2, field="hatch", value="crosshatch")
+    AI calls: cell_set(bay="A", col=0, row=0, field="hatch", value="dots")
+    AI calls: command_run("set style heavy 1.4")
+    AI calls: command_run("set style light 0.08")
+    AI calls: command_run("set print scale 4")
+    AI calls: command_run("set print paper 11x11.5")
 
     AI: OK. Legend is on with braille and hatch swatches. Classrooms
         have crosshatch, labs have dots. Style set for high-contrast
@@ -545,11 +545,11 @@ Pre-built prompts for common design workflows. These load the current model stat
 
     User: Print a 3D model of bay A on the Bambu printer.
 
-    AI calls: run_command("tactile3d on")
-    AI calls: run_command("tactile3d wall_height 9")
-    AI calls: run_command("tactile3d cut_height 4")
-    AI calls: run_command("bambu config ip 192.168.1.100")
-    AI calls: run_command("bambu preview")
+    AI calls: command_run("tactile3d on")
+    AI calls: command_run("tactile3d wall_height 9")
+    AI calls: command_run("tactile3d cut_height 4")
+    AI calls: command_run("bambu config ip 192.168.1.100")
+    AI calls: command_run("bambu preview")
 
     AI: Tactile 3D is on. Walls extruded to 9 ft, clipped at 4 ft.
         The model fits on the 256x256mm build plate at 1:200 scale.
@@ -558,7 +558,7 @@ Pre-built prompts for common design workflows. These load the current model stat
 
     User: Print it.
 
-    AI calls: run_command("bambu print")
+    AI calls: command_run("bambu print")
 
     AI: Full pipeline complete. STL exported, sliced to 3MF, uploaded
         to printer at 192.168.1.100. Print started.
@@ -572,17 +572,17 @@ The terminal CLI has an in-memory undo stack powered by `copy.deepcopy(state)` b
 
 Instead, MCP mode uses named snapshots:
 
-    save_snapshot(name="before-big-change")
+    snapshot_save(name="before-big-change")
     ... make changes ...
     ... something went wrong ...
-    load_snapshot(name="before-big-change")
+    snapshot_load(name="before-big-change")
     -> state restored to the checkpoint
 
 The numbered history system (`history/0001.json`, `0002.json`, etc.) is also available. Each mutating command writes a numbered history file, so you can trace every change.
 
-You can also use diff_snapshot to compare the current state against a checkpoint before deciding whether to revert:
+You can also use snapshot_diff to compare the current state against a checkpoint before deciding whether to revert:
 
-    diff_snapshot("before-big-change")
+    snapshot_diff("before-big-change")
     -> lists every field that changed since the snapshot
 
 
@@ -640,11 +640,11 @@ If the function needs read-only access (no state mutation), load state directly:
             f"2. Second thing\n"
         )
 
-### Adding runtime commands via extend_controller
+### Adding runtime commands via extension_add
 
-You can also add new commands without editing the server code. The extend_controller function lets Claude write and register a new command handler at runtime:
+You can also add new commands without editing the server code. The extension_add function lets Claude write and register a new command handler at runtime:
 
-    extend_controller("cmd_wallarea", '''
+    extension_add("cmd_wallarea", '''
     def cmd_wallarea(state, tokens):
         total = 0
         for name, bay in state.get("bays", {}).items():
@@ -662,9 +662,9 @@ You can also add new commands without editing the server code. The extend_contro
         return state, "OK: Estimated total wall area: {:.0f} sq ft".format(total)
     ''')
 
-After this, `run_command("wallarea")` executes the new handler.
+After this, `command_run("wallarea")` executes the new handler.
 
-Safety: extend_controller only adds code, never modifies or removes existing functions. It validates syntax before writing, checks for command name conflicts, and tracks all extensions in state metadata.
+Safety: extension_add only adds code, never modifies or removes existing functions. It validates syntax before writing, checks for command name conflicts, and tracks all extensions in state metadata.
 
 ### Pattern for wrapping a new CLI skill
 
@@ -674,7 +674,7 @@ When a new skill is added to the CLI (e.g., structural analysis), extending MCP 
 2. The MCP server adds typed function wrappers for those commands.
 3. Read-only inspection functions are added for the new skill's state.
 4. A prompt template is added for the skill's primary workflow.
-5. The escape hatch (run_command) covers any commands not yet wrapped.
+5. The escape hatch (command_run) covers any commands not yet wrapped.
 
 
 ## 9. Technical Notes
@@ -685,11 +685,11 @@ Most MCP functions delegate to the controller for validation and state mutation.
 
     MCP function -> _run() -> controller_cli.apply_command() -> state.json
 
-The direct-editing functions (set_field, add_bay, remove_bay, clone_bay) read and write state.json directly, bypassing the controller's validation:
+The direct-editing functions (field_set, bay_add, bay_remove, bay_clone) read and write state.json directly, bypassing the controller's validation:
 
     MCP function -> state.json (no controller validation)
 
-This is intentional. Some fields (meta.notes, print.dpi, bambu.printer_ip) have no CLI command, and operations like creating or deleting bays were previously impossible through the CLI. The trade-off is that direct edits are not validated by the controller, so incorrect values are possible. The validate_state function catches structural errors after direct edits.
+This is intentional. Some fields (meta.notes, print.dpi, bambu.printer_ip) have no CLI command, and operations like creating or deleting bays were previously impossible through the CLI. The trade-off is that direct edits are not validated by the controller, so incorrect values are possible. The state_validate function catches structural errors after direct edits.
 
 Use the validated path when the controller has a command for what you want to do. Use the direct path when it does not.
 

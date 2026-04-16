@@ -574,21 +574,21 @@ To get just the bay list, say:
 
     "List all the bays."
 
-Claude calls list_bays(). Shorter output, just the bay names and
+Claude calls bay_list(). Shorter output, just the bay names and
 key properties.
 
 To get the raw JSON state, say:
 
     "Show me the raw state JSON."
 
-Claude calls get_state(). This returns the entire state.json content
+Claude calls state_get(). This returns the entire state.json content
 as formatted JSON. Claude can read specific fields from it.
 
 To get detailed information about one bay, say:
 
     "Describe bay A in detail."
 
-Claude calls describe_bay("A"). This is a rich narrative description
+Claude calls bay_describe("A"). This is a rich narrative description
 including the dimensions, area in square feet, column count, wall and
 corridor configuration, every aperture, the void, and the spatial
 relationship to Bay B (how far away and in what direction).
@@ -597,7 +597,7 @@ To understand the corridors, say:
 
     "Describe the circulation in this building."
 
-Claude calls describe_circulation(). This reports which bays have
+Claude calls circulation_describe(). This reports which bays have
 corridors, which do not, what doors and portals are near each
 corridor, and whether any corridors are dead ends.
 
@@ -620,7 +620,7 @@ To run a validation audit, say:
 
     "Audit the model for problems."
 
-Claude calls audit_model(). This checks for overlapping bays, bays
+Claude calls model_audit(). This checks for overlapping bays, bays
 outside the site boundary, apertures that do not fit their walls,
 corridor widths below ADA minimum (5 ft), door widths below ADA
 minimum (3 ft clear), orphaned room references, and missing labels.
@@ -631,7 +631,7 @@ To audit one specific bay, say:
 
     "Audit bay B."
 
-Claude calls audit_bay("B"). This is a detailed report on just that
+Claude calls bay_audit("B"). This is a detailed report on just that
 bay: grid type, dimensions, area, column count, walls, corridor,
 apertures, void, labels, and any issues found.
 
@@ -645,47 +645,47 @@ To change site dimensions:
 
     "Make the site 300 feet wide."
 
-Claude calls set_site("width", 300). The controller updates
+Claude calls site_set("width", 300). The controller updates
 state["site"]["width"] to 300 and writes state.json.
 
 To move a bay:
 
     "Move bay A to position 50, 50."
 
-Claude calls set_bay("A", "origin", "50 50"). The controller
+Claude calls bay_set("A", "origin", "50 50"). The controller
 updates state["bays"]["A"]["origin"] to [50.0, 50.0].
 
 To rotate a bay:
 
     "Rotate bay A by 30 degrees."
 
-Claude calls set_bay("A", "rotation", "30").
+Claude calls bay_set("A", "rotation", "30").
 
 To change column spacing:
 
     "Set bay A spacing to 30 by 30 feet."
 
-Claude calls set_bay("A", "spacing", "30 30").
+Claude calls bay_set("A", "spacing", "30 30").
 
 To turn walls on or off:
 
     "Turn on walls for bay B with half-foot thickness."
 
-Claude calls set_walls("B", true, 0.5). This runs two commands:
+Claude calls walls_set("B", true, 0.5). This runs two commands:
 "wall B on" and "wall B thickness 0.5".
 
 To add a corridor:
 
     "Add an 8-foot double-loaded corridor to bay B on the x-axis."
 
-Claude calls set_corridor("B", true, "axis", "x") and then
+Claude calls corridor_set("B", true, "axis", "x") and then
 additional calls to set width and loading.
 
 To add a door:
 
     "Add a 3-foot door called d3 to bay A on the south wall, 15 feet from the corner."
 
-Claude calls add_aperture("A", "d3", "door", "x", 0, 15.0, 3.0, 7.0).
+Claude calls aperture_add("A", "d3", "door", "x", 0, 15.0, 3.0, 7.0).
 The parameters are: bay name, aperture ID, type, axis, gridline,
 corner offset, width, height.
 
@@ -693,25 +693,25 @@ To modify a door:
 
     "Make door d1 wider, 4 feet."
 
-Claude calls modify_aperture("A", "d1", "width", "4").
+Claude calls aperture_modify("A", "d1", "width", "4").
 
 To remove a door:
 
     "Remove door d3 from bay A."
 
-Claude calls remove_aperture("A", "d3").
+Claude calls aperture_remove("A", "d3").
 
 To save a safety checkpoint:
 
     "Save a snapshot called before-experiment."
 
-Claude calls save_snapshot("before-experiment").
+Claude calls snapshot_save("before-experiment").
 
 To restore from a checkpoint:
 
     "Restore the before-experiment snapshot."
 
-Claude calls load_snapshot("before-experiment").
+Claude calls snapshot_load("before-experiment").
 
 ### Using skills through MCP
 
@@ -765,13 +765,13 @@ To add a new command:
 
 Claude will do several things:
 1. Write a Python function called cmd_wallarea(state, tokens)
-2. Call extend_controller("cmd_wallarea", code)
+2. Call extension_add("cmd_wallarea", code)
 3. The MCP server validates the code (checks syntax, signature,
    name conflicts)
 4. Appends the function to controller_cli.py
 5. Registers it in the dispatch chain
 6. Reloads the controller module
-7. Tests it by calling run_command("wallarea")
+7. Tests it by calling command_run("wallarea")
 
 After this, the command "wallarea" works everywhere: in the CLI,
 through the MCP server, and in skills.
@@ -780,7 +780,7 @@ To see what extensions have been added:
 
     "What extensions have been added?"
 
-Claude calls list_extensions(). Each extension shows the command
+Claude calls extension_list(). Each extension shows the command
 word, function name, and when it was added.
 
 ### Checking the Rhino connection
@@ -823,20 +823,20 @@ To read one value, say:
 
     "What is bay A's rotation?"
 
-Claude calls get_field("bays.A.rotation_deg"). This returns just
+Claude calls field_get("bays.A.rotation_deg"). This returns just
 that one number: 0.0. No other data is returned.
 
 To read a nested value, say:
 
     "What is the corridor width on bay A?"
 
-Claude calls get_field("bays.A.corridor.width"). Returns: 8.0.
+Claude calls field_get("bays.A.corridor.width"). Returns: 8.0.
 
 To read a list item, say:
 
     "What type is bay A's first aperture?"
 
-Claude calls get_field("bays.A.apertures.0.type"). Returns: "door".
+Claude calls field_get("bays.A.apertures.0.type"). Returns: "door".
 
 The dot-notation path works at any depth:
 - "site.width" reads the site width
@@ -854,7 +854,7 @@ To see what sections exist in state.json, say:
 
     "List the top-level fields in the state."
 
-Claude calls list_fields(""). This returns all top-level keys:
+Claude calls field_list(""). This returns all top-level keys:
 schema, meta, site, style, bays, blocks, rooms, legend, tactile3d,
 print, bambu, tts, section. Each key shows whether it is a dict,
 a list, or a simple value.
@@ -863,7 +863,7 @@ To drill into a section, say:
 
     "What fields does bay A have?"
 
-Claude calls list_fields("bays.A"). This returns all bay properties:
+Claude calls field_list("bays.A"). This returns all bay properties:
 grid_type, z_order, origin, rotation_deg, bays, spacing, corridor,
 walls, apertures, void_center, void_size, void_shape, label, braille.
 Dict fields show their child count; list fields show their item count;
@@ -873,7 +873,7 @@ To explore deeper, say:
 
     "What fields does bay A's corridor have?"
 
-Claude calls list_fields("bays.A.corridor"). Returns: enabled, axis,
+Claude calls field_list("bays.A.corridor"). Returns: enabled, axis,
 position, width, loading, hatch, hatch_scale.
 
 ### Writing specific fields
@@ -882,36 +882,36 @@ To change a field that has no CLI command, say:
 
     "Set the project notes to 'Library renovation phase 2'."
 
-Claude calls set_field("meta.notes", "\"Library renovation phase 2\"").
+Claude calls field_set("meta.notes", "\"Library renovation phase 2\"").
 This writes directly to state.json. The old value is reported back.
 
 To change the print DPI, say:
 
     "Set the print DPI to 600."
 
-Claude calls set_field("print.dpi", "600"). The value "600" is
+Claude calls field_set("print.dpi", "600"). The value "600" is
 parsed as JSON (a number). The old value (300) is reported.
 
 To change a boolean, say:
 
     "Turn off the legend."
 
-Claude calls set_field("legend.enabled", "false"). The value "false"
+Claude calls field_set("legend.enabled", "false"). The value "false"
 is parsed as JSON boolean false.
 
 To change a list, say:
 
     "Set bay A's origin to [50, 50]."
 
-Claude calls set_field("bays.A.origin", "[50.0, 50.0]"). The entire
+Claude calls field_set("bays.A.origin", "[50.0, 50.0]"). The entire
 list is replaced.
 
-Important: set_field bypasses CLI validation. The CLI validates
+Important: field_set bypasses CLI validation. The CLI validates
 that bay names exist, that door widths meet minimums, that gridline
-indices are in range. set_field writes the raw value directly. Use
+indices are in range. field_set writes the raw value directly. Use
 it for fields that have no CLI command (meta, blocks, print, bambu)
 or when you know the value is correct. For bay configuration, prefer
-the semantic tools (set_bay, set_walls, add_aperture) because they
+the semantic tools (bay_set, walls_set, aperture_add) because they
 validate input.
 
 ### Creating new bays
@@ -923,7 +923,7 @@ To create a new bay, say:
 
     "Create a new rectangular bay called C at position 50, 50."
 
-Claude calls add_bay("C", "rectangular", 50.0, 50.0). This creates
+Claude calls bay_add("C", "rectangular", 50.0, 50.0). This creates
 bay C with default settings: 3x3 grid, 24 ft spacing, no walls, no
 corridor, no apertures. Room references are regenerated automatically
 so bay_C and void_C appear in the rooms list.
@@ -938,7 +938,7 @@ To create a radial bay, say:
 
     "Create a radial bay called D at position 100, 100."
 
-Claude calls add_bay("D", "radial", 100.0, 100.0). This creates
+Claude calls bay_add("D", "radial", 100.0, 100.0). This creates
 bay D with default settings: 8 arms, 4 rings, 20 ft ring spacing.
 
 ### Removing bays
@@ -947,7 +947,7 @@ To delete a bay, say:
 
     "Remove bay C from the model."
 
-Claude calls remove_bay("C"). The bay and its room references are
+Claude calls bay_remove("C"). The bay and its room references are
 deleted. This is permanent. Save a snapshot first if you might
 want to undo it.
 
@@ -957,7 +957,7 @@ To copy a bay with all its settings, say:
 
     "Clone bay A to bay E at position 80, 80."
 
-Claude calls clone_bay("A", "E", 80.0, 80.0). This deep copies
+Claude calls bay_clone("A", "E", 80.0, 80.0). This deep copies
 everything: walls, corridor, apertures, void, spacing. Only the
 label and origin change. Use this to quickly create variations
 of an existing bay.
@@ -968,7 +968,7 @@ To see what commands the controller understands, say:
 
     "List all available commands."
 
-Claude calls list_commands(). This parses the controller source
+Claude calls command_list(). This parses the controller source
 code and shows every command with its handler function. The output
 is organized into categories: navigation (describe, help, undo),
 handlers (corridor, wall, aperture, etc.), and set sub-commands
@@ -978,7 +978,7 @@ To see the source code of a specific handler, say:
 
     "Show me the source code for the wall command."
 
-Claude calls show_command_source("wall"). This reads controller_cli.py
+Claude calls command_show("wall"). This reads controller_cli.py
 and extracts the full function definition for cmd_wall. You can see
 exactly what the function does, what it validates, and how it mutates
 the state.
@@ -987,7 +987,7 @@ To see how bay properties are set, say:
 
     "Show me the source code for set bay."
 
-Claude calls show_command_source("_cmd_set_bay"). This shows the
+Claude calls command_show("_cmd_set_bay"). This shows the
 function that handles all "set bay" commands (origin, rotation,
 spacing, etc.). Use this before writing extensions so you understand
 the patterns.
@@ -998,7 +998,7 @@ To see what changed since a checkpoint, say:
 
     "Compare the current state to the before-experiment snapshot."
 
-Claude calls diff_snapshot("before-experiment"). This loads both
+Claude calls snapshot_diff("before-experiment"). This loads both
 states and compares every field. Changed fields are listed with
 their current and previous values. This is like a "git diff" for
 your model.
@@ -1009,15 +1009,15 @@ After editing state.json by hand, you can check it for errors:
 
     "Validate the state file."
 
-Claude calls validate_state(). This checks:
+Claude calls state_validate(). This checks:
 - Is the file valid JSON? (catches missing commas, bad brackets)
 - Does it have required top-level keys? (schema, meta, site, bays)
 - Does each bay have required fields? (grid_type, origin, bays)
 - Are field types correct? (origin is [x,y], bays is [nx,ny])
 - Are aperture types valid? (door, window, or portal)
 
-This is different from audit_model, which checks spatial and ADA
-rules. validate_state checks the JSON structure itself.
+This is different from model_audit, which checks spatial and ADA
+rules. state_validate checks the JSON structure itself.
 
 ---
 
@@ -1221,7 +1221,7 @@ rebuild the geometry automatically within half a second.
 
 The controller (controller_cli.py) is a Python file that defines
 every command the Layout Jig understands. You can add new commands
-in two ways: through the MCP's extend_controller tool, or by
+in two ways: through the MCP's extension_add tool, or by
 editing the Python file directly.
 
 ### How command handlers work
@@ -1265,7 +1265,7 @@ Ask Claude:
 
     "Add a new command called floorarea that prints the total floor area of all bays."
 
-Claude writes the function, calls extend_controller(), and the
+Claude writes the function, calls extension_add(), and the
 command is immediately available. You do not need to restart anything.
 
 Here is what Claude might write:
@@ -1297,8 +1297,8 @@ Here is what Claude might write:
         lines.append("  Total: {:,.0f} sq ft".format(total))
         return state, "OK: Floor areas:\n" + "\n".join(lines)
 
-After extend_controller runs this, you can type "floorarea" in the
-CLI or call run_command("floorarea") through MCP.
+After extension_add runs this, you can type "floorarea" in the
+CLI or call command_run("floorarea") through MCP.
 
 ### Adding a command by hand (the full-control way)
 
@@ -1327,9 +1327,9 @@ Step 5: Save the file. If the MCP server is running, it will not
 pick up the change until it is restarted. In the interactive CLI,
 you need to restart it.
 
-### What extend_controller does behind the scenes
+### What extension_add does behind the scenes
 
-When you call extend_controller through MCP, it does exactly what
+When you call extension_add through MCP, it does exactly what
 the manual process does, but automatically:
 
 1. Validates the Python code by parsing it with the ast module.
@@ -1375,7 +1375,7 @@ fresh state.json from the main project.
 
 ### Cleaning up extensions
 
-If you used extend_controller and want to remove the added code,
+If you used extension_add and want to remove the added code,
 open controller_cli.py in a text editor and:
 
 1. Find the added function (it will be near the end of the file,
@@ -1411,10 +1411,10 @@ open controller_cli.py in a text editor and:
 ### When Claude calls an MCP tool
 
 1. You say "rotate bay A by 30 degrees."
-2. Claude reads the set_bay tool description and determines the
+2. Claude reads the bay_set tool description and determines the
    correct parameters: bay="A", field="rotation", value="30".
 3. Claude sends a JSON-RPC call to the MCP server over stdin.
-4. The MCP server's set_bay function builds the command string:
+4. The MCP server's bay_set function builds the command string:
    "set bay A rotation 30".
 5. It calls _run("set bay A rotation 30").
 6. _run loads state.json from disk.
@@ -1499,7 +1499,7 @@ snapshot_yourname.json. Run "snapshot list" to see what is
 available. If history/ does not exist, save a snapshot first
 and the folder will be created automatically.
 
-### extend_controller says "command already exists"
+### extension_add says "command already exists"
 
 You tried to add a command with a name that is already taken.
 Choose a different name. The built-in commands are: corridor,
@@ -1507,7 +1507,7 @@ wall, aperture, room, cell, block, hatch, legend, tactile3d,
 bambu, tts, section, history, snapshot, set, describe, list,
 undo, status, help, quit, print.
 
-### extend_controller says "module reload failed"
+### extension_add says "module reload failed"
 
 The function was written to the file but the module could not be
 reloaded. This can happen if the function has a runtime error (not
@@ -1521,55 +1521,55 @@ a syntax error). Restart the MCP server to pick up the change.
 
 Querying (read-only, no changes):
  1. describe - full model description
- 2. list_bays - compact bay table
- 3. get_state - raw JSON
- 4. get_help - command reference
- 5. list_apertures - apertures in one bay
- 6. list_cells - cells in one bay
- 7. list_rooms - all named rooms
- 8. list_snapshots - saved snapshots
- 9. audit_model - run all validation checks
-10. audit_bay - deep audit of one bay
-11. describe_bay - rich narrative of one bay
-12. describe_circulation - corridor connectivity
+ 2. bay_list - compact bay table
+ 3. state_get - raw JSON
+ 4. help_get - command reference
+ 5. aperture_list - apertures in one bay
+ 6. cell_list - cells in one bay
+ 7. room_list - all named rooms
+ 8. snapshot_list - saved snapshots
+ 9. model_audit - run all validation checks
+10. bay_audit - deep audit of one bay
+11. bay_describe - rich narrative of one bay
+12. circulation_describe - corridor connectivity
 13. measure - distance between locations
 14. skill_list - available skills
 15. skill_show - skill details
-16. list_extensions - added commands
+16. extension_list - added commands
 17. rhino_status - Rhino connection check
 18. rhino_query - ask Rhino a question
 19. rhino_run_script - run Python in Rhino
-20. get_field - read one JSON field by path (v3.1)
-21. list_fields - list keys at a JSON path (v3.1)
-22. list_commands - all CLI commands with handlers (v3.1)
-23. show_command_source - handler source code (v3.1)
-24. diff_snapshot - compare state to snapshot (v3.1)
-25. validate_state - check JSON structure (v3.1)
+20. field_get - read one JSON field by path (v3.1)
+21. field_list - list keys at a JSON path (v3.1)
+22. command_list - all CLI commands with handlers (v3.1)
+23. command_show - handler source code (v3.1)
+24. snapshot_diff - compare state to snapshot (v3.1)
+25. state_validate - check JSON structure (v3.1)
 
 Editing (changes state.json):
-26. run_command - raw CLI command
-27. set_bay - change bay property
-28. set_walls - toggle walls
-29. set_corridor - toggle corridor
-30. add_aperture - add door/window/portal
-31. remove_aperture - remove aperture
-32. modify_aperture - change aperture property
-33. set_cell - set cell room property
-34. auto_corridor_cells - auto-name corridor cells
-35. set_site - change site dimensions
+26. command_run - raw CLI command
+27. bay_set - change bay property
+28. walls_set - toggle walls
+29. corridor_set - toggle corridor
+30. aperture_add - add door/window/portal
+31. aperture_remove - remove aperture
+32. aperture_modify - change aperture property
+33. cell_set - set cell room property
+34. cell_auto_corridor - auto-name corridor cells
+35. site_set - change site dimensions
 36. set_style - change drawing style
-37. save_snapshot - save checkpoint
-38. load_snapshot - restore checkpoint
+37. snapshot_save - save checkpoint
+38. snapshot_load - restore checkpoint
 39. skill_run - execute a skill
 40. skill_save - save a new skill
-41. extend_controller - add new command
-42. set_field - write one JSON field by path (v3.1)
-43. add_bay - create a new bay (v3.1)
-44. remove_bay - delete a bay (v3.1)
-45. clone_bay - duplicate a bay (v3.1)
-46. generate_script - create editable .py script (v3.2)
-47. list_scripts - list generated scripts (v3.2)
-48. show_script - show script contents (v3.2)
+41. extension_add - add new command
+42. field_set - write one JSON field by path (v3.1)
+43. bay_add - create a new bay (v3.1)
+44. bay_remove - delete a bay (v3.1)
+45. bay_clone - duplicate a bay (v3.1)
+46. script_generate - create editable .py script (v3.2)
+47. script_list - list generated scripts (v3.2)
+48. script_show - show script contents (v3.2)
 49. render_tactile - render state.json to tactile output (v3.3)
 50. convert_to_tactile - convert image to tactile output (v3.3)
 51. check_tactile_density - check image density for PIAF (v3.3)

@@ -621,7 +621,7 @@ if not _mcp_available:
 
 if _mcp_available:
     # generate_script — valid script
-    gen_msg = _mcp_mod.generate_script(
+    gen_msg = _mcp_mod.script_generate(
         "test-hello", "Print hello from Rhino",
         "import rhinoscriptsyntax as rs\nprint('Hello from Rhino!')\n",
         teach=True)
@@ -633,33 +633,33 @@ if _mcp_available:
          lambda: None if os.path.exists(test_script_path) else "file not found")
 
     # show_script
-    show_msg = _mcp_mod.show_script("test-hello")
+    show_msg = _mcp_mod.script_show("test-hello")
     test("show_script returns contents",
          lambda: None if "Hello from Rhino" in show_msg else show_msg[:120])
     test("show_script has teaching header",
          lambda: None if "LEARNING NOTES" in show_msg else show_msg[:120])
 
     # list_scripts
-    list_msg = _mcp_mod.list_scripts()
+    list_msg = _mcp_mod.script_list()
     test("list_scripts shows generated file",
          lambda: None if "test-hello" in list_msg else list_msg[:120])
 
     # generate_script — reject f-strings
-    bad_msg = _mcp_mod.generate_script(
+    bad_msg = _mcp_mod.script_generate(
         "test-bad", "Bad script",
         'x = f"hello {name}"\n')
     test("generate_script rejects f-strings",
          lambda: None if "ERROR" in bad_msg and "f-string" in bad_msg else bad_msg[:120])
 
     # generate_script — reject pathlib
-    bad_msg2 = _mcp_mod.generate_script(
+    bad_msg2 = _mcp_mod.script_generate(
         "test-bad2", "Bad script",
         'import pathlib\np = pathlib.Path(".")\n')
     test("generate_script rejects pathlib",
          lambda: None if "ERROR" in bad_msg2 and "pathlib" in bad_msg2 else bad_msg2[:120])
 
     # show_script — missing file
-    miss_msg = _mcp_mod.show_script("nonexistent-script-xyz")
+    miss_msg = _mcp_mod.script_show("nonexistent-script-xyz")
     test("show_script missing file returns ERROR",
          lambda: None if "ERROR" in miss_msg else miss_msg[:120])
 

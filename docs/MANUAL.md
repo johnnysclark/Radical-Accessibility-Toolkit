@@ -669,7 +669,7 @@ the mesh engine to compute the cut).
 
 ## 15. Audit Tools
 
-### audit_model
+### model_audit
 
 Runs these checks:
 
@@ -685,12 +685,12 @@ Runs these checks:
 
 Returns a numbered list of issues, or "0 issues found."
 
-### audit_bay
+### bay_audit
 
 Deep audit of a single bay: grid type, dimensions, area, column count,
 walls, corridor, apertures, void, labels, and any issues found.
 
-### describe_bay
+### bay_describe
 
 Gives a narrative description of one bay:
 
@@ -701,7 +701,7 @@ Gives a narrative description of one bay:
 - Cell room summary
 - Spatial relationships to every other bay (distance and direction)
 
-### describe_circulation
+### circulation_describe
 
 Reports corridor connectivity:
 
@@ -780,60 +780,60 @@ detects the correct folder structure automatically.
 
 Querying (read-only, no changes):
  1. describe - full model description
- 2. list_bays - compact bay summary
- 3. get_state - raw JSON
- 4. get_help - command reference
- 5. list_apertures - apertures in one bay
- 6. list_cells - cells in one bay
- 7. list_rooms - all named rooms
- 8. list_snapshots - saved snapshots
- 9. audit_model - run all validation checks
-10. audit_bay - deep audit of one bay
-11. describe_bay - rich narrative of one bay
-12. describe_circulation - corridor connectivity
+ 2. bay_list - compact bay summary
+ 3. state_get - raw JSON
+ 4. help_get - command reference
+ 5. aperture_list - apertures in one bay
+ 6. cell_list - cells in one bay
+ 7. room_list - all named rooms
+ 8. snapshot_list - saved snapshots
+ 9. model_audit - run all validation checks
+10. bay_audit - deep audit of one bay
+11. bay_describe - rich narrative of one bay
+12. circulation_describe - corridor connectivity
 13. measure - distance between locations
 14. skill_list - available skills
 15. skill_show - skill details
-16. list_extensions - added commands
+16. extension_list - added commands
 17. rhino_status - Rhino connection check
 18. rhino_query - ask Rhino a question
 19. rhino_run_script - run Python in Rhino
-20. get_field - read one JSON field by path
-21. list_fields - list keys at a JSON path
-22. list_commands - all CLI commands with handlers
-23. show_command_source - handler source code
-24. diff_snapshot - compare state to snapshot
-25. validate_state - check JSON structure
+20. field_get - read one JSON field by path
+21. field_list - list keys at a JSON path
+22. command_list - all CLI commands with handlers
+23. command_show - handler source code
+24. snapshot_diff - compare state to snapshot
+25. state_validate - check JSON structure
 
 Editing (changes state.json):
-26. run_command - raw CLI command
-27. set_bay - change bay property
-28. set_walls - toggle walls
-29. set_corridor - toggle corridor
-30. add_aperture - add door/window/portal
-31. remove_aperture - remove aperture
-32. modify_aperture - change aperture property
-33. set_cell - set cell room property
-34. auto_corridor_cells - auto-name corridor cells
-35. set_site - change site dimensions
+26. command_run - raw CLI command
+27. bay_set - change bay property
+28. walls_set - toggle walls
+29. corridor_set - toggle corridor
+30. aperture_add - add door/window/portal
+31. aperture_remove - remove aperture
+32. aperture_modify - change aperture property
+33. cell_set - set cell room property
+34. cell_auto_corridor - auto-name corridor cells
+35. site_set - change site dimensions
 36. set_style - change drawing style
-37. save_snapshot - save checkpoint
-38. load_snapshot - restore checkpoint
+37. snapshot_save - save checkpoint
+38. snapshot_load - restore checkpoint
 39. skill_run - execute a skill
 40. skill_save - save a new skill
-41. extend_controller - add new command
-42. set_field - write one JSON field by path
-43. add_bay - create a new bay
-44. remove_bay - delete a bay
-45. clone_bay - duplicate a bay
+41. extension_add - add new command
+42. field_set - write one JSON field by path
+43. bay_add - create a new bay
+44. bay_remove - delete a bay
+45. bay_clone - duplicate a bay
 
 Rhino setup:
-46. setup_rhino - configure Rhino path
+46. rhino_setup - configure Rhino path
 
 Script generation (Mode 3 learning):
-47. generate_script - create a .py script file
-48. list_scripts - list generated scripts
-49. show_script - show script contents
+47. script_generate - create a .py script file
+48. script_list - list generated scripts
+49. script_show - show script contents
 
 Swell-print (tactile graphics):
 50. render_tactile - render state.json to tactile output
@@ -857,67 +857,67 @@ the state.json structure. Examples:
 - "print.dpi" reads print resolution
 - "bambu.printer_ip" reads the Bambu printer IP address
 
-### get_field
+### field_get
 
 Returns the value of a single field. Use this to check specific
 properties without loading the entire state.
 
-    get_field("site.width")             -> "OK: site.width = 200.0"
-    get_field("bays.A.corridor.enabled") -> "OK: bays.A.corridor.enabled = true"
+    field_get("site.width")             -> "OK: site.width = 200.0"
+    field_get("bays.A.corridor.enabled") -> "OK: bays.A.corridor.enabled = true"
 
-### set_field
+### field_set
 
 Writes a value directly to state.json. The value is parsed as JSON.
 This bypasses CLI validation — use for fields that have no CLI
 command (meta.notes, print.dpi, bambu.*, blocks.*) or when you
 know the value is correct.
 
-    set_field("meta.notes", "\"Library renovation\"")
-    set_field("print.dpi", "600")
-    set_field("legend.enabled", "false")
-    set_field("bays.A.origin", "[50.0, 50.0]")
+    field_set("meta.notes", "\"Library renovation\"")
+    field_set("print.dpi", "600")
+    field_set("legend.enabled", "false")
+    field_set("bays.A.origin", "[50.0, 50.0]")
 
-Important: set_field bypasses CLI validation. The CLI validates
+Important: field_set bypasses CLI validation. The CLI validates
 that bay names exist, that door widths meet minimums, that gridline
-indices are in range. set_field writes the raw value directly. For
-bay configuration, prefer the semantic tools (set_bay, set_walls,
-add_aperture) because they validate input.
+indices are in range. field_set writes the raw value directly. For
+bay configuration, prefer the semantic tools (bay_set, walls_set,
+aperture_add) because they validate input.
 
-### list_fields
+### field_list
 
 Lists all keys at a given path. Use to explore the schema.
 
-    list_fields("")           -> top-level keys
-    list_fields("bays")       -> bay names (A, B, ...)
-    list_fields("bays.A")     -> all bay A properties
-    list_fields("style")      -> all style properties
+    field_list("")           -> top-level keys
+    field_list("bays")       -> bay names (A, B, ...)
+    field_list("bays.A")     -> all bay A properties
+    field_list("style")      -> all style properties
 
 
 ## 18. Bay Management
 
-### add_bay
+### bay_add
 
 Creates a new bay with the controller's default settings: 3x3
 rectangular grid, 24 ft spacing, walls off, corridor off. Room
 references are regenerated automatically.
 
-    add_bay("C", "rectangular", 50.0, 50.0)
-    add_bay("D", "radial", 100.0, 100.0)
+    bay_add("C", "rectangular", 50.0, 50.0)
+    bay_add("D", "radial", 100.0, 100.0)
 
-### remove_bay
+### bay_remove
 
 Permanently deletes a bay and regenerates room references. Use
-save_snapshot first if you might want to undo.
+snapshot_save first if you might want to undo.
 
-    remove_bay("C")
+    bay_remove("C")
 
-### clone_bay
+### bay_clone
 
 Deep copies all properties (walls, corridor, apertures, void)
 from an existing bay. Only the label and optionally the origin
 change.
 
-    clone_bay("A", "E", 80.0, 80.0)
+    bay_clone("A", "E", 80.0, 80.0)
 
 
 ## 19. Skill Manager
@@ -1123,7 +1123,7 @@ Important: IronPython 2.7 — use .format() not f-strings.
 
 ## 22. Extending the Jig
 
-### What extend_controller does
+### What extension_add does
 
 1. You provide a function name (must start with "cmd_") and Python code
 2. The server validates the code with ast.parse()
@@ -1138,7 +1138,7 @@ Important: IronPython 2.7 — use .format() not f-strings.
 
 Add a command to report total wall area:
 
-    extend_controller("cmd_wallarea", '''
+    extension_add("cmd_wallarea", '''
     def cmd_wallarea(state, tokens):
         total = 0
         for name, bay in state.get("bays", {}).items():
@@ -1156,7 +1156,7 @@ Add a command to report total wall area:
         return state, "OK: Estimated total wall area: {:.0f} sq ft".format(total)
     ''')
 
-After this, you can use: run_command("wallarea")
+After this, you can use: command_run("wallarea")
 
 ### Adding a command by hand
 
@@ -1213,41 +1213,41 @@ When asking an AI to write a new command, use this prompt template:
 
 ## 23. Controller Introspection
 
-### list_commands
+### command_list
 
 Parses controller/controller_cli.py and shows all commands organized
 by category: navigation (describe, help, undo), handlers (corridor,
 wall, aperture, etc.), and set sub-commands.
 
-### show_command_source
+### command_show
 
 Extracts the complete function definition for a command handler.
 Accepts either the command word ("corridor") or the function
 name ("cmd_corridor", "_cmd_set_bay").
 
-    show_command_source("wall")        -> source of cmd_wall()
-    show_command_source("_cmd_set_bay") -> source of _cmd_set_bay()
+    command_show("wall")        -> source of cmd_wall()
+    command_show("_cmd_set_bay") -> source of _cmd_set_bay()
 
-Use this before writing extensions with extend_controller.
+Use this before writing extensions with extension_add.
 
 
 ## 24. State Comparison
 
-### diff_snapshot
+### snapshot_diff
 
 Compares the current state.json to a saved snapshot and lists
 all fields that differ. Like "git diff" for your model.
 
-    diff_snapshot("before-experiment")
+    snapshot_diff("before-experiment")
 
-### validate_state
+### state_validate
 
 Checks that state.json is structurally correct: valid JSON,
 required sections present, bay fields have correct types. Use
 after editing state.json by hand.
 
-This is different from audit_model which checks spatial/ADA
-rules. validate_state checks JSON structure.
+This is different from model_audit which checks spatial/ADA
+rules. state_validate checks JSON structure.
 
 Checks performed:
 - Is the file valid JSON?
@@ -1278,17 +1278,17 @@ annotated scripts you can study, modify, and run.
 
 ### Script generation tools (MCP)
 
-generate_script: Creates a .py file in the scripts/ folder with
+script_generate: Creates a .py file in the scripts/ folder with
 teaching comments and IronPython 2.7 validation.
 
-list_scripts: Lists all generated scripts with descriptions.
+script_list: Lists all generated scripts with descriptions.
 
-show_script: Shows the full contents of a script file.
+script_show: Shows the full contents of a script file.
 
 ### Workflow
 
 1. Ask Claude: "Generate a script that draws a circle at each column"
-2. Claude calls generate_script — file appears in scripts/
+2. Claude calls script_generate — file appears in scripts/
 3. Open the file in any text editor (or Rhino's EditPythonScript)
 4. Read the teaching comments to understand what each line does
 5. Modify the script (change values, add features)
@@ -1303,7 +1303,7 @@ Scripts run inside Rhino's IronPython 2.7 interpreter:
 - No type hints.
 - print() works as a function.
 
-The generate_script tool checks for these automatically.
+The script_generate tool checks for these automatically.
 
 ### Example: read state.json and print room info
 
@@ -1467,8 +1467,8 @@ Step 3: Set up the site.
     OK: Site height = 100.0 ft. Was 200.0 ft.
 
 Claude/MCP equivalent: "set the site to 150 by 100 feet."
-Claude calls set_site(field="width", value=150) and
-set_site(field="height", value=100).
+Claude calls site_set(field="width", value=150) and
+site_set(field="height", value=100).
 
 
 Step 4: Position and size the main bay.
@@ -1487,7 +1487,7 @@ Step 4: Position and size the main bay.
 
 Claude/MCP equivalent: "set bay A to a 4 by 3 grid at origin
 10,10 with 24 foot spacing, label it Community Library."
-Claude calls set_bay for each property.
+Claude calls bay_set for each property.
 
 
 Step 5: Turn on walls with a corridor.
@@ -1512,8 +1512,8 @@ Step 5: Turn on walls with a corridor.
 
 Claude/MCP equivalent: "turn on walls for bay A, then enable
 a double-loaded east-west corridor, 8 feet wide."
-Claude calls set_walls(bay="A", enabled=true) and
-set_corridor(bay="A", enabled=true, field="width", value="8").
+Claude calls walls_set(bay="A", enabled=true) and
+corridor_set(bay="A", enabled=true, field="width", value="8").
 
 
 Step 6: Add doors.
@@ -1535,7 +1535,7 @@ meets the ADA minimum of 3 feet clear width.
 Claude/MCP equivalent: "add three doors: d1 on the south wall
 at 10 feet, d2 on the north wall at 10 feet, d3 on the west
 wall at 5 feet. All 3.5 feet wide, 7 feet tall."
-Claude calls add_aperture three times.
+Claude calls aperture_add three times.
 
 
 Step 7: Name rooms and assign hatches.
@@ -1571,7 +1571,7 @@ reader can tell the rooms apart by texture on the swell paper.
 
 Claude/MCP equivalent: "name the bottom two cells Reading Room
 with diagonal hatch, and the top two cells Study Room with
-crosshatch." Claude calls set_cell for each.
+crosshatch." Claude calls cell_set for each.
 
 
 Step 8: Save a snapshot before auditing.
@@ -1582,7 +1582,7 @@ Step 8: Save a snapshot before auditing.
 This preserves the current state so you can roll back if needed.
 
 Claude/MCP equivalent: "save a snapshot called before-audit."
-Claude calls save_snapshot(name="before-audit").
+Claude calls snapshot_save(name="before-audit").
 
 
 Step 9: Ask Claude for a design critique.
@@ -1592,8 +1592,8 @@ Mode 1 only (this is where MCP shines). Ask Claude:
     "Review my library design. Check for ADA issues and
     suggest improvements to the spatial layout."
 
-Claude calls audit_model(), describe_bay(bay="A"), and
-describe_circulation(). It reports back in natural language:
+Claude calls model_audit(), bay_describe(bay="A"), and
+circulation_describe(). It reports back in natural language:
 
     "Your design has 0 ADA issues. All three doors meet the
     3.5 foot minimum. The 8-foot corridor supports wheelchair
@@ -1610,7 +1610,7 @@ A 6-foot window on the east wall of the Reading Room.
 
 Claude/MCP equivalent: "add a 6-foot window on the east wall,
 12 feet from the corner, 4 feet tall."
-Claude calls add_aperture(bay="A", id="w1", type="window",
+Claude calls aperture_add(bay="A", id="w1", type="window",
 axis="y", gridline=4, corner=12, width=6, height=4).
 
 
@@ -1625,7 +1625,7 @@ If there were problems, the audit lists them with numbers:
     2. Bay A corridor width 4.0 ft is below ADA minimum 5.0 ft.
 
 Claude/MCP equivalent: "run an accessibility audit."
-Claude calls audit_model() and reads each issue.
+Claude calls model_audit() and reads each issue.
 
 
 Step 12: Extend the controller with a custom command.
@@ -1635,7 +1635,7 @@ Mode 1 only. Ask Claude:
     "Add a command called floorarea that calculates the
     total floor area of all rectangular bays."
 
-Claude calls extend_controller with:
+Claude calls extension_add with:
 
     function_name: "cmd_floorarea"
     code: '''
@@ -1659,7 +1659,7 @@ Now use it from the CLI:
     OK: Total floor area: 6912 sq ft.
 
 The command persists across sessions because it is written into
-controller_cli.py. It also works through MCP via run_command.
+controller_cli.py. It also works through MCP via command_run.
 
 
 Step 13: Generate 2D tactile output (PIAF swell paper).
@@ -1714,7 +1714,7 @@ Now every model change regenerates the STL automatically.
 
 Claude/MCP equivalent: "enable tactile 3D with 9-foot walls,
 cut at 4 feet, export to library_model.stl."
-Claude calls run_command for each tactile3d setting.
+Claude calls command_run for each tactile3d setting.
 
 
 Step 15: Send to the Bambu 3D printer.
@@ -1735,8 +1735,8 @@ Step 15: Send to the Bambu 3D printer.
     OK: STL exported, sliced, uploaded. Print started.
 
 Claude/MCP equivalent: "configure the Bambu printer at
-192.168.1.100 and start printing." Claude calls run_command
-for each bambu config, then run_command("bambu print").
+192.168.1.100 and start printing." Claude calls command_run
+for each bambu config, then command_run("bambu print").
 
 
 Step 16: Iterate with snapshots.
@@ -1752,7 +1752,7 @@ Make an experimental change:
 Compare what changed:
 
 Claude/MCP: "compare the current state to snapshot with-window."
-Claude calls diff_snapshot(snapshot_name="with-window") and reports:
+Claude calls snapshot_diff(snapshot_name="with-window") and reports:
 
     "One field changed: bays.A.rotation_deg was 0.0, now 15.0."
 
@@ -1765,7 +1765,7 @@ Decide the rotation does not work. Restore:
     (Bay A rotation is back to 0 degrees.)
 
 Claude/MCP equivalent: "restore the with-window snapshot."
-Claude calls load_snapshot(name="with-window").
+Claude calls snapshot_load(name="with-window").
 
 
 Step 17: Final check.
@@ -1820,7 +1820,7 @@ verbal description.
 
     # 1. Audit the design for issues
     # Ask Claude: "Run an accessibility audit on my design"
-    # Claude calls audit_model() and reports any ADA issues
+    # Claude calls model_audit() and reports any ADA issues
     # Fix any problems before generating output
 
     # 2. Generate a tactile floor plan (swell paper)
@@ -1990,10 +1990,10 @@ rebuild the geometry automatically within half a second.
 ### When Claude calls an MCP tool
 
 1. You say "rotate bay A by 30 degrees."
-2. Claude reads the set_bay tool description and determines the
+2. Claude reads the bay_set tool description and determines the
    correct parameters: bay="A", field="rotation", value="30".
 3. Claude sends a JSON-RPC call to the MCP server over stdin.
-4. The MCP server's set_bay function builds the command string:
+4. The MCP server's bay_set function builds the command string:
    "set bay A rotation 30".
 5. It calls _run("set bay A rotation 30").
 6. _run loads state.json from disk.
@@ -2089,7 +2089,7 @@ snapshot_yourname.json. Run "snapshot list" to see what is
 available. If history/ does not exist, save a snapshot first
 and the folder will be created automatically.
 
-### extend_controller says "command already exists"
+### extension_add says "command already exists"
 
 You tried to add a command with a name that is already taken.
 Choose a different name. The built-in commands are: corridor,
@@ -2097,7 +2097,7 @@ wall, aperture, room, cell, block, hatch, legend, tactile3d,
 bambu, tts, section, history, snapshot, set, describe, list,
 undo, status, help, quit, print.
 
-### extend_controller says "module reload failed"
+### extension_add says "module reload failed"
 
 The function was written to the file but the module could not be
 reloaded. This can happen if the function has a runtime error (not

@@ -141,6 +141,34 @@ Branch names must be speakable and understandable when read aloud by a screen re
 4. A person hearing the branch name once should be able to repeat it back.
 5. When Claude creates branches, it must follow this convention and never append generated IDs.
 
+### MCP Function Names
+
+Every MCP function name follows a **noun-first** convention:
+
+    <namespace>_<verb>[_<modifier>]
+
+The namespace names a domain noun (`bay`, `zone`, `aperture`, `snapshot`, `style`, `rhino`, `model`, `state`, `command`, `field`, `script`, `cell`, `room`, `grid`, `corridor`, `walls`, `site`, `template`, `skill`, `view`, `drawing`, `extension`, `help`, `circulation`). The verb describes the action (`add`, `remove`, `set`, `get`, `list`, `save`, `load`, `show`, `describe`, `run`, `audit`, `clear`, `clone`, `modify`, `validate`, `diff`, `export`, `generate`, `setup`). Modifiers extend a verb only when necessary (`zone_add_polygon`, `cell_auto_corridor`).
+
+**Good examples:**
+- `bay_add`, `bay_remove`, `bay_describe`, `bay_audit`
+- `zone_add`, `zone_add_polygon`, `zone_list`, `zone_label_set`
+- `snapshot_save`, `snapshot_load`, `snapshot_diff`
+- `field_get`, `field_set`, `field_list`
+- `rhino_setup`, `rhino_status`, `rhino_query`
+- `model_describe`, `model_audit`, `model_export`
+
+**Bad examples (do not introduce):**
+- `add_bay`, `list_zones`, `save_snapshot` — verb first.
+- `describe`, `measure` — no namespace (leave `measure` as a chartered exception).
+- `setup_rhino`, `extend_controller` — verb first and/or ambiguous.
+
+**Rules:**
+1. Every new MCP function MUST use noun-first. No exceptions except `measure`.
+2. When two tools touch the same domain noun, share the namespace (`snapshot_*`, not `snap_*` in one place and `snapshot_*` in another).
+3. If a verb needs a modifier, put it after the verb (`zone_add_polygon`, not `zone_polygon_add`) so alphabetical listings still group by action.
+4. MCP docstrings start with a single imperative sentence (`Set a bay property.`, not `This tool sets...`). An `Args:` block lists parameters. An optional `Examples:` block shows short invocations.
+5. The Python function name defines the MCP tool name — keep them identical.
+
 ---
 
 ## Controller Extensions
