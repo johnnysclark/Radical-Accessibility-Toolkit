@@ -28,6 +28,16 @@ Usage
 import argparse, copy, json, math, os, subprocess, sys, time
 from datetime import datetime
 
+from parsing import (
+    unquote,
+    parse_float as _float,
+    parse_int_pos as _int_pos,
+    parse_int_nn as _int_nn,
+    parse_bay_name,
+    parse_corner,
+    parse_corners,
+)
+
 try:
     import template_manager as _tmpl_mgr
 except ImportError:
@@ -166,22 +176,6 @@ def _snapshot_load(state_file, name):
 
 def _fmt(p):
     return f"({p[0]:.1f}, {p[1]:.1f})"
-
-def _float(x, name):
-    try:    return float(x)
-    except: raise ValueError(f"{name} must be a number. Got: {x}")
-
-def _int_pos(x, name):
-    try:    v = int(x)
-    except: raise ValueError(f"{name} must be a whole number. Got: {x}")
-    if v < 1: raise ValueError(f"{name} must be >= 1. Got: {v}")
-    return v
-
-def _int_nn(x, name):
-    try:    v = int(x)
-    except: raise ValueError(f"{name} must be a whole number. Got: {x}")
-    if v < 0: raise ValueError(f"{name} must be >= 0. Got: {v}")
-    return v
 
 def _scale_label(ft_per_in):
     n = int(ft_per_in) if ft_per_in == int(ft_per_in) else ft_per_in
@@ -900,9 +894,7 @@ def list_bays(state):
 # ══════════════════════════════════════════════════════════
 
 def _resolve_bay(state, tokens, idx=1):
-    name = tokens[idx].upper()
-    if name not in state["bays"]:
-        raise ValueError(f"No bay '{name}'. Have: {', '.join(sorted(state['bays']))}")
+    name = parse_bay_name(state, tokens[idx].upper())
     return name, state["bays"][name]
 
 def cmd_wall(state, tokens):
@@ -1095,8 +1087,7 @@ def cmd_room(state, tokens):
         return state, "\n".join(lines)
     field = tokens[2].lower()
     if field in ("label","braille"):
-        raw = " ".join(tokens[3:])
-        if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
+        raw = unquote(" ".join(tokens[3:]))
         old = rm.get(field,""); rm[field] = raw
         return state, f"Room {rid} {field} = '{raw}'. Was '{old}'."
     if field == "hatch":
@@ -1242,8 +1233,7 @@ def cmd_cell(state, tokens):
     if len(tokens) < 5:
         raise ValueError(f"cell {bay_name} {ref} {field} <value>")
     if field in ("name","label","braille"):
-        val = " ".join(tokens[4:])
-        if val.startswith('"') and val.endswith('"'): val = val[1:-1]
+        val = unquote(" ".join(tokens[4:]))
         for c, r in targets:
             cells[f"{c},{r}"][field] = val
         n = len(targets)
@@ -1323,15 +1313,13 @@ def cmd_hatch(state, tokens):
         return state, "\n".join(lines)
     if sub == "path":
         if len(tokens) != 3: raise ValueError("hatch path <folder>")
-        raw = tokens[2]
-        if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
+        raw = unquote(tokens[2])
         old = state.get("hatch_library_path","./hatches/"); state["hatch_library_path"] = raw
         exists = os.path.isdir(raw); n = len(_scan_hatch_folder(raw)) if exists else 0
         return state, f"Hatch path = {raw}. Was {old}. {'Found' if exists else 'NOT FOUND'}: {n} images."
     if sub == "add":
         if len(tokens) < 4: raise ValueError("hatch add <name> <source_image_path>")
-        hatch_name = tokens[2]; src_path = tokens[3]
-        if src_path.startswith('"') and src_path.endswith('"'): src_path = src_path[1:-1]
+        hatch_name = tokens[2]; src_path = unquote(tokens[3])
         if not os.path.isfile(src_path): raise ValueError(f"Source file not found: {src_path}")
         ext = os.path.splitext(src_path)[1].lower()
         if ext not in IMAGE_EXTS: raise ValueError(f"Unsupported image format: {ext}. "
@@ -1362,8 +1350,7 @@ def cmd_legend(state, tokens):
             leg["custom_origin"] = [_float(tokens[3],"x"), _float(tokens[4],"y")]
         return state, f"Legend position = {v}."
     if sub in ("title","title_braille"):
-        raw = " ".join(tokens[2:])
-        if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
+        raw = unquote(" ".join(tokens[2:]))
         old = leg.get(sub,""); leg[sub] = raw
         return state, f"Legend {sub} = '{raw}'. Was '{old}'."
     if sub == "width":
@@ -1421,8 +1408,7 @@ def cmd_tactile3d(state, tokens):
         t3["auto_export"] = v in ("on","true","yes","1")
         return state, f"Tactile3D auto_export = {'ON' if t3['auto_export'] else 'OFF'}."
     if sub == "export_path":
-        raw = tokens[2]
-        if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
+        raw = unquote(tokens[2])
         old = t3.get("export_path",""); t3["export_path"] = raw
         return state, f"Tactile3D export_path = {raw}. Was {old}."
     if sub == "scale_factor":
@@ -1546,15 +1532,7 @@ def _cmd_set_site(state, tokens):
     site = state["site"]
 
     if f == "corners":
-        corner_strs = tokens[3:]
-        if len(corner_strs) < 3:
-            raise ValueError("Need at least 3 corner pairs (X,Y).")
-        corners = []
-        for cs in corner_strs:
-            parts = cs.split(",")
-            if len(parts) != 2:
-                raise ValueError(f"Invalid corner '{cs}'. Use X,Y format.")
-            corners.append([float(parts[0]), float(parts[1])])
+        corners = parse_corners(tokens[3:], minimum=3, name="corner")
         site["corners"] = corners
         # Update width/height as bounding box
         xs = [c[0] for c in corners]
@@ -1622,9 +1600,7 @@ def _cmd_set_print(state, tokens):
 
 def _cmd_set_bay(state, tokens):
     if len(tokens) < 5: raise ValueError("set bay <name> <field> <value(s)>")
-    name = tokens[2].upper()
-    if name not in state["bays"]:
-        raise ValueError(f"No bay '{name}'. Have: {', '.join(sorted(state['bays']))}")
+    name = parse_bay_name(state, tokens[2].upper())
     bay = state["bays"][name]; f = tokens[3].lower()
     if f == "grid_type":
         v = tokens[4].lower()
@@ -1700,8 +1676,7 @@ def _cmd_set_bay(state, tokens):
         old = bay.get("void_shape","rectangle"); bay["void_shape"] = v
         return state, f"Bay {name} void_shape = {v}. Was {old}."
     if f in ("label","braille"):
-        raw = " ".join(tokens[4:])
-        if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
+        raw = unquote(" ".join(tokens[4:]))
         old = bay.get(f,""); bay[f] = raw
         return state, f"Bay {name} {f} = '{raw}'. Was '{old}'."
     if f == "wall_height":
@@ -2084,15 +2059,7 @@ def _cmd_zone(state, tokens):
 
         # Check for polygon mode: zone add NAME corners X1,Y1 X2,Y2 ...
         if len(tokens) > 3 and tokens[3].lower() == "corners":
-            corner_strs = tokens[4:]
-            if len(corner_strs) < 3:
-                raise ValueError("Polygon zone needs at least 3 corner pairs (X,Y).")
-            corners = []
-            for cs in corner_strs:
-                parts = cs.split(",")
-                if len(parts) != 2:
-                    raise ValueError(f"Invalid corner '{cs}'. Use X,Y format.")
-                corners.append([float(parts[0]), float(parts[1])])
+            corners = parse_corners(tokens[4:], minimum=3, name="zone corner")
             zone = {"corners": corners, "program_type": "", "label": name, "braille": ""}
             zones[name] = zone
             area = _zone_area(corners)
