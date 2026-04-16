@@ -2735,50 +2735,99 @@ def cmd_template(state, tokens):
     raise ValueError("Unknown template command: '{}'. Use: list, show, load".format(sub))
 
 
+# ══════════════════════════════════════════════════════════
+# COMMAND DISPATCH
+# ══════════════════════════════════════════════════════════
+#
+# Each of the three registries below drives one branch of
+# apply_command. Adding a new command is now a one-line change in the
+# appropriate registry instead of a new elif arm.
+#
+#   _SENTINELS    short tokens the REPL handles itself (quit, help,
+#                 undo, print, describe, status). apply_command just
+#                 returns the sentinel string.
+#   _SET_TARGETS  sub-dispatch for the `set <target> ...` family.
+#   _COMMANDS     every other top-level command.
+#
+# Handlers that need the state file path (for saving exports or
+# history) are listed in _COMMANDS_WITH_STATE_FILE; they receive it
+# as a third positional argument. The rest get (state, tokens).
+
+_SENTINELS = {
+    "quit": "__QUIT__", "q": "__QUIT__", "exit": "__QUIT__",
+    "help": "__HELP__", "h": "__HELP__", "?": "__HELP__",
+    "status": "__STATUS__",
+    "describe": "__DESCRIBE__", "d": "__DESCRIBE__",
+    "undo": "__UNDO__",
+    "print": "__PRINT__", "p": "__PRINT__",
+}
+
+_SET_TARGETS = {
+    "site":   _cmd_set_site,
+    "column": _cmd_set_column,
+    "style":  _cmd_set_style,
+    "print":  _cmd_set_print,
+    "bay":    _cmd_set_bay,
+}
+
+_COMMANDS = {
+    "corridor":  cmd_corridor,
+    "wall":      cmd_wall,
+    "aperture":  cmd_aperture,
+    "room":      cmd_room,
+    "cell":      cmd_cell,
+    "block":     cmd_block,
+    "hatch":     cmd_hatch,
+    "legend":    cmd_legend,
+    "tactile3d": cmd_tactile3d,
+    "bambu":     cmd_bambu,
+    "tts":       cmd_tts,
+    "section":   cmd_section,
+    "history":   cmd_history,
+    "snapshot":  cmd_snapshot,
+    "setup":     cmd_setup,
+    "zone":      _cmd_zone,
+    "grid":      _cmd_grid,
+    "export":    _cmd_export,
+    "template":  cmd_template,
+    "style":     cmd_style,
+    "view":      cmd_view,
+}
+
+_COMMANDS_WITH_STATE_FILE = frozenset({
+    "history", "snapshot", "setup", "export", "style", "view",
+})
+
+
 def apply_command(state, tokens, state_file=None):
-    if not tokens: return state, ""
+    if not tokens:
+        return state, ""
     cmd = tokens[0].lower()
-    if cmd in ("quit","q","exit"):   return state, "__QUIT__"
-    if cmd in ("help","h","?"):      return state, "__HELP__"
-    if cmd == "status":              return state, "__STATUS__"
-    if cmd in ("describe","d"):      return state, "__DESCRIBE__"
-    if cmd in ("list","l"):
-        if len(tokens) >= 2 and tokens[1].lower() in ("bays","bay"):
+
+    if cmd in _SENTINELS:
+        return state, _SENTINELS[cmd]
+
+    if cmd in ("list", "l"):
+        if len(tokens) >= 2 and tokens[1].lower() in ("bays", "bay"):
             return state, "__LIST_BAYS__"
         raise ValueError("Usage: list bays")
-    if cmd == "undo":    return state, "__UNDO__"
-    if cmd in ("print","p"): return state, "__PRINT__"
-    if cmd == "corridor": return cmd_corridor(state, tokens)
-    if cmd == "wall":     return cmd_wall(state, tokens)
-    if cmd == "aperture": return cmd_aperture(state, tokens)
-    if cmd == "room":     return cmd_room(state, tokens)
-    if cmd == "cell":     return cmd_cell(state, tokens)
-    if cmd == "block":    return cmd_block(state, tokens)
-    if cmd == "hatch":    return cmd_hatch(state, tokens)
-    if cmd == "legend":   return cmd_legend(state, tokens)
-    if cmd == "tactile3d": return cmd_tactile3d(state, tokens)
-    if cmd == "bambu":    return cmd_bambu(state, tokens)
-    if cmd == "tts":      return cmd_tts(state, tokens)
-    if cmd == "section":  return cmd_section(state, tokens)
-    if cmd == "history":  return cmd_history(state, tokens, state_file)
-    if cmd == "snapshot": return cmd_snapshot(state, tokens, state_file)
-    if cmd == "setup":    return cmd_setup(state, tokens, state_file)
-    if cmd == "zone":     return _cmd_zone(state, tokens)
-    if cmd == "grid":     return _cmd_grid(state, tokens)
-    if cmd == "export":   return _cmd_export(state, tokens, state_file)
-    if cmd == "template": return cmd_template(state, tokens)
-    if cmd == "style":   return cmd_style(state, tokens, state_file)
-    if cmd == "view":    return cmd_view(state, tokens, state_file)
-    if cmd != "set":
-        raise ValueError(f"Unknown command: '{cmd}'. Type 'help' for a list.")
-    if len(tokens) < 3: raise ValueError("set <site|column|style|bay|print> ...")
-    target = tokens[1].lower()
-    dispatch = {"site": _cmd_set_site, "column": _cmd_set_column,
-                "style": _cmd_set_style, "print": _cmd_set_print, "bay": _cmd_set_bay}
-    fn = dispatch.get(target)
-    if fn is None: raise ValueError(f"Unknown set target: '{target}'. "
-                                    f"Options: {', '.join(sorted(dispatch))}")
-    return fn(state, tokens)
+
+    if cmd == "set":
+        if len(tokens) < 3:
+            raise ValueError("set <{}> ...".format("|".join(sorted(_SET_TARGETS))))
+        target = tokens[1].lower()
+        fn = _SET_TARGETS.get(target)
+        if fn is None:
+            raise ValueError("Unknown set target: '{}'. Options: {}".format(
+                target, ", ".join(sorted(_SET_TARGETS))))
+        return fn(state, tokens)
+
+    handler = _COMMANDS.get(cmd)
+    if handler is None:
+        raise ValueError("Unknown command: '{}'. Type 'help' for a list.".format(cmd))
+    if cmd in _COMMANDS_WITH_STATE_FILE:
+        return handler(state, tokens, state_file)
+    return handler(state, tokens)
 
 def do_print(state, state_file):
     pr = state.get("print",{}); site = state["site"]
