@@ -95,4 +95,18 @@ try:
 except Exception as e:
     print("[STARTUP] WARNING: Unit setting failed: {0}".format(e))
 
+# ── Step 6: Ensure SCD laser-cutter layers exist ──────────
+# See tools/rhino/laser-export/ and skills/laser-export/SKILL.md
+
+print("[STARTUP] Ensuring SCD laser layers (Cut Layer, Engrave Layer, Artboard)...")
+try:
+    import sys as _sys
+    _laser_dir = os.path.join(SCRIPT_DIR, "laser-export")
+    if _laser_dir not in _sys.path:
+        _sys.path.insert(0, _laser_dir)
+    import laser_setup as _laser_setup
+    _laser_setup.ensure_layers(draw_artboard=True)
+except Exception as e:
+    print("[STARTUP] WARNING: laser layer setup failed: {0}".format(e))
+
 print("[STARTUP] Ready. Watcher active. RhinoMCP started. LightPen on all viewports.")
