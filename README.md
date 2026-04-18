@@ -41,7 +41,9 @@ Three levels of organization:
 
 - **Tool** — a major capability module (Layout Jig, Image Describer, Tactile Printer).
 - **Command** — an individual action within a tool (`set bay A rotation 30`, `wall A on`).
-- **Skill** — a saved sequence of commands, replayable with parameters (`enclose-bay-with-door`).
+- **Macro** — a saved sequence of commands, replayable with parameters (`enclose-bay-with-door`).
+
+See CLAUDE.md for the full taxonomy, including how **Skill** (SKILL.md-packaged Claude capabilities, in top-level `skills/`) differs from **Macro** (JSON command sequences, in `controller/macros/`).
 
 ```
 Terminal (controller/controller_cli.py)    Claude Code (mcp/mcp_server.py)
@@ -160,7 +162,7 @@ Generates watertight triangle meshes from the parametric model (pure Python, no 
 
 ### MCP Server v3.3
 
-An [MCP server](docs/MCP_GUIDE.md) (58 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays skills, queries Rhino geometry, reads or writes individual state fields directly, generates editable IronPython scripts for learning, and renders tactile graphics.
+An [MCP server](docs/MCP_GUIDE.md) (58 MCP functions, 5 resources, 4 prompts) connects Claude Code to every tool through the Model Context Protocol. Claude makes design changes through natural language, audits the model for ADA compliance, saves and replays macros, queries Rhino geometry, reads or writes individual state fields directly, generates editable IronPython scripts for learning, and renders tactile graphics.
 
 The system supports three interaction modes:
 1. **Mode 1: Claude Code + MCP** — natural language, AI translates to commands
@@ -188,7 +190,7 @@ The MCP server has nine functional layers:
 - **Core pipeline** (21) — semantic wrappers around CLI commands
 - **Zone, grid, and export** (9) — site-scale zone management, structural grid layout, and multi-format export
 - **Auditor** (5) — spatial validation, ADA checks, bay descriptions, circulation analysis, distance measurement
-- **Skill manager** (4) — save, list, show, and replay skills
+- **Macro manager** (4) — save, list, show, and replay macros
 - **Rhino client** (4) — TCP queries to the Rhino watcher + auto-launch (offline-safe)
 - **Controller extension** (2) — add new command handlers at runtime
 - **State introspection** (7) — read/write individual JSON fields, create/delete/clone bays, list commands, show handler source
@@ -559,7 +561,7 @@ The system's separation of input, logic, and output means different disabilities
 
 **Low-vision designer.** The same CLI works without modification — all output is text, scalable by the terminal's font settings. PIAF prints at tabloid size with heavy line weights (adjust `style heavy 2.0` for thicker columns) provide higher contrast and larger tactile features. The `--paper tabloid` flag on render produces larger prints. Rhino's viewport, when used, supports system-level magnification and high-contrast display modes.
 
-**Motor impairment (voice input).** Speech recognition (Dragon, Windows Voice Access, macOS Voice Control) dispatches spoken commands to the same CLI that accepts typed input. "Set bay A rotation thirty" works identically whether typed or spoken. No mouse interaction is required for any core modeling flow. Skills (saved command sequences) reduce the number of commands needed for common operations — one spoken command replays a multi-step sequence.
+**Motor impairment (voice input).** Speech recognition (Dragon, Windows Voice Access, macOS Voice Control) dispatches spoken commands to the same CLI that accepts typed input. "Set bay A rotation thirty" works identically whether typed or spoken. No mouse interaction is required for any core modeling flow. Macros (saved command sequences) reduce the number of commands needed for common operations — one spoken command replays a multi-step sequence.
 
 **Cognitive fatigue and traumatic brain injury.** The deterministic state file means work is never lost. Every command is atomic — it either succeeds with a confirmation or fails with an error. Sessions can be as short as one command. The undo stack reverses mistakes. Snapshots save progress at named checkpoints. There is no ambient state to track, no unsaved changes to worry about, no modal dialogs to navigate. The system waits. The user works at their own pace.
 
@@ -616,8 +618,8 @@ radical-accessibility/
     controller_cli.py ....... Terminal CLI v2.3 (Python 3, stdlib only)
     auditor.py .............. Spatial validation, ADA checks
     braille.py .............. Grade 1/2 braille translation (stdlib only)
-    skill_manager.py ........ Skill CRUD and replay
-    skills/ ................. Bundled reusable command sequences
+    macro_manager.py ........ Macro CRUD and replay
+    macros/ ................. Bundled reusable command sequences
     scripts/ ................ Generated IronPython scripts (Mode 3)
     state.json .............. Canonical Model Artifact (created on first run)
   mcp/ ...................... AI integration layer

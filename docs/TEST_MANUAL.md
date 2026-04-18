@@ -46,7 +46,7 @@ all input. About 2,000 lines of Python.
 
 mcp_server.py: The MCP server. This wraps the controller so Claude
 can call commands as typed function calls. It also has the audit
-engine, skill engine, rhino bridge, controller extension tools,
+engine, macro engine, rhino bridge, controller extension tools,
 state introspection tools, bay management tools, controller
 introspection tools, and state comparison tools. 53 tools total.
 
@@ -55,8 +55,8 @@ overlapping bays, ADA compliance, aperture placement, and missing
 labels. Also produces rich text descriptions of individual bays
 and corridor connectivity.
 
-skill_manager.py: Reusable command macros. Saves sequences of
-commands as JSON files in the skills/ folder and replays them
+macro_manager.py: Reusable command macros. Saves sequences of
+commands as JSON files in the macros/ folder and replays them
 with different parameters.
 
 rhino_watcher.py: The Rhino viewer. This script runs INSIDE Rhino.
@@ -76,7 +76,7 @@ about the design. It is the single source of truth.
 run_tests.py: Automated test suite. Runs 123 tests covering every
 engine and command family.
 
-skills/: Folder containing saved skill files (JSON).
+macros/: Folder containing saved macro files (JSON).
 
 history/: Folder where snapshots are stored.
 
@@ -713,46 +713,46 @@ To restore from a checkpoint:
 
 Claude calls load_snapshot("before-experiment").
 
-### Using skills through MCP
+### Using macros through MCP
 
-Skills are saved command sequences that can be replayed.
+Macros are saved command sequences that can be replayed.
 
-To see what skills are available:
+To see what macros are available:
 
-    "What skills are available?"
+    "What macros are available?"
 
-Claude calls skill_list(). It will read back the names and
-descriptions of all saved skills.
+Claude calls macro_list(). It will read back the names and
+descriptions of all saved macros.
 
-To see the details of a specific skill:
+To see the details of a specific macro:
 
-    "Show me the double-loaded corridor skill."
+    "Show me the double-loaded corridor macro."
 
-Claude calls skill_show("add-double-loaded-corridor"). It will
+Claude calls macro_show("add-double-loaded-corridor"). It will
 read back the parameter names, their defaults, and the exact
-sequence of commands the skill runs.
+sequence of commands the macro runs.
 
-To run a skill with defaults:
+To run a macro with defaults:
 
-    "Run the corridor skill on bay B."
+    "Run the corridor macro on bay B."
 
-Claude calls skill_run("add-double-loaded-corridor", "bay=B").
-The skill runs 4 commands: turns the corridor on, sets the axis
+Claude calls macro_run("add-double-loaded-corridor", "bay=B").
+The macro runs 4 commands: turns the corridor on, sets the axis
 to x, sets the width to 8, and sets the loading to double. Claude
 reads back the result of each command.
 
-To run a skill with custom parameters:
+To run a macro with custom parameters:
 
-    "Run the corridor skill on bay B with 10-foot width on the y-axis."
+    "Run the corridor macro on bay B with 10-foot width on the y-axis."
 
-Claude calls skill_run("add-double-loaded-corridor", "bay=B width=10 axis=y").
+Claude calls macro_run("add-double-loaded-corridor", "bay=B width=10 axis=y").
 
-To create a new skill:
+To create a new macro:
 
-    "Save a new skill called quick-enclose that turns on walls at 0.5 thickness and adds a 3-foot door on the south wall."
+    "Save a new macro called quick-enclose that turns on walls at 0.5 thickness and adds a 3-foot door on the south wall."
 
-Claude calls skill_save() with the name, description, command list,
-and parameters. The skill is saved as a JSON file in skills/.
+Claude calls macro_save() with the name, description, command list,
+and parameters. The macro is saved as a JSON file in macros/.
 
 ### Extending the controller through MCP
 
@@ -774,7 +774,7 @@ Claude will do several things:
 7. Tests it by calling run_command("wallarea")
 
 After this, the command "wallarea" works everywhere: in the CLI,
-through the MCP server, and in skills.
+through the MCP server, and in macros.
 
 To see what extensions have been added:
 
@@ -1489,7 +1489,7 @@ The bridge connects on TCP port 1998. Make sure:
 If you get "SyntaxError: unexpected token 'f'" or similar, you
 opened the wrong file in Rhino. Only rhino_watcher.py runs inside
 Rhino. All other Python files (controller_cli.py, mcp_server.py,
-auditor.py, skill_manager.py, rhino_client.py, run_tests.py)
+auditor.py, macro_manager.py, rhino_client.py, run_tests.py)
 are Python 3 and will not work in Rhino's IronPython 2.7.
 
 ### Snapshot not found
@@ -1533,8 +1533,8 @@ Querying (read-only, no changes):
 11. describe_bay - rich narrative of one bay
 12. describe_circulation - corridor connectivity
 13. measure - distance between locations
-14. skill_list - available skills
-15. skill_show - skill details
+14. macro_list - available macros
+15. macro_show - macro details
 16. list_extensions - added commands
 17. rhino_status - Rhino connection check
 18. rhino_query - ask Rhino a question
@@ -1560,8 +1560,8 @@ Editing (changes state.json):
 36. set_style - change drawing style
 37. save_snapshot - save checkpoint
 38. load_snapshot - restore checkpoint
-39. skill_run - execute a skill
-40. skill_save - save a new skill
+39. macro_run - execute a macro
+40. macro_save - save a new macro
 41. extend_controller - add new command
 42. set_field - write one JSON field by path (v3.1)
 43. add_bay - create a new bay (v3.1)

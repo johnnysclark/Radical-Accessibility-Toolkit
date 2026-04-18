@@ -2,7 +2,7 @@
 """
 LAYOUT JIG v3.0 — End-to-End Test Suite
 =========================================
-Tests every CLI command, auditor function, skill manager function,
+Tests every CLI command, auditor function, macro manager function,
 and rhino client call against the test state.json.
 
 Run:  python tests/run_tests.py
@@ -21,7 +21,7 @@ sys.path.insert(0, TOOLS_RHINO)
 
 import controller_cli as cli
 import auditor
-import skill_manager
+import macro_manager
 import rhino_client
 
 passed = 0
@@ -410,55 +410,55 @@ test("measure bad bay returns ERROR",
 # ══════════════════════════════════════════════════
 print("")
 print("=" * 60)
-print("PHASE 10: Skill Manager")
+print("PHASE 10: Macro Manager")
 print("=" * 60)
 
-skills = skill_manager.list_skills()
-test("list_skills returns list",
-     lambda: None if isinstance(skills, list) else type(skills))
-test("list_skills finds 2 bundled skills",
-     lambda: None if len(skills) >= 2 else str(len(skills)))
+macros = macro_manager.list_macros()
+test("list_macros returns list",
+     lambda: None if isinstance(macros, list) else type(macros))
+test("list_macros finds 2 bundled macros",
+     lambda: None if len(macros) >= 2 else str(len(macros)))
 
-fmt = skill_manager.format_skill_list(skills)
-test("format_skill_list returns string",
+fmt = macro_manager.format_macro_list(macros)
+test("format_macro_list returns string",
      lambda: None if isinstance(fmt, str) and "OK:" in fmt else fmt[:80])
-test("format_skill_list ends with READY:",
+test("format_macro_list ends with READY:",
      lambda: None if fmt.strip().endswith("READY:") else fmt[-50:])
 
-sk = skill_manager.load_skill("add-double-loaded-corridor")
-test("load_skill corridor",
-     lambda: None if sk["name"] == "add-double-loaded-corridor" else str(sk))
-test("skill has 4 commands",
-     lambda: None if len(sk["commands"]) == 4 else str(len(sk["commands"])))
-test("skill has 3 params",
-     lambda: None if len(sk["params"]) == 3 else str(len(sk["params"])))
+mc = macro_manager.load_macro("add-double-loaded-corridor")
+test("load_macro corridor",
+     lambda: None if mc["name"] == "add-double-loaded-corridor" else str(mc))
+test("macro has 4 commands",
+     lambda: None if len(mc["commands"]) == 4 else str(len(mc["commands"])))
+test("macro has 3 params",
+     lambda: None if len(mc["params"]) == 3 else str(len(mc["params"])))
 
-detail = skill_manager.format_skill_detail(sk)
-test("format_skill_detail",
+detail = macro_manager.format_macro_detail(mc)
+test("format_macro_detail",
      lambda: None if "OK:" in detail and "READY:" in detail else detail[:80])
 
-# save a new skill
-save_msg = skill_manager.save_skill(
-    "test-skill",
-    "Test skill for validation",
+# save a new macro
+save_msg = macro_manager.save_macro(
+    "test-macro",
+    "Test macro for validation",
     ["set site width {w}", "set site height {h}"],
     {"w": {"description": "Width", "default": "100"},
      "h": {"description": "Height", "default": "100"}},
 )
-test("save_skill test-skill",
+test("save_macro test-macro",
      lambda: None if "OK:" in save_msg else save_msg)
 
 # verify it appears in list
-skills2 = skill_manager.list_skills()
-test("new skill in list",
-     lambda: None if any(s["name"] == "test-skill" for s in skills2) else "missing")
+macros2 = macro_manager.list_macros()
+test("new macro in list",
+     lambda: None if any(s["name"] == "test-macro" for s in macros2) else "missing")
 
 # load it back
-sk2 = skill_manager.load_skill("test-skill")
-test("load new skill",
-     lambda: None if sk2["name"] == "test-skill" else str(sk2))
+mc2 = macro_manager.load_macro("test-macro")
+test("load new macro",
+     lambda: None if mc2["name"] == "test-macro" else str(mc2))
 
-# Run a skill (using _run helper simulation)
+# Run a macro (using _run helper simulation)
 reset_state()
 
 def fake_run(cmd):
@@ -472,36 +472,36 @@ def fake_run(cmd):
     except Exception as e:
         return "ERROR: {}".format(e)
 
-run_msg = skill_manager.run_skill("test-skill", {"w": "150", "h": "180"}, fake_run)
-test("run_skill test-skill",
+run_msg = macro_manager.run_macro("test-macro", {"w": "150", "h": "180"}, fake_run)
+test("run_macro test-macro",
      lambda: None if "completed" in run_msg.lower() or "OK:" in run_msg else run_msg[:120])
 
 # Verify state changed
 st_after = cli.load_state(STATE)
-test("skill changed site width to 150",
+test("macro changed site width to 150",
      lambda: None if st_after["site"]["width"] == 150.0 else str(st_after["site"]["width"]))
-test("skill changed site height to 180",
+test("macro changed site height to 180",
      lambda: None if st_after["site"]["height"] == 180.0 else str(st_after["site"]["height"]))
 
-# Run corridor skill
+# Run corridor macro
 reset_state()
-run_msg2 = skill_manager.run_skill("add-double-loaded-corridor", {"bay": "B"}, fake_run)
-test("run corridor skill on bay B",
+run_msg2 = macro_manager.run_macro("add-double-loaded-corridor", {"bay": "B"}, fake_run)
+test("run corridor macro on bay B",
      lambda: None if "completed" in run_msg2.lower() or "OK:" in run_msg2 else run_msg2[:120])
 
 st_after2 = cli.load_state(STATE)
-test("corridor skill turned on bay B corridor",
+test("corridor macro turned on bay B corridor",
      lambda: None if st_after2["bays"]["B"]["corridor"]["enabled"] else "still off")
 
-# bad skill name
-bad_msg = skill_manager.run_skill("nonexistent-skill", {}, fake_run)
-test("run nonexistent skill returns ERROR",
+# bad macro name
+bad_msg = macro_manager.run_macro("nonexistent-macro", {}, fake_run)
+test("run nonexistent macro returns ERROR",
      lambda: None if "ERROR" in bad_msg else bad_msg[:80])
 
-# Clean up test skill
-test_skill_path = os.path.join(JIG, "skills", "test-skill.json")
-if os.path.exists(test_skill_path):
-    os.remove(test_skill_path)
+# Clean up test macro
+test_macro_path = os.path.join(JIG, "macros", "test-macro.json")
+if os.path.exists(test_macro_path):
+    os.remove(test_macro_path)
 
 # ══════════════════════════════════════════════════
 print("")

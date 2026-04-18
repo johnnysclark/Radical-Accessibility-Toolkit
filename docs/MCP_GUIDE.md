@@ -76,7 +76,7 @@ The newest layer. It wraps the controller CLI so that Claude can call commands a
 Supporting modules:
 
 - `controller/auditor.py` -- spatial validation, descriptions, ADA checks
-- `controller/skill_manager.py` -- save and replay reusable command sequences
+- `controller/macro_manager.py` -- save and replay reusable command sequences
 - `controller/braille.py` -- Grade 1/2 braille translation (stdlib-only)
 - `tools/rhino/rhino_client.py` -- TCP client to query Rhino
 - `tools/rhino/tactile_print.py` -- tactile printing utilities
@@ -299,17 +299,17 @@ These call directly into auditor.py, passing the loaded state dict. No CLI comma
 
 `measure(from_location: str, to_location: str)` -- Distance between semantic locations like "bay A origin" and "bay B center". Returns straight-line, horizontal (X), and vertical (Y) distances.
 
-### Skill manager (4 functions)
+### Macro manager (4 functions)
 
-Skills are saved sequences of CLI commands with {parameter} placeholders, stored as JSON in skills/. These functions read/write the skills folder and execute commands through _run().
+Macros are saved sequences of CLI commands with {parameter} placeholders, stored as JSON in macros/. These functions read/write the macros folder and execute commands through _run().
 
-`skill_list()` -- List all saved skills with names and descriptions.
+`macro_list()` -- List all saved macros with names and descriptions.
 
-`skill_show(name: str)` -- Show a skill's details: commands, parameters, and defaults.
+`macro_show(name: str)` -- Show a macro's details: commands, parameters, and defaults.
 
-`skill_run(name: str, overrides: str = "")` -- Execute a skill with optional parameter overrides. Format: "bay=B width=10". Each command runs through _run(). Execution stops on first error.
+`macro_run(name: str, overrides: str = "")` -- Execute a macro with optional parameter overrides. Format: "bay=B width=10". Each command runs through _run(). Execution stops on first error.
 
-`skill_save(name: str, description: str, commands: str, params: str)` -- Save a new skill. Commands are newline-separated CLI command strings with {param} placeholders. Params are space-separated key=default pairs.
+`macro_save(name: str, description: str, commands: str, params: str)` -- Save a new macro. Commands are newline-separated CLI command strings with {param} placeholders. Params are space-separated key=default pairs.
 
 ### Rhino client (4 functions)
 
@@ -435,7 +435,7 @@ Resources let the AI read context passively without calling an MCP function.
 
 `help://commands` -- The complete CLI command reference.
 
-`skills://list` -- All saved skills with names and descriptions.
+`macros://list` -- All saved macros with names and descriptions.
 
 `extensions://list` -- All controller extensions that have been added.
 
@@ -449,7 +449,7 @@ Pre-built prompts for common design workflows. These load the current model stat
 
 `accessibility_audit` -- Runs automated audit checks and circulation analysis, then asks for a comprehensive ADA review: door widths, corridor widths, turning radii, egress paths, tactile readability, and wayfinding.
 
-`skill_builder` -- Provides the command reference and existing skills, then guides through composing a new skill step by step.
+`macro_builder` -- Provides the command reference and existing macros, then guides through composing a new macro step by step.
 
 
 ## 6. Example Conversations
@@ -666,14 +666,14 @@ After this, `run_command("wallarea")` executes the new handler.
 
 Safety: extend_controller only adds code, never modifies or removes existing functions. It validates syntax before writing, checks for command name conflicts, and tracks all extensions in state metadata.
 
-### Pattern for wrapping a new CLI skill
+### Pattern for wrapping a new CLI macro
 
-When a new skill is added to the CLI (e.g., structural analysis), extending MCP coverage follows this pattern:
+When a new macro is added to the CLI (e.g., structural analysis), extending MCP coverage follows this pattern:
 
-1. The new skill adds commands to controller_cli.py via the apply_command dispatch.
+1. The new macro adds commands to controller_cli.py via the apply_command dispatch.
 2. The MCP server adds typed function wrappers for those commands.
-3. Read-only inspection functions are added for the new skill's state.
-4. A prompt template is added for the skill's primary workflow.
+3. Read-only inspection functions are added for the new macro's state.
+4. A prompt template is added for the macro's primary workflow.
 5. The escape hatch (run_command) covers any commands not yet wrapped.
 
 
@@ -718,7 +718,7 @@ If a command fails, the function returns a string starting with `ERROR:`. The AI
 
     controller_cli.py -- Python 3 stdlib only. No pip packages.
     auditor.py -- Imports controller_cli for geometry helpers. Python 3 stdlib only.
-    skill_manager.py -- Python 3 stdlib only (json, os, re). Reads/writes skills/*.json.
+    macro_manager.py -- Python 3 stdlib only (json, os, re). Reads/writes macros/*.json.
     rhino_client.py -- Python 3 stdlib only (socket, json, threading). Connects to localhost:1998.
     rhino_watcher.py -- IronPython 2.7 (runs inside Rhino, not standalone). No pip packages.
 
