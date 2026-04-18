@@ -15,8 +15,7 @@ This skill prepares and exports Rhino drawings for the Siebel Center for Design 
   - Full cut: `rgb(255, 0, 0)` at 0.001″ / 0.014 mm stroke
   - General engrave: `rgb(0, 0, 0)` or grays, any stroke
   - Vector engrave: `rgb(0, 255, 0)` at 0.001″ / 0.014 mm stroke
-- **Template the shop hands to students:**
-  `C:\Users\<user>\OneDrive - University of Illinois - Urbana\Spring 2026\Arch 499\Plaza Solar Furniture\24x40in_laser_template--SCD.ait`
+- **Template the shop hands to students:** `24x40in_laser_template--SCD.ait` (an Adobe Illustrator template). Download it from the SCD shop the first time you laser-cut for a project, and keep a copy somewhere stable on your machine. This skill produces `.ai` files that drop cleanly into that template.
 
 ## What this skill does
 

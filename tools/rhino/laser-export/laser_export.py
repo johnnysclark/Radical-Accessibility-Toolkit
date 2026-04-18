@@ -34,11 +34,8 @@ Selection policy:
     Layer (ignores Artboard), then exports.
 
 After export, open the .ai in Illustrator and drop it into the SCD
-template at::
-
-  C:\\Users\\<you>\\OneDrive - University of Illinois - Urbana\\
-     Spring 2026\\Arch 499\\Plaza Solar Furniture\\
-     24x40in_laser_template--SCD.ait
+shop's 24x40in_laser_template--SCD.ait (download once from the shop
+and keep a local copy wherever is convenient).
 
 IronPython 2.7 compatible.
 """
