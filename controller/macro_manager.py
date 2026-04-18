@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Skill Manager  v1.0
+PLAN LAYOUT JIG — Macro Manager  v1.0
 =======================================
-Stores, lists, and replays reusable command sequences ("skills").
+Stores, lists, and replays reusable command sequences ("macros").
 
-A skill is a JSON file in the skills/ folder containing:
+A macro is a JSON file in the macros/ folder containing:
   - name: kebab-case identifier
-  - description: what the skill does
+  - description: what the macro does
   - version: integer
   - commands: list of CLI command strings with {param} placeholders
   - params: dict of param_name -> {description, default}
 
-Skills are the Layout Jig equivalent of macros — named sequences of
-controller commands that can be saved once and replayed with different
-parameters.
+Macros are named sequences of controller commands that can be saved once
+and replayed with different parameters. See CLAUDE.md for how "macro"
+differs from "skill" (SKILL.md-packaged Claude capabilities) in this
+project's taxonomy.
 
 Requires: Python 3 stdlib only.
 """
@@ -24,14 +25,14 @@ import re
 
 # ── Paths ──────────────────────────────────────────────────
 _here = os.path.dirname(os.path.abspath(__file__))
-SKILLS_DIR = os.path.join(_here, "skills")
+MACROS_DIR = os.path.join(_here, "macros")
 
 
 # ══════════════════════════════════════════════════════════
-# SKILL FILE FORMAT
+# MACRO FILE FORMAT
 # ══════════════════════════════════════════════════════════
 
-_SKILL_SCHEMA = {
+_MACRO_SCHEMA = {
     "name": str,
     "description": str,
     "version": int,
@@ -39,7 +40,7 @@ _SKILL_SCHEMA = {
     "params": dict,
 }
 
-_EXAMPLE_SKILL = {
+_EXAMPLE_MACRO = {
     "name": "add-double-loaded-corridor",
     "description": "Enable a double-loaded corridor on a bay with doors on both ends.",
     "version": 1,
@@ -57,21 +58,21 @@ _EXAMPLE_SKILL = {
 }
 
 
-def _ensure_skills_dir():
-    """Create the skills/ folder if it does not exist."""
-    os.makedirs(SKILLS_DIR, exist_ok=True)
+def _ensure_macros_dir():
+    """Create the macros/ folder if it does not exist."""
+    os.makedirs(MACROS_DIR, exist_ok=True)
 
 
-def _skill_path(name):
-    """Return the file path for a skill by name."""
+def _macro_path(name):
+    """Return the file path for a macro by name."""
     safe = re.sub(r'[^a-z0-9_-]', '-', name.lower().strip())
-    return os.path.join(SKILLS_DIR, f"{safe}.json")
+    return os.path.join(MACROS_DIR, f"{safe}.json")
 
 
-def _validate_skill(data):
-    """Validate a skill dict. Returns list of error strings (empty = valid)."""
+def _validate_macro(data):
+    """Validate a macro dict. Returns list of error strings (empty = valid)."""
     errors = []
-    for key, expected_type in _SKILL_SCHEMA.items():
+    for key, expected_type in _MACRO_SCHEMA.items():
         if key not in data:
             errors.append(f"Missing required field: '{key}'")
         elif not isinstance(data[key], expected_type):
@@ -100,17 +101,17 @@ def _validate_skill(data):
 # PUBLIC API
 # ══════════════════════════════════════════════════════════
 
-def list_skills():
-    """List all saved skills.
+def list_macros():
+    """List all saved macros.
 
     Returns a list of dicts: [{name, description, command_count, path}, ...]
     """
-    _ensure_skills_dir()
+    _ensure_macros_dir()
     result = []
-    for fname in sorted(os.listdir(SKILLS_DIR)):
+    for fname in sorted(os.listdir(MACROS_DIR)):
         if not fname.endswith(".json"):
             continue
-        fpath = os.path.join(SKILLS_DIR, fname)
+        fpath = os.path.join(MACROS_DIR, fname)
         try:
             with open(fpath, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -132,57 +133,57 @@ def list_skills():
     return result
 
 
-def format_skill_list(skills):
-    """Format skill list for screen reader output."""
-    if not skills:
-        return "OK: No skills saved yet. Use skill_save to create one.\nREADY:"
+def format_macro_list(macros):
+    """Format macro list for screen reader output."""
+    if not macros:
+        return "OK: No macros saved yet. Use macro_save to create one.\nREADY:"
 
-    lines = [f"OK: {len(skills)} skill(s) available.", ""]
-    for i, sk in enumerate(skills, 1):
-        lines.append(f"  {i}. {sk['name']}")
-        lines.append(f"     {sk['description']}")
-        lines.append(f"     {sk['command_count']} command(s), {sk['param_count']} param(s)")
+    lines = [f"OK: {len(macros)} macro(s) available.", ""]
+    for i, mc in enumerate(macros, 1):
+        lines.append(f"  {i}. {mc['name']}")
+        lines.append(f"     {mc['description']}")
+        lines.append(f"     {mc['command_count']} command(s), {mc['param_count']} param(s)")
     lines.append("READY:")
     return "\n".join(lines)
 
 
-def load_skill(name):
-    """Load a skill by name. Returns the skill dict or raises ValueError."""
-    path = _skill_path(name)
+def load_macro(name):
+    """Load a macro by name. Returns the macro dict or raises ValueError."""
+    path = _macro_path(name)
     if not os.path.isfile(path):
         # Try finding by partial match
-        _ensure_skills_dir()
-        available = [f[:-5] for f in os.listdir(SKILLS_DIR)
+        _ensure_macros_dir()
+        available = [f[:-5] for f in os.listdir(MACROS_DIR)
                      if f.endswith(".json")]
         matches = [a for a in available if name.lower() in a.lower()]
         if len(matches) == 1:
-            path = os.path.join(SKILLS_DIR, f"{matches[0]}.json")
+            path = os.path.join(MACROS_DIR, f"{matches[0]}.json")
         elif matches:
             raise ValueError(
-                f"Skill '{name}' not found. Did you mean: {', '.join(matches)}?")
+                f"Macro '{name}' not found. Did you mean: {', '.join(matches)}?")
         else:
             avail_str = ', '.join(available) if available else '(none)'
             raise ValueError(
-                f"Skill '{name}' not found. Available: {avail_str}")
+                f"Macro '{name}' not found. Available: {avail_str}")
 
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    errors = _validate_skill(data)
+    errors = _validate_macro(data)
     if errors:
-        raise ValueError(f"Skill '{name}' has validation errors: {'; '.join(errors)}")
+        raise ValueError(f"Macro '{name}' has validation errors: {'; '.join(errors)}")
 
     return data
 
 
-def format_skill_detail(skill):
-    """Format a single skill for detailed screen reader output."""
-    lines = [f"OK: Skill '{skill['name']}' (v{skill.get('version', 1)})", ""]
-    lines.append(f"  Description: {skill['description']}")
+def format_macro_detail(macro):
+    """Format a single macro for detailed screen reader output."""
+    lines = [f"OK: Macro '{macro['name']}' (v{macro.get('version', 1)})", ""]
+    lines.append(f"  Description: {macro['description']}")
     lines.append("")
 
     # Parameters
-    params = skill.get("params", {})
+    params = macro.get("params", {})
     if params:
         lines.append(f"  Parameters ({len(params)}):")
         for pname, pval in sorted(params.items()):
@@ -191,7 +192,7 @@ def format_skill_detail(skill):
         lines.append("")
 
     # Commands
-    commands = skill.get("commands", [])
+    commands = macro.get("commands", [])
     lines.append(f"  Commands ({len(commands)}):")
     for i, cmd in enumerate(commands, 1):
         lines.append(f"    {i}. {cmd}")
@@ -200,12 +201,12 @@ def format_skill_detail(skill):
     return "\n".join(lines)
 
 
-def save_skill(name, description, commands, params=None):
-    """Save a new skill to the skills/ folder.
+def save_macro(name, description, commands, params=None):
+    """Save a new macro to the macros/ folder.
 
     Args:
-        name: kebab-case skill name (e.g. "add-double-loaded-corridor")
-        description: what the skill does
+        name: kebab-case macro name (e.g. "add-double-loaded-corridor")
+        description: what the macro does
         commands: list of CLI command strings with {param} placeholders
         params: dict of param_name -> {description, default}
 
@@ -220,7 +221,7 @@ def save_skill(name, description, commands, params=None):
                 if pname not in params:
                     params[pname] = {"description": f"Value for {pname}", "default": ""}
 
-    skill = {
+    macro = {
         "name": name,
         "description": description,
         "version": 1,
@@ -228,12 +229,12 @@ def save_skill(name, description, commands, params=None):
         "params": params,
     }
 
-    errors = _validate_skill(skill)
+    errors = _validate_macro(macro)
     if errors:
-        return f"ERROR: Skill validation failed: {'; '.join(errors)}"
+        return f"ERROR: Macro validation failed: {'; '.join(errors)}"
 
-    _ensure_skills_dir()
-    path = _skill_path(name)
+    _ensure_macros_dir()
+    path = _macro_path(name)
 
     # Check for overwrite
     existed = os.path.isfile(path)
@@ -241,19 +242,19 @@ def save_skill(name, description, commands, params=None):
     # Atomic write
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(skill, f, indent=2, ensure_ascii=False)
+        json.dump(macro, f, indent=2, ensure_ascii=False)
     os.replace(tmp, path)
 
     action = "Updated" if existed else "Saved"
-    return (f"OK: {action} skill '{name}' with {len(commands)} command(s) "
+    return (f"OK: {action} macro '{name}' with {len(commands)} command(s) "
             f"and {len(params)} param(s) to {path}")
 
 
-def run_skill(name, overrides, run_fn):
-    """Execute a saved skill, substituting parameters.
+def run_macro(name, overrides, run_fn):
+    """Execute a saved macro, substituting parameters.
 
     Args:
-        name: skill name to load
+        name: macro name to load
         overrides: dict of param_name -> value (overrides defaults)
         run_fn: callable that takes a command string and returns a message
                 (this is mcp_server._run)
@@ -261,20 +262,20 @@ def run_skill(name, overrides, run_fn):
     Returns: combined output from all commands.
     """
     try:
-        skill = load_skill(name)
+        macro = load_macro(name)
     except ValueError as e:
         return f"ERROR: {e}"
 
     # Build final param values: defaults + overrides
     params = {}
-    for pname, pval in skill.get("params", {}).items():
+    for pname, pval in macro.get("params", {}).items():
         params[pname] = pval.get("default", "")
     if overrides:
         for k, v in overrides.items():
             params[k] = v
 
     # Check for unresolved params
-    commands = skill["commands"]
+    commands = macro["commands"]
     resolved = []
     for cmd in commands:
         result = cmd
@@ -288,7 +289,7 @@ def run_skill(name, overrides, run_fn):
         resolved.append(result)
 
     # Execute each command
-    lines = [f"OK: Running skill '{skill['name']}' ({len(resolved)} commands)", ""]
+    lines = [f"OK: Running macro '{macro['name']}' ({len(resolved)} commands)", ""]
     all_ok = True
     for i, cmd in enumerate(resolved, 1):
         msg = run_fn(cmd)
@@ -305,18 +306,18 @@ def run_skill(name, overrides, run_fn):
 
     lines.append("")
     if all_ok:
-        lines.append(f"Skill '{skill['name']}' completed: {len(resolved)} command(s) executed.")
+        lines.append(f"Macro '{macro['name']}' completed: {len(resolved)} command(s) executed.")
     else:
-        lines.append(f"Skill '{skill['name']}' failed.")
+        lines.append(f"Macro '{macro['name']}' failed.")
     lines.append("READY:")
     return "\n".join(lines)
 
 
-def create_example_skill():
-    """Write the example skill to skills/ for documentation purposes."""
-    return save_skill(
-        _EXAMPLE_SKILL["name"],
-        _EXAMPLE_SKILL["description"],
-        _EXAMPLE_SKILL["commands"],
-        _EXAMPLE_SKILL["params"],
+def create_example_macro():
+    """Write the example macro to macros/ for documentation purposes."""
+    return save_macro(
+        _EXAMPLE_MACRO["name"],
+        _EXAMPLE_MACRO["description"],
+        _EXAMPLE_MACRO["commands"],
+        _EXAMPLE_MACRO["params"],
     )

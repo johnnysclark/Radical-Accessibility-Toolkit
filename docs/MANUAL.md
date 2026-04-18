@@ -52,8 +52,8 @@ Setup Script (setup.py)
 
 Tool — a major capability module (Layout Jig, Image Describer, etc.).
 Command — an individual action within a tool ("set bay A rotation 30").
-Skill — a saved sequence of commands, replayable with parameters.
-  Stored as JSON in controller/skills/.
+Macro — a saved sequence of commands, replayable with parameters.
+  Stored as JSON in controller/macros/.
 MCP function — a Model Context Protocol entry point that Claude calls.
   Maps to one or more commands.
 
@@ -66,7 +66,7 @@ all input.
 
 mcp/mcp_server.py: The MCP server. This wraps the controller so
 Claude can call commands as typed function calls. It also has the
-auditor, skill manager, rhino client, controller extension tools,
+auditor, macro manager, rhino client, controller extension tools,
 state introspection tools, bay management tools, controller
 introspection tools, state comparison tools, script generation
 tools, and swell-print tactile graphics tools. 53 tools total (v3.3).
@@ -76,8 +76,8 @@ overlapping bays, ADA compliance, aperture placement, and missing
 labels. Also produces rich text descriptions of individual bays
 and corridor connectivity.
 
-controller/skill_manager.py: Reusable command macros. Saves sequences
-of commands as JSON files in controller/skills/ and replays them with
+controller/macro_manager.py: Reusable command macros. Saves sequences
+of commands as JSON files in controller/macros/ and replays them with
 different parameters.
 
 tools/rhino/rhino_watcher.py: The Rhino viewer. This script runs
@@ -93,7 +93,7 @@ model. Returns OFFLINE messages when Rhino is not running.
 controller/state.json: The model itself. This JSON file contains
 every fact about the design. It is the single source of truth.
 
-controller/skills/: Folder containing saved skill files (JSON).
+controller/macros/: Folder containing saved macro files (JSON).
 
 tools/rhino/tactile_print.py: Exports the current model as a
 watertight STL mesh suitable for 3D printing.
@@ -792,8 +792,8 @@ Querying (read-only, no changes):
 11. describe_bay - rich narrative of one bay
 12. describe_circulation - corridor connectivity
 13. measure - distance between locations
-14. skill_list - available skills
-15. skill_show - skill details
+14. macro_list - available macros
+15. macro_show - macro details
 16. list_extensions - added commands
 17. rhino_status - Rhino connection check
 18. rhino_query - ask Rhino a question
@@ -819,8 +819,8 @@ Editing (changes state.json):
 36. set_style - change drawing style
 37. save_snapshot - save checkpoint
 38. load_snapshot - restore checkpoint
-39. skill_run - execute a skill
-40. skill_save - save a new skill
+39. macro_run - execute a macro
+40. macro_save - save a new macro
 41. extend_controller - add new command
 42. set_field - write one JSON field by path
 43. add_bay - create a new bay
@@ -920,11 +920,11 @@ change.
     clone_bay("A", "E", 80.0, 80.0)
 
 
-## 19. Skill Manager
+## 19. Macro Manager
 
-### What is a skill?
+### What is a macro?
 
-A skill is a saved sequence of CLI commands with parameters.
+A macro is a saved sequence of CLI commands with parameters.
 Think of it as a macro or recipe. Example:
 
     {
@@ -944,40 +944,40 @@ Think of it as a macro or recipe. Example:
       }
     }
 
-### Using skills
+### Using macros
 
-List available skills:
+List available macros:
 
-    skill_list()
+    macro_list()
 
-Show a skill's details:
+Show a macro's details:
 
-    skill_show("add-double-loaded-corridor")
+    macro_show("add-double-loaded-corridor")
 
-Run a skill with default parameters:
+Run a macro with default parameters:
 
-    skill_run("add-double-loaded-corridor")
+    macro_run("add-double-loaded-corridor")
 
 Run with overrides:
 
-    skill_run("add-double-loaded-corridor", "bay=B width=10")
+    macro_run("add-double-loaded-corridor", "bay=B width=10")
 
-### Creating skills
+### Creating macros
 
-Save a new skill:
+Save a new macro:
 
-    skill_save(
+    macro_save(
       "enclose-and-label",
       "Turn on walls and set a label for a bay",
       "wall {bay} on\nset bay {bay} label {label}",
       "bay=A label=Library"
     )
 
-Skills are stored as .json files in the controller/skills/ folder. You
-can also create them by hand — just put a .json file in controller/skills/
+Macros are stored as .json files in the controller/macros/ folder. You
+can also create them by hand — just put a .json file in controller/macros/
 following the format above.
 
-### Included skills
+### Included macros
 
 1. add-double-loaded-corridor: Enable corridor with configurable axis and width
 2. enclose-bay-with-door: Turn on walls and add a single entry door
@@ -985,21 +985,21 @@ following the format above.
 
 ## 20. Templates (Startup Configurations)
 
-### Templates vs. skills
+### Templates vs. macros
 
-Templates and skills serve different purposes:
+Templates and macros serve different purposes:
 
 Templates set up initial state. They answer: "What kind of jig am I
 starting?" A template replaces the current state with a generated
 configuration. Use templates when starting a new design from a known
 building type or architectural precedent.
 
-Skills automate command sequences within a jig. They answer: "Replay
-these steps for me." A skill runs on top of existing state. Use skills
+Macros automate command sequences within a jig. They answer: "Replay
+these steps for me." A macro runs on top of existing state. Use macros
 for repetitive operations like adding corridors or enclosing bays.
 
 Templates are Python modules that can compute layouts from parameters.
-Skills are JSON command macros that replay fixed sequences.
+Macros are JSON command macros that replay fixed sequences.
 
 ### Using templates from the CLI
 
@@ -1103,7 +1103,7 @@ Port 1998 is used (not 1999) to avoid conflicting with rhinomcp.
 
 If Rhino is not running, every bridge tool returns an OFFLINE message.
 No tool ever fails. This is by design: the model lives in state.json,
-not in Rhino. You can design, audit, and use skills without Rhino.
+not in Rhino. You can design, audit, and use macros without Rhino.
 
 ### Query types
 
@@ -1191,7 +1191,7 @@ When asking an AI to write a new command, use this prompt template:
     You are extending the Layout Jig controller.
     The controller lives at controller/controller_cli.py.
     The state file is at controller/state.json.
-    Skills are stored in controller/skills/.
+    Macros are stored in controller/macros/.
 
     Write a function called cmd_YOURCOMMAND(state, tokens) that:
     - Reads from the state dict
@@ -2028,7 +2028,7 @@ edits by loading the file in the CLI afterward.
 state://current — Full CMA as JSON.
 snapshots://list — Available snapshots.
 help://commands — CLI command reference.
-skills://list — All saved skills.
+macros://list — All saved macros.
 extensions://list — All controller extensions.
 
 ### Prompts
@@ -2036,7 +2036,7 @@ extensions://list — All controller extensions.
 design_review — Get feedback on spatial organization and circulation.
 aperture_audit — Check aperture consistency across bays.
 accessibility_audit — ADA compliance, corridor widths, tactile readability.
-skill_builder — Guide through creating a new skill step by step.
+macro_builder — Guide through creating a new macro step by step.
 
 
 ## 31. Troubleshooting
@@ -2078,7 +2078,7 @@ The bridge connects on TCP port 1998. Make sure:
 If you get "SyntaxError: unexpected token 'f'" or similar, you
 opened the wrong file in Rhino. Only tools/rhino/rhino_watcher.py
 runs inside Rhino. All other Python files (controller/controller_cli.py,
-mcp/mcp_server.py, controller/auditor.py, controller/skill_manager.py,
+mcp/mcp_server.py, controller/auditor.py, controller/macro_manager.py,
 tools/rhino/rhino_client.py) are Python 3 and will not work in Rhino's
 IronPython 2.7.
 

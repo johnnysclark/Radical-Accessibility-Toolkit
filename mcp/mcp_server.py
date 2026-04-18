@@ -4,7 +4,7 @@ PLAN LAYOUT JIG — MCP Server  v4.0
 ====================================
 Model Context Protocol wrapper around the Layout Jig CLI, plus:
   - Auditor: spatial validation, ADA checks, rich descriptions
-  - Skill manager: save, list, and replay reusable command sequences (skills)
+  - Macro manager: save, list, and replay reusable command sequences (macros)
   - Template manager: list, show, and load startup state generators (templates)
   - Rhino client: optional TCP queries to the Rhino watcher
   - Controller extension: add new command handlers at runtime
@@ -48,11 +48,11 @@ v3.1 changes (from v3.0):
 v3.0 changes (from v2.0):
   - 5 audit tools: audit_model, audit_bay, describe_bay,
     describe_circulation, measure
-  - 4 skill tools: skill_list, skill_show, skill_run, skill_save
+  - 4 macro tools: macro_list, macro_show, macro_run, macro_save
   - 3 rhino tools: rhino_status, rhino_query, rhino_run_script
   - 2 extension tools: extend_controller, list_extensions
-  - 2 new resources: skills://list, extensions://list
-  - 2 new prompts: accessibility_audit, skill_builder
+  - 2 new resources: macros://list, extensions://list
+  - 2 new prompts: accessibility_audit, macro_builder
   - All 21 v2.0 tools preserved unchanged
 
 Requires: pip install mcp  (tested with mcp 1.26.0)
@@ -107,7 +107,7 @@ import braille
 
 # ── Import engines (lazy-safe: all stdlib-only) ────────
 import auditor
-import skill_manager
+import macro_manager
 try:
     import template_manager
 except ImportError:
@@ -765,45 +765,45 @@ def measure(from_location: str, to_location: str) -> str:
 
 
 # ══════════════════════════════════════════════════════════
-# NEW v3.0 TOOLS — SKILL ENGINE
+# NEW v3.0 TOOLS — MACRO ENGINE
 # ══════════════════════════════════════════════════════════
 
 @mcp.tool()
-def skill_list() -> str:
-    """List all saved skills with names, descriptions, and command counts.
+def macro_list() -> str:
+    """List all saved macros with names, descriptions, and command counts.
 
-    Skills are reusable command sequences stored as JSON files in the
-    skills/ folder. They can be replayed with different parameters.
+    Macros are reusable command sequences stored as JSON files in the
+    macros/ folder. They can be replayed with different parameters.
     """
-    skills = skill_manager.list_skills()
-    return skill_manager.format_skill_list(skills)
+    macros = macro_manager.list_macros()
+    return macro_manager.format_macro_list(macros)
 
 
 @mcp.tool()
-def skill_show(name: str) -> str:
-    """Show a skill's full details: description, parameters, and commands.
+def macro_show(name: str) -> str:
+    """Show a macro's full details: description, parameters, and commands.
 
     Args:
-        name: Skill name (e.g. "add-double-loaded-corridor")
+        name: Macro name (e.g. "add-double-loaded-corridor")
     """
     try:
-        skill = skill_manager.load_skill(name)
-        return skill_manager.format_skill_detail(skill)
+        macro = macro_manager.load_macro(name)
+        return macro_manager.format_macro_detail(macro)
     except ValueError as e:
         return f"ERROR: {e}"
 
 
 @mcp.tool()
-def skill_run(name: str, overrides: str = "") -> str:
-    """Execute a saved skill, substituting parameters.
+def macro_run(name: str, overrides: str = "") -> str:
+    """Execute a saved macro, substituting parameters.
 
-    Runs each command in the skill's sequence through the controller.
+    Runs each command in the macro's sequence through the controller.
     Stops on first error.
 
     Args:
-        name: Skill name to execute
+        name: Macro name to execute
         overrides: Parameter overrides as "key=value key2=value2" string.
-                   Overrides the skill's default parameter values.
+                   Overrides the macro's default parameter values.
                    Example: "bay=B width=10"
     """
     # Parse overrides string into dict
@@ -814,21 +814,21 @@ def skill_run(name: str, overrides: str = "") -> str:
                 k, v = pair.split("=", 1)
                 override_dict[k] = v
 
-    return skill_manager.run_skill(name, override_dict, _run)
+    return macro_manager.run_macro(name, override_dict, _run)
 
 
 @mcp.tool()
-def skill_save(name: str, description: str, commands: str,
+def macro_save(name: str, description: str, commands: str,
                params: str = "") -> str:
-    """Save a new skill (reusable command sequence).
+    """Save a new macro (reusable command sequence).
 
-    Skills are macros -- named sequences of CLI commands that can be
-    saved once and replayed with different parameters. Use {param_name}
-    placeholders in commands for variable values.
+    Macros are named sequences of CLI commands that can be saved once
+    and replayed with different parameters. Use {param_name} placeholders
+    in commands for variable values.
 
     Args:
-        name: Skill name in kebab-case (e.g. "add-corridor-with-doors")
-        description: What this skill does (one sentence)
+        name: Macro name in kebab-case (e.g. "add-corridor-with-doors")
+        description: What this macro does (one sentence)
         commands: Newline-separated CLI commands.
             Example: "corridor {bay} on\\ncorridor {bay} width {width}"
         params: Optional parameter definitions as "name=default" pairs,
@@ -848,7 +848,7 @@ def skill_save(name: str, description: str, commands: str,
                 k, v = pair.split("=", 1)
                 param_dict[k] = {"description": f"Value for {k}", "default": v}
 
-    return skill_manager.save_skill(name, description, cmd_list, param_dict)
+    return macro_manager.save_macro(name, description, cmd_list, param_dict)
 
 
 # ══════════════════════════════════════════════════════════
@@ -860,8 +860,8 @@ def template_list() -> str:
     """List all available templates with names, descriptions, and param counts.
 
     Templates are startup state generators that produce complete state.json
-    configurations from parameters. Different from skills: templates replace
-    state, skills replay commands on existing state.
+    configurations from parameters. Different from macros: templates replace
+    state, macros replay commands on existing state.
     """
     templates = template_manager.list_templates()
     return template_manager.format_template_list(templates)
@@ -1723,11 +1723,11 @@ def resource_help() -> str:
 
 # ── v3.0 resources ────────────────────────────────────────
 
-@mcp.resource("skills://list")
-def resource_skill_list() -> str:
-    """List of all saved skills with summaries."""
-    skills = skill_manager.list_skills()
-    return skill_manager.format_skill_list(skills)
+@mcp.resource("macros://list")
+def resource_macro_list() -> str:
+    """List of all saved macros with summaries."""
+    macros = macro_manager.list_macros()
+    return macro_manager.format_macro_list(macros)
 
 
 @mcp.resource("templates://list")
@@ -1836,29 +1836,29 @@ def accessibility_audit() -> str:
 
 
 @mcp.prompt()
-def skill_builder() -> str:
-    """Guide through creating a new reusable skill.
+def macro_builder() -> str:
+    """Guide through creating a new reusable macro.
 
-    Provides the current command reference and skill format
-    so Claude can help compose a new skill.
+    Provides the current command reference and macro format
+    so Claude can help compose a new macro.
     """
     state = _load_state()
-    skills = skill_manager.list_skills()
-    skill_text = skill_manager.format_skill_list(skills)
+    macros = macro_manager.list_macros()
+    macro_text = macro_manager.format_macro_list(macros)
 
     return (
-        f"SKILL BUILDER\n\n"
-        f"I want to create a new reusable skill (command macro) for the "
+        f"MACRO BUILDER\n\n"
+        f"I want to create a new reusable macro (command sequence) for the "
         f"Layout Jig. Here is the current command reference:\n\n"
         f"{cli.HELP_TEXT}\n\n"
-        f"Existing skills:\n{skill_text}\n\n"
-        f"A skill is a JSON file with:\n"
+        f"Existing macros:\n{macro_text}\n\n"
+        f"A macro is a JSON file with:\n"
         f"  - name: kebab-case identifier\n"
         f"  - description: what it does\n"
         f"  - commands: list of CLI commands with {{param}} placeholders\n"
         f"  - params: dict of param_name -> {{description, default}}\n\n"
-        f"Please help me design a new skill. Ask me:\n"
-        f"1. What should the skill do?\n"
+        f"Please help me design a new macro. Ask me:\n"
+        f"1. What should the macro do?\n"
         f"2. What parameters should be configurable?\n"
         f"3. Then compose the command sequence and save it."
     )
@@ -2582,9 +2582,9 @@ if __name__ == "__main__":
     _real_print(f"Layout Jig MCP Server v4.0 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
     _real_print(f"Tools: 65+ (v2-v4 combined)", file=sys.stderr)
-    _real_print(f"Engines: auditor, skill_manager, rhino_client", file=sys.stderr)
+    _real_print(f"Engines: auditor, macro_manager, rhino_client", file=sys.stderr)
     _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Style profiles: {'available' if _style_available else 'not available'}", file=sys.stderr)
-    _real_print(f"Skills dir: {skill_manager.SKILLS_DIR}", file=sys.stderr)
+    _real_print(f"Macros dir: {macro_manager.MACROS_DIR}", file=sys.stderr)
     _real_print(f"Scripts dir: {SCRIPTS_DIR}", file=sys.stderr)
     mcp.run()

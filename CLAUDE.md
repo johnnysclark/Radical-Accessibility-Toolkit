@@ -4,11 +4,31 @@
 
 - **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
-- **Skill** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/skills/`.
-- **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a skill: templates replace state, skills replay commands on existing state.
+- **Macro** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/macros/`. Pure data. Invoked via `macro run <name>` or `macro_run` MCP.
+- **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a macro: templates replace state, macros replay commands on existing state.
+- **Skill** — a SKILL.md-packaged capability that Claude Code auto-discovers and invokes. Lives in top-level `skills/<skill-name>/SKILL.md`. Bundles instructions, workflow prose, and pointers to code (often under `tools/`). Follows the Anthropic agent-skills convention. Different from a macro: macros are stored command sequences (data); skills are agent-invocable capabilities (instructions + code).
 - **MCP function** — a Model Context Protocol entry point that Claude calls. Maps to one or more commands. The MCP protocol uses the word "tool" for these; in project conversation, prefer "MCP function" to avoid confusion with our tools.
 
-When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro. "Skill" never means a whole capability module. "Template" never means a command sequence.
+When writing docs, CLI output, or code comments, use these terms precisely. "Tool" never means a saved macro or a SKILL.md package. "Macro" never means a whole capability module. "Skill" never means a JSON command sequence. "Template" never means a command sequence.
+
+### Why "skill" means what it means here
+
+The word "skill" collides between the Anthropic agent ecosystem (SKILL.md-packaged capabilities Claude auto-loads) and the project's prior usage (saved command-sequence macros). Rather than overload the term, the project renamed its prior "skill" concept to **macro** and reserved **skill** for the SKILL.md sense. This follows the precedent already set for **MCP function** (the MCP spec calls them "tools," but the project uses "MCP function" to avoid collision with our **Tool** concept). Terminology is load-bearing; when a word would mean two different things, the project picks one meaning and renames the other.
+
+---
+
+## Obsidian Vault (docs/vault/)
+
+The project's research documentation lives in an Obsidian vault symlinked at `docs/vault/`. This is the team's knowledge base — work sessions, tool docs, workflows, people, and project planning. The vault lives on OneDrive and is gitignored.
+
+Key vault locations:
+- `docs/vault/Work-Sessions/` — session logs (use the template at `Templates/Work-Session-Template.md`)
+- `docs/vault/Tools/` — tool documentation (Web-UI, TACT, TASC, etc.)
+- `docs/vault/Workflows/` — process documentation
+- `docs/vault/Timesheet.md` — hour tracking across 10 workstreams
+- `docs/vault/People/` — team member profiles
+
+When logging work sessions, use wiki-links (`[[Note-Name]]`) for cross-references and follow the vault's naming conventions (kebab-case filenames, status indicators).
 
 ---
 

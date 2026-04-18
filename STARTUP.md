@@ -201,7 +201,7 @@ automatically when they connect. You do not need to run them manually.
 No API keys needed — MCP servers run through the Claude Code subscription.
 
 The MCP server gives Claude access to 58 functions: everything
-the CLI can do, plus zone/grid/export, auditing, skills, Rhino
+the CLI can do, plus zone/grid/export, auditing, macros, Rhino
 queries, direct state editing, and script generation. TACT adds
 7 more tactile-specific MCP functions via its own server.
 See docs/MCP_GUIDE.md for the full reference.

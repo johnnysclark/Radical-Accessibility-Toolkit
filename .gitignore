@@ -5,7 +5,7 @@ __pycache__/
 *.tmp
 history/
 state.json
-skills/test-skill.json
+controller/macros/test-macro.json
 
 .env
 .mcp.json
@@ -57,6 +57,14 @@ htmlcov/
 # Node
 node_modules/
 bun.lock
+
+# Obsidian vault symlink (lives on OneDrive, not in repo)
+docs/vault
+
+# Runtime artifacts
+controller/object_inventory.json
+controller/pending_edits.json
+controller/pending_script.py
 
 # Logs
 *.log
