@@ -14,6 +14,6 @@ laser_prep_unroll.unroll_and_stage("cut", scale_den=100) # 3D -> panels to rebui
 laser_export.export_laser_ai("C:/tmp/out.ai", 1, 100)    # scale 1:100
 ```
 
-Open the result in Illustrator. The exporter already applies the SCD spec: artboard 40 × 24 in, RGB color mode, RGB `(255, 0, 0)` cut strokes at 0.001", green `(0, 255, 0)` for vector engrave, `Cut Layer` / `Engrave Layer` names preserved. No manual cleanup. Drop into `24x40in_laser_template--SCD.ait` and hand to the shop.
+Open the result in Illustrator. The exporter already applies the SCD spec: artboard 40 × 24 in, RGB color mode, RGB `(255, 0, 0)` cut strokes at 0.001", green `(0, 255, 0)` for vector engrave, `Cut Layer` / `Engrave Layer` names preserved. No manual cleanup, no need to touch the shop's `.ait` template — hand the `.ai` to the shop as-is.
 
 If any of those are off when you open the `.ai`, the post-processor was skipped — see the SKILL troubleshooting section.

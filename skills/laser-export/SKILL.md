@@ -1,6 +1,6 @@
 ---
 name: laser-export
-description: Rhino → Adobe Illustrator (.ai) export for the Siebel Center for Design 24″×40″ laser cutter. Sets up Cut Layer / Engrave Layer in the active Rhino document, stages selected or Make2D-projected geometry onto the right layer with the right color/stroke, then drives Rhino's native -_Export to write an .ai that drops cleanly into the SCD shop template. Trigger when the user mentions "laser cut", "SCD laser", "24x40 laser", "Siebel Center laser", ".ai export from Rhino", or "cut layer / engrave layer setup".
+description: Rhino → Adobe Illustrator (.ai) export for the Siebel Center for Design 24″×40″ laser cutter. Sets up Cut Layer / Engrave Layer in the active Rhino document, stages selected or Make2D-projected geometry onto the right layer with the right color/stroke, then drives Rhino's native -_Export to write a shop-ready .ai (correct artboard, RGB mode, layer names, stroke weights — no Illustrator cleanup). Trigger when the user mentions "laser cut", "SCD laser", "24x40 laser", "Siebel Center laser", ".ai export from Rhino", or "cut layer / engrave layer setup".
 ---
 
 # Laser Export Skill
@@ -15,7 +15,7 @@ This skill prepares and exports Rhino drawings for the Siebel Center for Design 
   - Full cut: `rgb(255, 0, 0)` at 0.001″ / 0.014 mm stroke
   - General engrave: `rgb(0, 0, 0)` or grays, any stroke
   - Vector engrave: `rgb(0, 255, 0)` at 0.001″ / 0.014 mm stroke
-- **Template the shop hands to students:** `24x40in_laser_template--SCD.ait` (an Adobe Illustrator template). Download it from the SCD shop the first time you laser-cut for a project, and keep a copy somewhere stable on your machine. This skill produces `.ai` files that drop cleanly into that template.
+- **Shop spec reference:** the SCD shop distributes an Illustrator template, `24x40in_laser_template--SCD.ait`, that encodes the above (artboard size, layer names, stroke colors, stroke weights). The skill's post-processor bakes the same spec into every exported `.ai`, so you do **not** need the template in the normal workflow — the exported file is submit-ready on its own. The template is handy only as a human-readable reference if you want to see the spec with your own eyes, or as a fallback if the post-processor ever lags behind a shop spec change.
 
 ## What this skill does
 

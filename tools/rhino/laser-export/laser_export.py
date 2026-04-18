@@ -33,9 +33,12 @@ Selection policy:
   - selection_only=False: selects everything on Cut Layer and Engrave
     Layer (ignores Artboard), then exports.
 
-After export, open the .ai in Illustrator and drop it into the SCD
-shop's 24x40in_laser_template--SCD.ait (download once from the shop
-and keep a local copy wherever is convenient).
+After export, the .ai is shop-ready: correct artboard, RGB color mode,
+Cut Layer / Engrave Layer names, and 0.001" strokes are already baked
+in by the post-processor. No Illustrator cleanup, and no need to drop
+into the SCD shop's .ait template as part of the normal workflow --
+the template is just a reference copy of the same spec the post-
+processor encodes.
 
 IronPython 2.7 compatible.
 """

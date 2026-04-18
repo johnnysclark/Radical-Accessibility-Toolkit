@@ -80,13 +80,20 @@ Because Rhino model units are feet, the bed rectangle is 2 ft × 3.333 ft (= 24 
 
 3. The exporter runs Rhino's `-_Export` and then immediately patches the `.ai` in place. What you get back is a file with the correct 40 × 24 inch artboard, RGB color mode, RGB `(255, 0, 0)` cut strokes at 0.001" stroke weight, and the `Cut Layer` / `Engrave Layer` layer names preserved. The Rhino source `.3dm` is unchanged — the pre-scale used for the AI math is undone before the function returns.
 
-## 6 · Open in Illustrator, drop into SCD template
+## 6 · Verify in Illustrator and hand to the shop
 
-1. Open the exported `.ai` in Adobe Illustrator. The artboard should already be 40 × 24 inches, color mode RGB, and the Layers panel should show `Cut Layer` at the top level. No manual cleanup needed.
-2. Open the SCD template:
-   `24x40in_laser_template--SCD.ait`
-3. Copy your layers into the template, or drop the template's sheet frame onto your file. Confirm geometry sits inside the 40 × 24 inch artboard with a margin.
-4. Hand to the shop during open hours.
+The exported `.ai` is already shop-ready — the post-processor encoded every SCD requirement into the file. You do **not** need to open the shop's `.ait` template as part of this workflow.
+
+1. Open the exported `.ai` in Adobe Illustrator.
+2. Sanity check:
+   - Artboard reads 40 × 24 in.
+   - Document color mode is RGB (Window → Document Info, or File → Document Color Mode).
+   - Layers panel shows `Cut Layer` and `Engrave Layer` at the top level.
+   - Red strokes are exactly RGB `(255, 0, 0)`, green strokes `(0, 255, 0)`, at 0.001 in stroke weight.
+   - Geometry sits inside the artboard with a margin from every edge.
+3. Hand the file to the shop during open hours.
+
+If any of those checks fail, something in the export pipeline is off — see the Troubleshooting section below and, as a fallback, the shop's distributed `24x40in_laser_template--SCD.ait` template is the authoritative spec you can compare against.
 
 ## Troubleshooting
 
