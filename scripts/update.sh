@@ -262,7 +262,7 @@ fi
 if [ -n "$followups" ]; then
   say ""
   say "OK: post-pull steps recommended:"
-  printf '%b' "$followups" | sed 's/^/       /'
+  printf '%b\n' "$followups" | sed 's/^/       /'
 fi
 
 # ─────────────────────────────────────────────────────────────
