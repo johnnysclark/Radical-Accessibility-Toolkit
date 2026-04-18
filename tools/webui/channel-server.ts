@@ -258,9 +258,11 @@ mcpServer.setNotificationHandler(
 // HTTP server (Bun.serve)
 // ---------------------------------------------------------------------------
 
-const PORT = 8788;
+const PORT = Number(process.env.WEBUI_PORT ?? 8788);
 
-Bun.serve({
+let server;
+try {
+  server = Bun.serve({
   port: PORT,
   hostname: "0.0.0.0",
   idleTimeout: 0,
@@ -549,7 +551,19 @@ Bun.serve({
     // -----------------------------------------------------------------------
     return new Response("Not found", { status: 404 });
   },
-});
+  });
+} catch (err: any) {
+  if (err && (err.code === "EADDRINUSE" || /EADDRINUSE/.test(String(err)))) {
+    console.error(
+      `[webui] FATAL: port ${PORT} already in use. ` +
+        `start-channel.sh should have killed any stale process — ` +
+        `check /tmp/webui-channel-err.log. Override the port with WEBUI_PORT=NNNN.`
+    );
+  } else {
+    console.error(`[webui] FATAL: Bun.serve failed:`, err);
+  }
+  process.exit(1);
+}
 
 console.error(`[webui] HTTP server listening on http://localhost:${PORT}`);
 

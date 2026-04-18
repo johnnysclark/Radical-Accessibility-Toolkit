@@ -5,232 +5,479 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Accessible Rhino Modeling Interface</title>
 <style>
+/* ============================================================
+   REBEL TACTICAL CONSOLE — design tokens
+   Amber + white on pure black. Neo-brutalist geometry.
+   AAA contrast everywhere. Zero motion.
+   ============================================================ */
+:root {
+  /* palette */
+  --bg:           #000000;
+  --ink:          #ffffff;
+  --ink-dim:      #c8c8c8;
+  --amber:        #ffb000;
+  --amber-hot:    #ffc933;
+  --amber-deep:   #8a5d00;
+  --cyan:         #7df9ff;
+  --border:       #ffffff;
+  --accent:       var(--amber);
+
+  /* spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* border widths */
+  --bw-thin:  1px;
+  --bw:       2px;
+  --bw-thick: 3px;
+  --bw-focus: 3px;
+
+  /* hard offset shadow (no blur — brutalism) */
+  --shadow-hard:  6px 6px 0 var(--amber);
+  --shadow-soft:  3px 3px 0 var(--amber-deep);
+
+  /* type stacks */
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ============================================================
+   Body — black canvas, faint tactical grid, white prose.
+   ============================================================ */
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.6;
-  color: #e8e8e8;
-  background: #1a1a2e;
+  color: var(--ink);
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(0deg,   transparent 0 39px, rgba(255, 176, 0, 0.05) 39px 40px),
+    repeating-linear-gradient(90deg,  transparent 0 39px, rgba(255, 176, 0, 0.05) 39px 40px);
+  min-height: 100vh;
 }
 
-a { color: #7eb8ff; }
+a {
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: var(--bw);
+}
+a:hover { color: var(--amber-hot); }
+a:focus-visible {
+  outline: var(--bw-focus) solid var(--amber);
+  outline-offset: 2px;
+}
 
-/* Header bar */
+/* ============================================================
+   Header — tactical brand mark
+   ============================================================ */
 .app-header {
-  background: #0f1a30;
-  border-bottom: 2px solid #4a6fa5;
-  padding: 0.75rem 1.5rem;
+  background: var(--bg);
+  border-bottom: var(--bw-thick) solid var(--amber);
+  padding: var(--space-3) var(--space-5);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
+  position: relative;
+}
+/* corner bracket on header (top-left) */
+.app-header::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 14px; height: 14px;
+  border-top: var(--bw-thick) solid var(--ink);
+  border-left: var(--bw-thick) solid var(--ink);
+}
+/* corner bracket on header (top-right) */
+.app-header::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 14px; height: 14px;
+  border-top: var(--bw-thick) solid var(--ink);
+  border-right: var(--bw-thick) solid var(--ink);
 }
 .app-header h1 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #a0c4ff;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--amber);
   margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
+.app-header h1::before { content: "[ "; color: var(--ink); }
+.app-header h1::after  { content: " ] // TACTICAL CONSOLE"; color: var(--ink-dim); letter-spacing: 0.15em; }
 .app-header .app-status {
-  font-size: 0.875rem;
-  color: #6a9fd8;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--cyan);
+  margin-left: auto;
+  padding: var(--space-1) var(--space-2);
+  border: var(--bw) solid var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-/* Layout */
+/* ============================================================
+   Layout
+   ============================================================ */
 .layout {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem;
-  max-width: 90rem;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  max-width: 100rem;
   margin: 0 auto;
 }
 
-/* Panes */
+/* ============================================================
+   Panes — tactical readouts with corner brackets
+   ============================================================ */
 .pane {
   flex: 1 1 30rem;
   min-width: 20rem;
-  background: #16213e;
-  border: 2px solid #4a6fa5;
-  border-radius: 6px;
-  padding: 1.25rem;
+  background: var(--bg);
+  border: var(--bw) solid var(--border);
+  padding: var(--space-5);
+  position: relative;
+  box-shadow: var(--shadow-hard);
+}
+/* bottom-left bracket */
+.pane::before {
+  content: "";
+  position: absolute;
+  bottom: -1px; left: -1px;
+  width: 16px; height: 16px;
+  border-bottom: var(--bw-thick) solid var(--amber);
+  border-left:   var(--bw-thick) solid var(--amber);
+  pointer-events: none;
+}
+/* bottom-right bracket */
+.pane::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 16px; height: 16px;
+  border-bottom: var(--bw-thick) solid var(--amber);
+  border-right:  var(--bw-thick) solid var(--amber);
+  pointer-events: none;
 }
 
 h1.pane-title {
-  font-size: 1.35rem;
-  font-weight: 600;
-  color: #a0c4ff;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #2a3f5f;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--bw) dashed var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
 }
+h1.pane-title::before { content: "// "; color: var(--amber); }
 
 h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #7eb8ff;
-  margin-top: 0.75rem;
-  margin-bottom: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--amber);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
+h2::before { content: "> "; color: var(--ink); }
 
-/* Labels */
+/* ============================================================
+   Labels
+   ============================================================ */
 label {
   display: block;
-  font-weight: 600;
-  margin-top: 0.5rem;
-  color: #c0d4e8;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin-top: var(--space-3);
+  color: var(--ink);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-/* Inputs */
+/* ============================================================
+   Inputs
+   ============================================================ */
 input[type="text"],
 input[type="number"] {
+  font-family: var(--font-mono);
   font-size: 1rem;
-  padding: 0.4rem 0.6rem;
-  border: 2px solid #4a6fa5;
-  border-radius: 4px;
-  background: #0f3460;
-  color: #e8e8e8;
+  padding: var(--space-3) var(--space-3);
+  min-height: 44px;
+  border: var(--bw) solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
   width: 100%;
-  max-width: 20rem;
-  transition: border-color 150ms;
+  max-width: 22rem;
+  transition: border-color 120ms linear, color 120ms linear;
+}
+input[type="text"]:hover,
+input[type="number"]:hover {
+  border-color: var(--amber);
 }
 input[type="text"]:focus,
-input[type="number"]:focus {
-  border-color: #7eb8ff;
-  outline: 3px solid #7eb8ff;
+input[type="number"]:focus,
+input[type="text"]:focus-visible,
+input[type="number"]:focus-visible {
+  border-color: var(--amber);
+  outline: var(--bw-focus) solid var(--amber);
   outline-offset: 2px;
+  color: var(--amber-hot);
 }
-input[type="number"] { max-width: 8rem; }
-input::placeholder { color: #6a7fa0; }
+input[type="number"] { max-width: 9rem; }
+input::placeholder { color: var(--ink-dim); opacity: 0.7; font-style: italic; }
 
-/* Buttons */
+/* ============================================================
+   Buttons — heavy mono labels with amber halo on focus
+   ============================================================ */
 button {
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.5rem 1.25rem;
-  border: 2px solid #6a9fd8;
-  border-radius: 4px;
-  background: #4a6fa5;
-  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: var(--space-3) var(--space-5);
+  min-height: 44px;
+  min-width: 44px;
+  border: var(--bw) solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
   cursor: pointer;
-  margin-top: 0.5rem;
-  margin-right: 0.5rem;
-  transition: background 150ms, border-color 150ms;
+  margin-top: var(--space-2);
+  margin-right: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  box-shadow: var(--shadow-soft);
+  transition: background-color 120ms linear, color 120ms linear, border-color 120ms linear;
 }
-button:hover { background: #6a9fd8; border-color: #7eb8ff; }
-button:focus {
-  background: #6a9fd8;
-  outline: 3px solid #7eb8ff;
+button:hover {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+button:focus,
+button:focus-visible {
+  outline: var(--bw-focus) solid var(--amber);
   outline-offset: 2px;
+  background: var(--bg);
+  color: var(--amber-hot);
+  border-color: var(--amber);
+}
+button:active {
+  background: var(--amber);
+  color: var(--bg);
+  border-color: var(--amber);
+  box-shadow: none;
 }
 
-/* Chat list */
+/* ============================================================
+   Chat list — black readout with amber baseline ticks
+   ============================================================ */
 .chat-list {
   list-style: none;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
+  padding: var(--space-3);
+  margin: var(--space-3) 0;
   max-height: 30rem;
   overflow-y: auto;
-  background: #0f1a30;
-  border: 1px solid #4a6fa5;
-  border-radius: 4px;
+  background: var(--bg);
+  border: var(--bw) solid var(--border);
 }
 .chat-list li {
-  margin-bottom: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 3px;
-  line-height: 1.5;
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  line-height: 1.55;
+  border-left: var(--bw-thick) solid transparent;
 }
-.chat-list li:nth-child(odd) { background: rgba(74, 111, 165, 0.1); }
-.chat-msg-you { color: #7eb8ff; font-weight: 600; }
-.chat-msg-claude { color: #a0c4ff; font-weight: 600; }
+.chat-list li:nth-child(odd) {
+  background: rgba(255, 176, 0, 0.04);
+}
+.chat-list li:has(.chat-msg-you)    { border-left-color: var(--amber); }
+.chat-list li:has(.chat-msg-claude) { border-left-color: var(--ink); }
+.chat-msg-you {
+  color: var(--amber);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.chat-msg-claude {
+  color: var(--ink);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 
-/* Chat input row */
+/* ============================================================
+   Chat input row
+   ============================================================ */
 .chat-input-row {
   display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  align-items: stretch;
+  margin-top: var(--space-3);
 }
-.chat-input-row input { flex: 1; }
+.chat-input-row input { flex: 1; max-width: none; }
 
-/* Status */
+/* ============================================================
+   Status — monospace tactical readout
+   ============================================================ */
 .status {
-  font-weight: 600;
-  margin-top: 0.5rem;
-  color: #a0c4ff;
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin-top: var(--space-2);
+  color: var(--cyan);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
+.status::before { content: ">> "; color: var(--amber); }
 
-/* Permission prompts */
+/* ============================================================
+   Permission prompts — high-priority amber alert
+   ============================================================ */
 .permission-prompt {
-  border: 2px solid #d4a017;
-  border-radius: 4px;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
-  background: #2a1a00;
-  color: #ffd666;
+  border: var(--bw-thick) solid var(--amber);
+  padding: var(--space-3);
+  margin: var(--space-3) 0;
+  background: var(--bg);
+  color: var(--amber-hot);
+  font-family: var(--font-mono);
+  box-shadow: var(--shadow-hard);
+  position: relative;
+}
+.permission-prompt::before {
+  content: "[!] PERMISSION REQUIRED";
+  display: block;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: var(--space-2);
+  border-bottom: var(--bw) dashed var(--amber);
+  padding-bottom: var(--space-1);
 }
 .permission-prompt button {
-  background: #8b6914;
-  border-color: #d4a017;
-  color: #fff;
+  background: var(--bg);
+  border-color: var(--amber);
+  color: var(--amber);
 }
-.permission-prompt button:hover { background: #d4a017; }
+.permission-prompt button:hover {
+  background: var(--amber);
+  color: var(--bg);
+  border-color: var(--amber);
+}
 
-/* Fieldsets (object cards in navigator) */
+/* ============================================================
+   Fieldsets — object cards in navigator
+   ============================================================ */
 fieldset {
-  border: 1px solid #2a3f5f;
-  border-radius: 4px;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  background: #1a2a4a;
+  border: var(--bw) solid var(--border);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--bg);
+  position: relative;
+}
+fieldset::before {
+  content: "";
+  position: absolute;
+  top: -1px; right: -1px;
+  width: 10px; height: 10px;
+  border-top:   var(--bw) solid var(--amber);
+  border-right: var(--bw) solid var(--amber);
 }
 legend {
-  font-weight: 600;
-  color: #c0d4e8;
-  padding: 0 0.25rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--amber);
+  padding: 0 var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.85rem;
 }
 
-/* Property rows */
+/* ============================================================
+   Property rows
+   ============================================================ */
 .prop-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
-  margin-top: 0.25rem;
+  margin-top: var(--space-2);
 }
 .prop-row label {
   display: inline;
   margin-top: 0;
-  margin-right: 0.25rem;
-  font-weight: 500;
-  color: #8aa4c8;
+  margin-right: var(--space-2);
+  font-weight: 700;
+  color: var(--ink-dim);
+  font-size: 0.8rem;
 }
-.prop-row input[type="number"] { width: 6rem; max-width: 6rem; }
+.prop-row input[type="number"] { width: 7rem; max-width: 7rem; }
 
-/* Modified indicator */
+/* ============================================================
+   Modified indicator — non-color cue: thicker border + offset shadow
+   ============================================================ */
 .modified {
-  outline: 3px solid #7eb8ff;
+  outline: var(--bw-focus) solid var(--amber);
   outline-offset: 1px;
-  background: #1a3a6a;
+  background: rgba(255, 176, 0, 0.08);
+  box-shadow: var(--shadow-hard);
+  font-weight: 700;
 }
 
-/* Summary/details (layer groups) */
-details { margin-bottom: 0.5rem; }
+/* ============================================================
+   Summary / details (layer groups)
+   ============================================================ */
+details {
+  margin-bottom: var(--space-2);
+  border-left: var(--bw) solid var(--amber-deep);
+  padding-left: var(--space-3);
+}
+details[open] { border-left-color: var(--amber); }
 summary {
   cursor: pointer;
-  padding: 0.25rem 0;
-  border-radius: 3px;
+  padding: var(--space-2) 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+  list-style: none;
 }
-summary:hover { background: rgba(74, 111, 165, 0.15); }
-summary:focus {
-  outline: 3px solid #7eb8ff;
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "[+] ";
+  color: var(--amber);
+  font-weight: 700;
+}
+details[open] > summary::before { content: "[-] "; }
+summary:hover { color: var(--amber); }
+summary:focus,
+summary:focus-visible {
+  outline: var(--bw-focus) solid var(--amber);
   outline-offset: 2px;
+  color: var(--amber);
 }
 
-/* Screen reader only */
+/* ============================================================
+   Screen reader only
+   ============================================================ */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -242,14 +489,33 @@ summary:focus {
   border: 0;
 }
 
-/* Navigator actions */
-.nav-actions { margin-bottom: 0.75rem; }
+/* ============================================================
+   Navigator actions
+   ============================================================ */
+.nav-actions {
+  margin-bottom: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
 
-/* Scrollbar styling for dark theme */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #0f1a30; }
-::-webkit-scrollbar-thumb { background: #4a6fa5; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #6a9fd8; }
+/* ============================================================
+   Scrollbar — tactical thumb
+   ============================================================ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); border-left: var(--bw-thin) solid var(--amber-deep); }
+::-webkit-scrollbar-thumb { background: var(--amber); border: var(--bw-thin) solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--amber-hot); }
+
+/* ============================================================
+   Stack panes on narrow viewports
+   ============================================================ */
+@media (max-width: 900px) {
+  .layout { padding: var(--space-3); gap: var(--space-3); }
+  .pane { flex-basis: 100%; min-width: 0; }
+  .app-header { padding: var(--space-3); }
+  .app-header .app-status { display: block; margin-left: 0; margin-top: var(--space-2); }
+}
 </style>
 </head>
 <body>
