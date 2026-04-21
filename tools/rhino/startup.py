@@ -49,11 +49,35 @@ else:
 
 # ── Step 3: Start RhinoMCP ────────────────────────────────
 
-print("[STARTUP] Starting RhinoMCP...")
-try:
-    rs.Command("_mcpstart", False)
-except Exception as e:
-    print("[STARTUP] WARNING: mcpstart failed: {0}".format(e))
+import socket as _socket
+
+def _port_1999_bound():
+    """Return True if something already listens on 127.0.0.1:1999."""
+    s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    s.settimeout(0.25)
+    try:
+        s.connect(("127.0.0.1", 1999))
+        return True
+    except Exception:
+        return False
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+if _port_1999_bound():
+    print("[STARTUP] ERROR: port 1999 already bound — _mcpstart will fail.")
+    print("[STARTUP]        Run 'bash tools/rhino/rhino-doctor.sh' from WSL to identify the holder.")
+else:
+    print("[STARTUP] Starting RhinoMCP...")
+    try:
+        rs.Command("_mcpstart", False)
+    except Exception as e:
+        print("[STARTUP] WARNING: mcpstart failed: {0}".format(e))
+    if not _port_1999_bound():
+        print("[STARTUP] ERROR: port 1999 still unbound after _mcpstart — plugin failed silently.")
+        print("[STARTUP]        Run 'bash tools/rhino/rhino-doctor.sh' from WSL for details.")
 
 # ── Step 4: Set ALL viewports to LightPen ─────────────────
 
