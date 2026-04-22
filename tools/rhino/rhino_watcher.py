@@ -1388,51 +1388,75 @@ def redraw(state):
     print("[PLJ] Redrawn: {0} bays, {1} apertures, {2} rooms{3}{4}".format(
         len(state["bays"]), total_aps, len(state.get("rooms", {})), leg_s, t3_s))
     _audio_feedback(state)
-    _export_inventory(state)
+    _export_inventory()
 
 
 # ══════════════════════════════════════════════════════════
 # OBJECT INVENTORY EXPORT (for accessible web/TUI navigator)
 # ══════════════════════════════════════════════════════════
 
-def _export_inventory(state):
+def _inventory_item(obj_id, lname):
+    """Build a single inventory record for obj_id on layer lname."""
+    item = {
+        "id": str(obj_id),
+        "name": rs.ObjectName(obj_id) or "",
+        "type": rs.ObjectType(obj_id),
+        "layer": lname,
+    }
+    bb = rs.BoundingBox(obj_id)
+    if bb and len(bb) >= 8:
+        item["min"] = [round(bb[0][0], 4), round(bb[0][1], 4), round(bb[0][2], 4)]
+        item["max"] = [round(bb[6][0], 4), round(bb[6][1], 4), round(bb[6][2], 4)]
+    keys = rs.GetUserText(obj_id)
+    if keys:
+        meta = {}
+        for k in keys:
+            meta[k] = rs.GetUserText(obj_id, k)
+        item["metadata"] = meta
+    return item
+
+
+def _export_inventory():
     """Write object_inventory.json for the accessible Model Navigator.
 
-    Called after redraw() and after _apply_pending_edits().
-    The channel server watches this file and pushes SSE updates.
+    Called after redraw(), after _apply_pending_edits(), and whenever a
+    Rhino document event fires (open / new / close). Enumerates every
+    layer in the active doc — both project layers (LAYERS) and foreign
+    layers from imported / opened files — so the Model Navigator
+    Refresh button works regardless of whether the content is PLJ-owned.
     """
     if not IN_RHINO:
         return
     inv_path = os.path.join(os.path.dirname(STATE_FILE), "object_inventory.json")
     try:
-        inventory = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "layers": {}}
+        inventory = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "source": "watcher",
+            "layers": {},
+        }
+        seen = set()
         for lname in LAYERS:
+            seen.add(lname)
             if not rs.IsLayer(lname):
                 continue
             objs = rs.ObjectsByLayer(lname)
             if not objs:
                 inventory["layers"][lname] = []
                 continue
-            layer_items = []
-            for obj_id in objs:
-                item = {
-                    "id": str(obj_id),
-                    "name": rs.ObjectName(obj_id) or "",
-                    "type": rs.ObjectType(obj_id),
-                    "layer": lname,
-                }
-                bb = rs.BoundingBox(obj_id)
-                if bb and len(bb) >= 8:
-                    item["min"] = [round(bb[0][0], 4), round(bb[0][1], 4), round(bb[0][2], 4)]
-                    item["max"] = [round(bb[6][0], 4), round(bb[6][1], 4), round(bb[6][2], 4)]
-                keys = rs.GetUserText(obj_id)
-                if keys:
-                    meta = {}
-                    for k in keys:
-                        meta[k] = rs.GetUserText(obj_id, k)
-                    item["metadata"] = meta
-                layer_items.append(item)
-            inventory["layers"][lname] = layer_items
+            inventory["layers"][lname] = [_inventory_item(o, lname) for o in objs]
+        # Foreign layers — anything in the active doc not covered above.
+        try:
+            all_layers = rs.LayerNames() or []
+        except Exception:
+            all_layers = []
+        for lname in all_layers:
+            if lname in seen:
+                continue
+            objs = rs.ObjectsByLayer(lname)
+            if not objs:
+                inventory["layers"][lname] = []
+                continue
+            inventory["layers"][lname] = [_inventory_item(o, lname) for o in objs]
         tmp_path = inv_path + ".tmp"
         with io.open(tmp_path, "w", encoding="utf-8") as f:
             f.write(json.dumps(inventory, indent=2, ensure_ascii=False))
@@ -1516,9 +1540,7 @@ def _apply_pending_edits():
             print("[PLJ] WARNING: edit {0} on {1} failed: {2}".format(action, obj_id, e))
     if applied > 0:
         print("[PLJ] Applied {0} edits.".format(applied))
-        state = _load_state()
-        if state:
-            _export_inventory(state)
+        _export_inventory()
 
 
 # ══════════════════════════════════════════════════════════
@@ -1541,9 +1563,7 @@ def _run_pending_script():
         os.remove(script_path)
         exec(code)
         print("[PLJ] Script executed successfully.")
-        state = _load_state()
-        if state:
-            _export_inventory(state)
+        _export_inventory()
     except Exception as e:
         print("[PLJ] Script error: {0}".format(e))
 
@@ -1717,6 +1737,8 @@ _watcher_state = {
     "last_mtime": 0,
     "last_check": 0,
     "running": False,
+    "doc_events_hooked": False,
+    "force_inventory_rebuild": False,
 }
 
 # Cached stats from the last redraw (main thread).
@@ -1734,7 +1756,9 @@ def _on_idle(sender, args):
     """Called on Rhino's main thread during idle moments.
 
     Checks file mtime at most every POLL_SEC seconds.  If the
-    file changed, reloads and redraws on the main thread.
+    file changed, reloads and redraws on the main thread. Also
+    services any deferred inventory rebuild requested by the
+    document-event handlers (file open / new / close).
     """
     now = time.time()
     if now - _watcher_state["last_check"] < POLL_SEC:
@@ -1743,6 +1767,9 @@ def _on_idle(sender, args):
     try:
         _apply_pending_edits()
         _run_pending_script()
+        if _watcher_state["force_inventory_rebuild"]:
+            _watcher_state["force_inventory_rebuild"] = False
+            _export_inventory()
         mt = _state_mtime()
         if mt > _watcher_state["last_mtime"]:
             _watcher_state["last_mtime"] = mt
@@ -1753,11 +1780,24 @@ def _on_idle(sender, args):
         print("[PLJ] Watcher error: {0}".format(e))
 
 
+def _on_doc_event(sender, args):
+    """Rhino fires these on the main thread after Open / New / Close.
+
+    We defer the actual inventory export to the next Idle tick so all
+    rs.* calls happen in one place, matching the existing discipline.
+    """
+    _watcher_state["force_inventory_rebuild"] = True
+
+
 def start_watcher():
     """Hook the Rhino Idle event to watch for file changes.
 
     Safe to call multiple times (from repeated exec() calls).
     Unhooks any previous handler first to prevent accumulation.
+    Also subscribes to document open / new / close events so the
+    Model Navigator's cached inventory rebuilds when the user (or
+    Claude) opens a foreign .3dm file — without that, the browser
+    Refresh button would read a stale cache.
     """
     if not IN_RHINO:
         print("[PLJ] Not in Rhino. Using fallback thread watcher.")
@@ -1772,12 +1812,28 @@ def start_watcher():
         print("[PLJ] Stopped previous watcher.")
     Rhino.RhinoApp.Idle += _on_idle
     _watcher_state["running"] = True
+    # Document-event hooks (idempotent — detach first if already hooked).
+    if _watcher_state["doc_events_hooked"]:
+        try:
+            Rhino.RhinoDoc.EndOpenDocument -= _on_doc_event
+            Rhino.RhinoDoc.NewDocument -= _on_doc_event
+            Rhino.RhinoDoc.CloseDocument -= _on_doc_event
+        except Exception:
+            pass
+    try:
+        Rhino.RhinoDoc.EndOpenDocument += _on_doc_event
+        Rhino.RhinoDoc.NewDocument += _on_doc_event
+        Rhino.RhinoDoc.CloseDocument += _on_doc_event
+        _watcher_state["doc_events_hooked"] = True
+        print("[PLJ] Subscribed to document events (open / new / close).")
+    except Exception as e:
+        print("[PLJ] WARNING: could not hook document events: {0}".format(e))
     print("[PLJ] Watching: {0}".format(STATE_FILE))
     print("[PLJ] Watcher attached to Rhino Idle event.")
 
 
 def stop_watcher():
-    """Unhook the Rhino Idle event."""
+    """Unhook the Rhino Idle event and document-event subscriptions."""
     if IN_RHINO and _watcher_state["running"]:
         try:
             Rhino.RhinoApp.Idle -= _on_idle
@@ -1785,6 +1841,14 @@ def stop_watcher():
             pass
         _watcher_state["running"] = False
         print("[PLJ] Watcher stopped.")
+    if IN_RHINO and _watcher_state["doc_events_hooked"]:
+        try:
+            Rhino.RhinoDoc.EndOpenDocument -= _on_doc_event
+            Rhino.RhinoDoc.NewDocument -= _on_doc_event
+            Rhino.RhinoDoc.CloseDocument -= _on_doc_event
+        except Exception:
+            pass
+        _watcher_state["doc_events_hooked"] = False
 
 
 def _start_thread_watcher():
