@@ -490,6 +490,76 @@ summary:focus-visible {
 }
 
 /* ============================================================
+   Object grid — spreadsheet-style parameter editing
+   ============================================================ */
+.nav-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  background: var(--bg);
+  border: var(--bw) solid var(--border);
+}
+.nav-grid thead th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  border-bottom: var(--bw) solid var(--amber-deep);
+  background: var(--bg);
+}
+.nav-grid tbody tr.layer-header td {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+  background: rgba(255, 176, 0, 0.04);
+  border-top: var(--bw) solid var(--amber-deep);
+  border-bottom: var(--bw-thin) dashed var(--amber-deep);
+}
+.nav-grid tbody tr.object-row td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--bw-thin) solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 20rem;
+}
+.nav-grid tbody tr.object-row td[data-editable="true"] {
+  color: var(--ink);
+}
+.nav-grid tbody tr.object-row td[data-editable="true"]:hover {
+  background: rgba(255, 176, 0, 0.06);
+}
+.nav-grid td:focus,
+.nav-grid td:focus-visible {
+  outline: var(--bw-focus) solid var(--amber);
+  outline-offset: -2px;
+  background: rgba(255, 176, 0, 0.1);
+}
+.nav-grid td input.cell-edit {
+  width: 100%;
+  max-width: none;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 2px 4px;
+  margin: 0;
+  border: var(--bw-focus) solid var(--amber);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--shadow-hard);
+}
+
+/* ============================================================
    Navigator actions
    ============================================================ */
 .nav-actions {
@@ -549,15 +619,26 @@ summary:focus-visible {
 
 <div class="nav-actions">
   <button type="button" id="nav-refresh" aria-label="Refresh inventory">Refresh</button>
-  <button type="button" id="nav-apply" aria-label="Apply changes to model">Apply Changes</button>
-  <button type="button" id="nav-discard" aria-label="Discard all changes">Discard Changes</button>
 </div>
 
-<div id="nav-status" class="status" role="status"></div>
+<p class="sr-only" id="nav-grid-help">
+  Use arrow keys to navigate. Left and right move between parameters within the same object. Up and down move between objects within the same parameter. Type to start editing a Name cell. Press Enter to commit, Escape to cancel.
+</p>
 
-<div id="nav-tree" aria-label="Object tree">
-  <p>No inventory loaded. Press Refresh or Alt+R.</p>
-</div>
+<div id="nav-status" class="status" role="status" aria-live="polite"></div>
+
+<table id="nav-grid" class="nav-grid" role="grid" aria-label="Objects" aria-describedby="nav-grid-help">
+  <thead>
+    <tr role="row">
+      <th role="columnheader" scope="col">Name</th>
+      <th role="columnheader" scope="col">Type</th>
+      <th role="columnheader" scope="col">Layer</th>
+    </tr>
+  </thead>
+  <tbody id="nav-grid-body">
+    <tr><td colspan="3">No inventory loaded. Press Refresh or Alt+R.</td></tr>
+  </tbody>
+</table>
 </aside>
 
 </div>
@@ -573,16 +654,20 @@ summary:focus-visible {
   var chatInput = document.getElementById("chat-input");
   var chatSend = document.getElementById("chat-send");
   var chatStatus = document.getElementById("chat-status");
-  var navTree = document.getElementById("nav-tree");
+  var navGrid = document.getElementById("nav-grid");
+  var navGridBody = document.getElementById("nav-grid-body");
   var navStatus = document.getElementById("nav-status");
   var navRefresh = document.getElementById("nav-refresh");
-  var navApply = document.getElementById("nav-apply");
-  var navDiscard = document.getElementById("nav-discard");
 
-  // Track pending edits: object_id -> { property -> new_value }
-  var pendingEdits = {};
-  // Store inventory data for building edits
-  var currentInventory = null;
+  // Column schema for the grid. Extend in later phases (position, rotation).
+  var GRID_COLUMNS = [
+    { key: "name",  label: "Name",  editable: true,  action: "rename" },
+    { key: "type",  label: "Type",  editable: false },
+    { key: "layer", label: "Layer", editable: false },
+  ];
+
+  // Remember which cell was focused before a refresh so we can restore.
+  var lastFocused = null; // {objectId, colKey}
 
   // -----------------------------------------------------------------------
   // SSE connection
@@ -614,7 +699,7 @@ summary:focus-visible {
       } else if (data.type === "permission") {
         addPermissionPrompt(data.request_id, data.tool_name, data.description);
       } else if (data.type === "inventory") {
-        renderInventoryFromObjects(data.objects || []);
+        renderInventoryGrid(normalizeFromRhinoMCP(data.objects || []));
       }
     };
   }
@@ -701,334 +786,323 @@ summary:focus-visible {
   }
 
   // -----------------------------------------------------------------------
-  // Model Navigator functions
+  // Model Navigator — grid renderer + keyboard edit model
   // -----------------------------------------------------------------------
+  // Daniel's spec (2026-04-20): left/right navigate parameters within
+  // an object's row; up/down navigate objects within a column. Typing
+  // overwrites a Name cell; Enter commits, Escape cancels. Edits flow
+  // through the existing /edit-direct endpoint → pending_edits.json →
+  // watcher on port 1998.
+
   function loadInventory() {
     navStatus.textContent = "Reading inventory from watcher...";
     fetch("/inventory").then(function(res) {
       return res.json();
     }).then(function(data) {
+      var rows;
       if (data && data.layers) {
-        // Watcher inventory format: { layers: { LAYER_NAME: [objects...] } }
-        renderInventory(data);
-      } else if (Array.isArray(data) && data.length > 0) {
-        renderInventoryFromObjects(data);
+        rows = normalizeFromLayers(data.layers);
+      } else if (Array.isArray(data)) {
+        rows = normalizeFromRhinoMCP(data);
       } else {
-        navStatus.textContent = "No objects in inventory. Is the watcher running?";
+        rows = [];
       }
+      renderInventoryGrid(rows);
     }).catch(function() {
       navStatus.textContent = "ERROR: Failed to read inventory.";
     });
   }
 
-  function renderInventoryFromObjects(objects) {
-    if (!objects || objects.length === 0) {
-      navTree.innerHTML = "<p>No objects in Rhino document.</p>";
+  // Watcher format: { "LAYER_NAME": [ {id, name, type, layer, min, max, ...} ] }
+  function normalizeFromLayers(layers) {
+    var out = [];
+    var names = Object.keys(layers);
+    for (var i = 0; i < names.length; i++) {
+      var objs = layers[names[i]] || [];
+      for (var j = 0; j < objs.length; j++) {
+        var o = objs[j];
+        out.push({
+          id:    String(o.id || ""),
+          name:  o.name || "",
+          type:  objectTypeName(o.type),
+          layer: o.layer || names[i] || "Default",
+        });
+      }
+    }
+    return out;
+  }
+
+  // RhinoMCP SSE format: [{ id, name, type (string), layer, ... }]
+  function normalizeFromRhinoMCP(objects) {
+    var out = [];
+    for (var i = 0; i < objects.length; i++) {
+      var o = objects[i];
+      out.push({
+        id:    String(o.id || ""),
+        name:  o.name || "",
+        type:  typeof o.type === "number" ? objectTypeName(o.type) : (o.type || "Object"),
+        layer: o.layer || "Default",
+      });
+    }
+    return out;
+  }
+
+  function renderInventoryGrid(rows) {
+    // Cache flat list for commit/lookup, and group-ordered list for layer headers.
+    rows = rows || [];
+    rows.sort(function(a, b) {
+      if (a.layer === b.layer) return (a.name || "").localeCompare(b.name || "");
+      return (a.layer || "").localeCompare(b.layer || "");
+    });
+
+    navGridBody.innerHTML = "";
+
+    if (rows.length === 0) {
+      var empty = document.createElement("tr");
+      var td = document.createElement("td");
+      td.colSpan = GRID_COLUMNS.length;
+      td.textContent = "No objects in Rhino document.";
+      empty.appendChild(td);
+      navGridBody.appendChild(empty);
       navStatus.textContent = "No objects found.";
       return;
     }
 
-    // Group objects by layer
-    var layerMap = {};
-    for (var i = 0; i < objects.length; i++) {
-      var obj = objects[i];
-      var layer = obj.layer || "Default";
-      if (!layerMap[layer]) layerMap[layer] = [];
-      layerMap[layer].push(obj);
-    }
-
-    // Store for edit reference
-    currentInventory = { layers: layerMap };
-    pendingEdits = {};
-
-    var layerNames = Object.keys(layerMap).sort();
-    var html = "";
-
-    for (var li = 0; li < layerNames.length; li++) {
-      var layerName = layerNames[li];
-      var layerObjects = layerMap[layerName];
-
-      html += '<details open>';
-      html += '<summary><h2 style="display:inline">' + escapeHtml(layerName) + ' (' + layerObjects.length + ' objects)</h2></summary>';
-
-      for (var j = 0; j < layerObjects.length; j++) {
-        html += renderObjectFromRhinoMCP(layerObjects[j]);
+    var lastLayer = null;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (row.layer !== lastLayer) {
+        navGridBody.appendChild(buildLayerHeader(row.layer));
+        lastLayer = row.layer;
       }
-
-      html += '</details>';
+      navGridBody.appendChild(buildObjectRow(row));
     }
 
-    navTree.innerHTML = html;
-
-    // Attach change listeners
-    var inputs = navTree.querySelectorAll("input[type='number']");
-    for (var k = 0; k < inputs.length; k++) {
-      inputs[k].addEventListener("change", onPropertyChange);
-    }
-
-    navStatus.textContent = objects.length + " objects loaded.";
+    navStatus.textContent = rows.length + " objects loaded.";
+    restoreFocusAfterRender();
   }
 
-  function renderObjectFromRhinoMCP(obj) {
-    var name = obj.name || "unnamed";
-    var typeName = obj.type || "Object";
-    var id = obj.id || name;
-
-    var html = '<fieldset data-object-id="' + escapeAttr(id) + '" data-object-name="' + escapeAttr(name) + '">';
-    html += '<legend>' + escapeHtml(name) + ' (' + escapeHtml(typeName) + ')</legend>';
-
-    // Position and size from bounding box
-    var minX = 0, minY = 0, minZ = 0;
-    var width = 0, height = 0, depth = 0;
-    if (obj.bounding_box) {
-      var bb = obj.bounding_box;
-      if (bb.min) { minX = roundNum(bb.min[0]); minY = roundNum(bb.min[1]); minZ = roundNum(bb.min[2]); }
-      if (bb.min && bb.max) {
-        width = roundNum(bb.max[0] - bb.min[0]);
-        height = roundNum(bb.max[1] - bb.min[1]);
-        depth = roundNum(bb.max[2] - bb.min[2]);
-      }
-    }
-
-    var prefix = "obj-" + escapeAttr(id).replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    html += '<div class="prop-row">';
-    html += '<label for="' + prefix + '-px">Position X</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-px" data-prop="position_x" value="' + minX + '">';
-    html += '<label for="' + prefix + '-py">Y</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-py" data-prop="position_y" value="' + minY + '">';
-    html += '<label for="' + prefix + '-pz">Z</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-pz" data-prop="position_z" value="' + minZ + '">';
-    html += '</div>';
-
-    html += '<div class="prop-row">';
-    html += '<label>Size: ' + width + ' x ' + height + ' x ' + depth + '</label>';
-    html += '</div>';
-
-    html += '</fieldset>';
-    return html;
+  function buildLayerHeader(layerName) {
+    var tr = document.createElement("tr");
+    tr.className = "layer-header";
+    tr.setAttribute("role", "row");
+    var td = document.createElement("td");
+    td.colSpan = GRID_COLUMNS.length;
+    td.textContent = "Layer: " + layerName;
+    tr.appendChild(td);
+    return tr;
   }
 
-  function renderInventory(data) {
-    var layers = data.layers || {};
-    var layerNames = Object.keys(layers);
-
-    if (layerNames.length === 0) {
-      navTree.innerHTML = "<p>No objects in inventory.</p>";
-      return;
-    }
-
-    // Clear pending edits when re-rendering
-    pendingEdits = {};
-    var html = "";
-
-    for (var i = 0; i < layerNames.length; i++) {
-      var layerName = layerNames[i];
-      var objects = layers[layerName];
-      var count = objects ? objects.length : 0;
-
-      html += '<details open>';
-      html += '<summary><h2 style="display:inline">' + escapeHtml(layerName) + ' (' + count + ' objects)</h2></summary>';
-
-      if (objects && objects.length > 0) {
-        for (var j = 0; j < objects.length; j++) {
-          var obj = objects[j];
-          html += renderObject(obj);
-        }
+  function buildObjectRow(obj) {
+    var tr = document.createElement("tr");
+    tr.className = "object-row";
+    tr.setAttribute("role", "row");
+    tr.setAttribute("data-object-id", obj.id);
+    for (var c = 0; c < GRID_COLUMNS.length; c++) {
+      var col = GRID_COLUMNS[c];
+      var td = document.createElement("td");
+      td.setAttribute("role", "gridcell");
+      td.setAttribute("data-col", col.key);
+      td.setAttribute("tabindex", "-1");
+      if (col.editable) {
+        td.setAttribute("data-editable", "true");
+        td.setAttribute("aria-label", col.label + ", " + (obj[col.key] || "unnamed") + ", editable. Type to replace.");
       } else {
-        html += '<p>No objects in this layer.</p>';
+        td.setAttribute("aria-label", col.label + ", " + (obj[col.key] || ""));
       }
-
-      html += '</details>';
+      td.textContent = obj[col.key] || (col.key === "name" ? "(unnamed)" : "");
+      tr.appendChild(td);
     }
-
-    navTree.innerHTML = html;
-
-    // Attach change listeners to all number inputs in the navigator
-    var inputs = navTree.querySelectorAll("input[type='number']");
-    for (var k = 0; k < inputs.length; k++) {
-      inputs[k].addEventListener("change", onPropertyChange);
-    }
+    return tr;
   }
 
-  function renderObject(obj) {
-    var name = obj.name || obj.id || "unnamed";
-    var typeName = objectTypeName(obj.type);
-    var id = obj.id || "";
+  // -----------------------------------------------------------------------
+  // Grid keyboard model
+  // -----------------------------------------------------------------------
+  function onGridKeyDown(e) {
+    var td = e.target;
+    if (!td || td.tagName !== "TD" || td.getAttribute("role") !== "gridcell") return;
 
-    var html = '<fieldset data-object-id="' + escapeAttr(id) + '">';
-    html += '<legend>' + escapeHtml(name) + ' (' + escapeHtml(typeName) + ')</legend>';
+    // If an edit input has focus, let its own handler deal with it.
+    if (td.querySelector("input.cell-edit")) return;
 
-    // Position from bounding box min
-    var minX = 0, minY = 0, minZ = 0;
-    if (obj.min) {
-      minX = roundNum(obj.min[0]);
-      minY = roundNum(obj.min[1]);
-      minZ = roundNum(obj.min[2]);
-    }
-
-    // Size from bounding box
-    var width = 0, height = 0, depth = 0;
-    if (obj.min && obj.max) {
-      width = roundNum(obj.max[0] - obj.min[0]);
-      height = roundNum(obj.max[1] - obj.min[1]);
-      depth = roundNum(obj.max[2] - obj.min[2]);
-    }
-
-    // Unique field IDs
-    var prefix = "obj-" + escapeAttr(id).replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    html += '<div class="prop-row">';
-    html += '<label for="' + prefix + '-px">Position X</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-px" data-prop="position_x" value="' + minX + '">';
-    html += '<label for="' + prefix + '-py">Y</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-py" data-prop="position_y" value="' + minY + '">';
-    html += '<label for="' + prefix + '-pz">Z</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-pz" data-prop="position_z" value="' + minZ + '">';
-    html += '</div>';
-
-    html += '<div class="prop-row">';
-    html += '<label for="' + prefix + '-w">Width</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-w" data-prop="width" value="' + width + '" readonly>';
-    html += '<label for="' + prefix + '-h">Height</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-h" data-prop="height" value="' + height + '" readonly>';
-    html += '<label for="' + prefix + '-d">Depth</label>';
-    html += '<input type="number" step="0.01" id="' + prefix + '-d" data-prop="depth" value="' + depth + '" readonly>';
-    html += '</div>';
-
-    // Metadata (read-only display)
-    if (obj.metadata) {
-      var keys = Object.keys(obj.metadata);
-      for (var m = 0; m < keys.length; m++) {
-        if (keys[m] === "JIG_OWNER" || keys[m] === "JIG_SCHEMA") continue;
-        html += '<div class="prop-row">';
-        html += '<label for="' + prefix + '-meta-' + m + '">' + escapeHtml(keys[m]) + '</label>';
-        html += '<input type="text" id="' + prefix + '-meta-' + m + '" value="' + escapeAttr(obj.metadata[keys[m]]) + '" readonly>';
-        html += '</div>';
-      }
-    }
-
-    html += '</fieldset>';
-    return html;
-  }
-
-  function onPropertyChange(event) {
-    var input = event.target;
-    var fieldset = input.closest("fieldset");
-    if (!fieldset) return;
-
-    var objectId = fieldset.getAttribute("data-object-id");
-    var prop = input.getAttribute("data-prop");
-    var value = parseFloat(input.value);
-
-    if (!objectId || !prop || isNaN(value)) return;
-
-    // Mark as modified
-    input.classList.add("modified");
-
-    // Store the edit
-    if (!pendingEdits[objectId]) {
-      pendingEdits[objectId] = {};
-    }
-    pendingEdits[objectId][prop] = value;
-  }
-
-  function applyEdits() {
-    var objectIds = Object.keys(pendingEdits);
-    if (objectIds.length === 0) {
-      navStatus.textContent = "No changes to apply.";
+    var key = e.key;
+    if (key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown" ||
+        key === "Home" || key === "End") {
+      e.preventDefault();
+      moveFocus(td, key);
       return;
     }
+    if (td.getAttribute("data-editable") !== "true") return;
 
-    // Build edit list for the watcher
-    var edits = [];
-    for (var i = 0; i < objectIds.length; i++) {
-      var oid = objectIds[i];
-      var changes = pendingEdits[oid];
-
-      // Check if position changed
-      if ("position_x" in changes || "position_y" in changes || "position_z" in changes) {
-        // Find original object for name and position
-        var origObj = findObjectById(oid);
-        var origMin = [0, 0, 0];
-        if (origObj && origObj.bounding_box && origObj.bounding_box.min) {
-          origMin = origObj.bounding_box.min;
-        } else if (origObj && origObj.min) {
-          origMin = origObj.min;
-        }
-        var objName = origObj ? (origObj.name || oid) : oid;
-
-        edits.push({
-          object_id: oid,
-          object_name: objName,
-          action: "move",
-          params: {
-            x: changes.position_x !== undefined ? changes.position_x : origMin[0],
-            y: changes.position_y !== undefined ? changes.position_y : origMin[1],
-            z: changes.position_z !== undefined ? changes.position_z : origMin[2]
-          }
-        });
-      }
-    }
-
-    if (edits.length === 0) {
-      navStatus.textContent = "No supported edits to apply.";
+    if (key === "Enter" || key === "F2") {
+      e.preventDefault();
+      startCellEdit(td, null);
       return;
     }
+    // Printable single character starts edit mode, replacing the cell's value.
+    if (key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      startCellEdit(td, key);
+      return;
+    }
+  }
 
-    navStatus.textContent = "Applying " + edits.length + " edits...";
+  function moveFocus(td, key) {
+    var tr = td.parentElement;
+    var cells = tr.querySelectorAll("td[role='gridcell']");
+    var colIdx = Array.prototype.indexOf.call(cells, td);
 
-    fetch("/edit-direct", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Sender": "local"
-      },
-      body: JSON.stringify({ edits: edits })
-    }).then(function(res) {
-      return res.json();
-    }).then(function(data) {
-      if (data.ok) {
-        navStatus.textContent = "Applied " + edits.length + " edits via watcher. Rhino rebuilds in ~0.5s.";
-        pendingEdits = {};
-        clearModifiedMarkers();
-      } else {
-        navStatus.textContent = "ERROR: Failed to apply edits.";
+    if (key === "ArrowLeft" && colIdx > 0) {
+      focusCell(cells[colIdx - 1]);
+    } else if (key === "ArrowRight" && colIdx < cells.length - 1) {
+      focusCell(cells[colIdx + 1]);
+    } else if (key === "Home") {
+      focusCell(cells[0]);
+    } else if (key === "End") {
+      focusCell(cells[cells.length - 1]);
+    } else if (key === "ArrowUp" || key === "ArrowDown") {
+      var direction = key === "ArrowDown" ? 1 : -1;
+      var sibling = siblingObjectRow(tr, direction);
+      if (sibling) {
+        var targetCells = sibling.querySelectorAll("td[role='gridcell']");
+        var target = targetCells[Math.min(colIdx, targetCells.length - 1)];
+        if (target) focusCell(target);
       }
-    }).catch(function() {
-      navStatus.textContent = "ERROR: Failed to send edits.";
+    }
+  }
+
+  function siblingObjectRow(tr, direction) {
+    var next = direction > 0 ? tr.nextElementSibling : tr.previousElementSibling;
+    while (next && next.className !== "object-row") {
+      next = direction > 0 ? next.nextElementSibling : next.previousElementSibling;
+    }
+    return next;
+  }
+
+  function focusCell(td) {
+    // Only one cell at tabindex=0 to match grid roving-focus convention.
+    var prev = navGridBody.querySelector("td[tabindex='0']");
+    if (prev) prev.setAttribute("tabindex", "-1");
+    td.setAttribute("tabindex", "0");
+    td.focus();
+    var tr = td.parentElement;
+    lastFocused = {
+      objectId: tr.getAttribute("data-object-id"),
+      colKey:   td.getAttribute("data-col"),
+    };
+  }
+
+  function restoreFocusAfterRender() {
+    var target = null;
+    if (lastFocused) {
+      var tr = navGridBody.querySelector("tr.object-row[data-object-id='" + cssEscape(lastFocused.objectId) + "']");
+      if (tr) {
+        target = tr.querySelector("td[data-col='" + lastFocused.colKey + "']");
+      }
+    }
+    if (!target) {
+      target = navGridBody.querySelector("tr.object-row td[role='gridcell']");
+    }
+    if (target) target.setAttribute("tabindex", "0");
+  }
+
+  // -----------------------------------------------------------------------
+  // Cell editing
+  // -----------------------------------------------------------------------
+  function startCellEdit(td, firstChar) {
+    var original = td.textContent;
+    var row = td.parentElement;
+    var colKey = td.getAttribute("data-col");
+    var objectId = row.getAttribute("data-object-id");
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "cell-edit";
+    input.setAttribute("aria-label", "Editing " + colKey);
+    input.value = firstChar !== null ? firstChar : original;
+    td.textContent = "";
+    td.appendChild(input);
+    input.focus();
+    if (firstChar !== null) {
+      // Cursor at end so the typed character is preserved, not selected.
+      input.setSelectionRange(input.value.length, input.value.length);
+    } else {
+      input.select();
+    }
+
+    input.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitCellEdit(td, input.value, original, objectId, colKey);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelCellEdit(td, original);
+      }
+    });
+    input.addEventListener("blur", function() {
+      // Auto-cancel on focus loss. Commit requires explicit Enter to avoid
+      // accidental renames when the user tabs out.
+      if (td.contains(input)) cancelCellEdit(td, original);
     });
   }
 
-  function discardEdits() {
-    pendingEdits = {};
-    clearModifiedMarkers();
-    // Re-render from stored inventory to reset values
-    if (currentInventory) {
-      renderInventory(currentInventory);
-    }
-    navStatus.textContent = "Changes discarded.";
+  function cancelCellEdit(td, originalText) {
+    td.textContent = originalText;
+    td.focus();
   }
 
-  function findObjectById(id) {
-    if (!currentInventory || !currentInventory.layers) return null;
-    var layers = currentInventory.layers;
-    var layerNames = Object.keys(layers);
-    for (var i = 0; i < layerNames.length; i++) {
-      var objects = layers[layerNames[i]];
-      if (!objects) continue;
-      for (var j = 0; j < objects.length; j++) {
-        if (objects[j].id === id) return objects[j];
+  function commitCellEdit(td, newValue, originalText, objectId, colKey) {
+    if (newValue === originalText) {
+      cancelCellEdit(td, originalText);
+      return;
+    }
+    var col = columnByKey(colKey);
+    if (!col || !col.action) {
+      cancelCellEdit(td, originalText);
+      return;
+    }
+    td.textContent = newValue; // optimistic update
+    td.focus();
+    navStatus.textContent = "Saving " + colKey + "...";
+
+    var params = {};
+    if (col.action === "rename") params.name = newValue;
+
+    fetch("/edit-direct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sender": "local" },
+      body: JSON.stringify({ edits: [{ object_id: objectId, action: col.action, params: params }] })
+    }).then(function(res) {
+      return res.json();
+    }).then(function(data) {
+      if (data && data.ok) {
+        navStatus.textContent = colKey + " saved. Refreshing...";
+        // Give the watcher a tick to apply and re-export inventory.
+        setTimeout(loadInventory, 750);
+      } else {
+        revertAndReport(td, originalText, "Save failed.");
       }
+    }).catch(function() {
+      revertAndReport(td, originalText, "ERROR: Failed to send edit.");
+    });
+  }
+
+  function revertAndReport(td, originalText, msg) {
+    td.textContent = originalText;
+    navStatus.textContent = msg;
+  }
+
+  function columnByKey(key) {
+    for (var i = 0; i < GRID_COLUMNS.length; i++) {
+      if (GRID_COLUMNS[i].key === key) return GRID_COLUMNS[i];
     }
     return null;
   }
 
-  function clearModifiedMarkers() {
-    var modified = navTree.querySelectorAll(".modified");
-    for (var i = 0; i < modified.length; i++) {
-      modified[i].classList.remove("modified");
-    }
+  // Minimal CSS.escape polyfill for attribute selectors.
+  function cssEscape(s) {
+    return String(s).replace(/["\\]/g, "\\$&");
   }
 
   // -----------------------------------------------------------------------
@@ -1081,8 +1155,7 @@ summary:focus-visible {
   });
 
   navRefresh.addEventListener("click", loadInventory);
-  navApply.addEventListener("click", applyEdits);
-  navDiscard.addEventListener("click", discardEdits);
+  navGrid.addEventListener("keydown", onGridKeyDown);
 
   // -----------------------------------------------------------------------
   // Keyboard shortcuts
@@ -1093,10 +1166,16 @@ summary:focus-visible {
       e.preventDefault();
       chatInput.focus();
     }
-    // Alt+2: focus model navigator
+    // Alt+2: focus model navigator (first focusable grid cell if loaded,
+    // otherwise the Refresh button).
     if (e.altKey && e.key === "2") {
       e.preventDefault();
-      navRefresh.focus();
+      var firstCell = navGridBody.querySelector("tr.object-row td[role='gridcell']");
+      if (firstCell) {
+        focusCell(firstCell);
+      } else {
+        navRefresh.focus();
+      }
     }
     // Alt+R: refresh inventory
     if (e.altKey && (e.key === "r" || e.key === "R")) {
