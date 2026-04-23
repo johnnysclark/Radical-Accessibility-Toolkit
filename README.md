@@ -31,6 +31,8 @@ For Claude Code / AI agent use, the MCP servers start automatically
 via .mcp.json (created by setup). No API keys needed — runs through
 the Claude Code subscription. See docs/MCP_GUIDE.md for details.
 
+For instructors: see [docs/FACULTY_GUIDE.md](docs/FACULTY_GUIDE.md) for a non-technical overview of the tools and how to work with Daniel during reviews.
+
 ---
 
 ## The System
