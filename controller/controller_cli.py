@@ -25,8 +25,20 @@ Usage
   python controller_cli.py
   python controller_cli.py --state "/path/to/state.json"
 """
-import argparse, copy, json, math, os, subprocess, sys, time
+import argparse
+import copy
+import json
+import math
+import os
+import subprocess
+import sys
+import time
 from datetime import datetime
+
+try:
+    from controller.io_utils import atomic_write as _atomic_write
+except ImportError:
+    from io_utils import atomic_write as _atomic_write
 
 try:
     import template_manager as _tmpl_mgr
@@ -69,14 +81,6 @@ def _script_dir():
 
 def _default_state_path():
     return os.path.join(_script_dir(), DEFAULT_STATE_FILENAME)
-
-def _atomic_write(path, text):
-    folder = os.path.dirname(os.path.abspath(path))
-    os.makedirs(folder, exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-    os.replace(tmp, path)
 
 def _speak(text, rate=2):
     """Fire-and-forget TTS via PowerShell SpeechSynthesizer.
@@ -2247,8 +2251,7 @@ def _cmd_export(state, tokens, state_file=None):
         out_dir = os.path.dirname(os.path.abspath(state_file)) if state_file else "."
         out_path = tokens[2] if len(tokens) > 2 else os.path.join(out_dir, "model_description.txt")
         text = describe(state)
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(text)
+        _atomic_write(out_path, text)
         return state, f"Description exported to {out_path}."
 
     else:

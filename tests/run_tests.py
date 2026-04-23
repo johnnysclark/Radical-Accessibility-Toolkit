@@ -24,6 +24,14 @@ import auditor
 import macro_manager
 import rhino_client
 
+# Swell-print (tactile printer) is optional; tests gated on this flag skip
+# cleanly when the module isn't importable.
+try:
+    import swell_print  # noqa: F401
+    _swell_ok = True
+except Exception:
+    _swell_ok = False
+
 passed = 0
 failed = 0
 skipped = 0

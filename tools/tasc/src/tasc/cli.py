@@ -102,21 +102,26 @@ def main():
 @click.argument("script", type=click.Path(exists=True))
 @click.option("--no-rhino", is_flag=True, help="Run in offline mode (no Rhino connection)")
 def run_script(script, no_rhino):
-    """Execute a TASC Python DSL script."""
+    """Execute a TASC Python DSL script.
+
+    Scripts run with the full privileges of the current process. Do not
+    execute scripts from untrusted sources.
+    """
     import tasc.dsl.api as api
 
     if no_rhino:
         api._auto_connect = False
 
     script_path = Path(script).resolve()
-    _output(f"Running {script_path.name}")
+    _output(f"WARN: tasc run executes {script_path.name} with full process privileges; no sandbox")
+    _output(f"OK: running {script_path.name}")
 
     try:
         with open(script_path) as f:
             code = f.read()
         exec(compile(code, str(script_path), "exec"), {"__name__": "__main__", "__file__": str(script_path)})
     except Exception as e:
-        _output(f"Error: {e}")
+        _output(f"ERROR: {e}")
         sys.exit(1)
 
 
@@ -144,7 +149,7 @@ def site_cmd(width, depth, units):
         if connector.is_live:
             drawer.setup_layers()
             drawer.draw_site(site)
-            _output(f"Drawn in Rhino ({mode})")
+            _output(f"OK: drawn in Rhino ({mode})")
     except Exception:
         pass
 
@@ -170,7 +175,7 @@ def grid_cmd(spacing, rotation):
         except Exception:
             pass
     else:
-        _output(f"Grid set: {spacing} spacing. Define a site first for dimensions.")
+        _output(f"OK: grid set: {spacing} spacing. Define a site first for dimensions.")
 
 
 @main.command(name="zone")
@@ -199,7 +204,7 @@ def zone_cmd(name, width, depth, position, corners, program_type):
             at = (float(parts[0]), float(parts[1]))
         z = Zone.rectangle(name, width, depth, at=at, program_type=program_type)
     else:
-        _output("Error: provide width and depth, or --corners")
+        _output("ERROR: provide width and depth, or --corners")
         sys.exit(1)
 
     warnings = model.add_zone(z)
@@ -225,7 +230,7 @@ def remove_cmd(name):
     push_undo(model, Path(STATE_FILE))
     if model.remove_bay(name):
         _save_state(model)
-        _output(f"Bay {name} removed.")
+        _output(f"OK: bay {name} removed.")
         try:
             connector, drawer, _ = _get_connector()
             if connector.is_live:
@@ -269,7 +274,7 @@ def export_cmd(format, output):
     model = _load_state()
 
     if not model.site:
-        _output("Error: no site boundary defined. Use 'tasc site' first.")
+        _output("ERROR: no site boundary defined. Use 'tasc site' first.")
         sys.exit(1)
 
     if output is None:
@@ -285,9 +290,9 @@ def export_cmd(format, output):
             result = export_3dm(model, output_path)
         elif format == "text":
             result = export_text(model, output_path)
-        _output(f"Exported to {result}")
+        _output(f"OK: exported to {result}")
     except Exception as e:
-        _output(f"Export error: {e}")
+        _output(f"ERROR: export failed: {e}")
         sys.exit(1)
 
 

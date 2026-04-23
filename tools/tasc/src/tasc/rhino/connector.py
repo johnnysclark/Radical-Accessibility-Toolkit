@@ -197,31 +197,42 @@ class RhinoConnector:
         return self.mode in ("mcp", "rhinocode")
 
     def _command_to_script(self, cmd_type: str, params: dict) -> str:
-        """Convert a TASC protocol command to a RhinoPython script."""
+        """Convert a TASC protocol command to a RhinoPython script.
+
+        All untrusted values are emitted via json.dumps so they become Python
+        literals rather than unescaped string interpolations. Numeric fields
+        are coerced to float so non-numeric input raises here instead of
+        producing executable RhinoPython.
+        """
+        def _pt(p):
+            return (float(p[0]), float(p[1]), float(p[2]))
+
         if cmd_type == "create_object":
             obj_type = params.get("object_type", "")
             if obj_type == "polyline":
-                points = params.get("points", [])
-                pts_str = ", ".join(f"({p[0]},{p[1]},{p[2]})" for p in points)
+                points = [_pt(p) for p in params.get("points", [])]
                 return (
-                    f"import rhinoscriptsyntax as rs\n"
-                    f"pts = [{pts_str}]\n"
-                    f"rs.AddPolyline(pts)\n"
-                )
+                    "import rhinoscriptsyntax as rs\n"
+                    "pts = {pts!r}\n"
+                    "rs.AddPolyline(pts)\n"
+                ).format(pts=points)
             elif obj_type == "line":
-                start = params.get("start", [0, 0, 0])
-                end = params.get("end", [0, 0, 0])
+                start = _pt(params.get("start", [0, 0, 0]))
+                end = _pt(params.get("end", [0, 0, 0]))
                 return (
-                    f"import rhinoscriptsyntax as rs\n"
-                    f"rs.AddLine(({start[0]},{start[1]},{start[2]}), ({end[0]},{end[1]},{end[2]}))\n"
-                )
+                    "import rhinoscriptsyntax as rs\n"
+                    "rs.AddLine({start!r}, {end!r})\n"
+                ).format(start=start, end=end)
         elif cmd_type == "create_layer":
-            name = params.get("name", "")
-            color = params.get("color", [0, 0, 0])
+            name = str(params.get("name", ""))
+            color = [int(c) for c in params.get("color", [0, 0, 0])]
             return (
-                f"import rhinoscriptsyntax as rs\n"
-                f"if not rs.IsLayer('{name}'):\n"
-                f"    rs.AddLayer('{name}', ({color[0]},{color[1]},{color[2]}))\n"
-            )
-        # Generic fallback
-        return f"# Unsupported command: {cmd_type}\nprint('{json.dumps(params)}')\n"
+                "import rhinoscriptsyntax as rs\n"
+                "_name = {name}\n"
+                "if not rs.IsLayer(_name):\n"
+                "    rs.AddLayer(_name, {color!r})\n"
+            ).format(name=json.dumps(name), color=tuple(color))
+        # Generic fallback — serialize params once, embed as a Python string
+        # literal so the inner payload cannot break out of the print() call.
+        payload = json.dumps(params)
+        return "# Unsupported command: {}\nprint({})\n".format(cmd_type, json.dumps(payload))

@@ -30,3 +30,4 @@ See `CLAUDE.md` at the repo root for the full taxonomy.
 ## Current skills
 
 - [`laser-export/`](laser-export/) — Rhino → Adobe Illustrator (.ai) export for the Siebel Center for Design 24″×40″ laser cutter.
+- [`update/`](update/) — Pull the latest master from the upstream repo and walk the teammate through post-pull housekeeping (setup rerun, Rhino restart, MCP re-approval).

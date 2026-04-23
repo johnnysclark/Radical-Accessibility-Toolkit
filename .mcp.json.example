@@ -1,15 +1,25 @@
 {
+  "_comment": "Example only. Run `python setup.py` to generate a real .mcp.json with absolute paths for this machine. Server names here must match what setup.py writes; keep them in sync.",
   "mcpServers": {
     "layout-jig": {
-      "command": "python",
-      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+      "command": "python3",
+      "args": [
+        "mcp/mcp_server.py",
+        "--state",
+        "controller/state.json"
+      ]
     },
-    "tactile": {
-      "command": "python",
+    "tact": {
+      "command": "python3",
       "args": ["tools/tact/mcp_entry.py"]
     },
+    "webui": {
+      "command": "bash",
+      "args": ["tools/webui/start-channel.sh"]
+    },
     "rhinomcp": {
-      "command": "./venv/bin/rhinomcp",
+      "command": "bash",
+      "args": ["tools/rhino/start-rhinomcp.sh"],
       "env": {
         "RHINO_MCP_HOST": "127.0.0.1",
         "RHINO_MCP_PORT": "1999"

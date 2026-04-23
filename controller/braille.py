@@ -120,9 +120,11 @@ def from_braille(braille_text):
     if not braille_text:
         return ""
 
-    # Build reverse maps
+    # Build reverse maps once — hoisting rev_punct out of the per-char loop
+    # below avoids rebuilding it on every non-letter character.
     rev_letters = {v: k for k, v in _LETTERS.items()}
     rev_digits = {v: k for k, v in _DIGITS.items()}
+    rev_punct = {v: k for k, v in _PUNCTUATION.items()}
 
     result = []
     in_number = False
@@ -152,8 +154,6 @@ def from_braille(braille_text):
                 next_cap = False
             result.append(letter)
         else:
-            # Try punctuation reverse lookup
-            rev_punct = {v: k for k, v in _PUNCTUATION.items()}
             result.append(rev_punct.get(ch, ch))
 
     return "".join(result)
