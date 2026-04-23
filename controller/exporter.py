@@ -9,6 +9,11 @@ rhino3dm is an optional dependency: pip install rhino3dm
 
 import json
 
+try:
+    from controller.io_utils import atomic_write
+except ImportError:
+    from io_utils import atomic_write
+
 
 def export_3dm(state, output_path):
     """Export state to a Rhino .3dm file.
@@ -143,7 +148,5 @@ def export_text(state, output_path, describe_fn=None):
     else:
         text = json.dumps(state, indent=2)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(text)
-
+    atomic_write(output_path, text)
     return str(output_path)

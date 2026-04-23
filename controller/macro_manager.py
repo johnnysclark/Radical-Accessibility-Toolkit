@@ -23,6 +23,11 @@ import json
 import os
 import re
 
+try:
+    from controller.io_utils import atomic_write
+except ImportError:
+    from io_utils import atomic_write
+
 # ── Paths ──────────────────────────────────────────────────
 _here = os.path.dirname(os.path.abspath(__file__))
 MACROS_DIR = os.path.join(_here, "macros")
@@ -213,13 +218,18 @@ def save_macro(name, description, commands, params=None):
     Returns: confirmation message string.
     """
     if params is None:
-        # Auto-detect params from {placeholders} in commands
+        # Auto-detect params from {placeholders} in commands. The description
+        # echoes the placeholder name and the command it came from so screen
+        # readers announce something useful instead of "Value for X".
         params = {}
         for cmd in commands:
             for match in re.finditer(r'\{(\w+)\}', cmd):
                 pname = match.group(1)
                 if pname not in params:
-                    params[pname] = {"description": f"Value for {pname}", "default": ""}
+                    params[pname] = {
+                        "description": f"{pname} (from: {cmd})",
+                        "default": "",
+                    }
 
     macro = {
         "name": name,
@@ -239,11 +249,7 @@ def save_macro(name, description, commands, params=None):
     # Check for overwrite
     existed = os.path.isfile(path)
 
-    # Atomic write
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(macro, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, path)
+    atomic_write(path, json.dumps(macro, indent=2, ensure_ascii=False))
 
     action = "Updated" if existed else "Saved"
     return (f"OK: {action} macro '{name}' with {len(commands)} command(s) "

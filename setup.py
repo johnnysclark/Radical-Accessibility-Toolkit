@@ -120,7 +120,6 @@ def install_tact(project_root):
 
     _warn("TACT not installed. Installing with OCR and MCP extras...")
     tact_spec = os.path.join(project_root, "tools", "tact") + "[ocr,mcp]"
-    install_arg = "-e " + tact_spec
 
     # pip install -e requires the -e and path as separate args
     cmd = [sys.executable, "-m", "pip", "install", "-q", "-e", tact_spec]

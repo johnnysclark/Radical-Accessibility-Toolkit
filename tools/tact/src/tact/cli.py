@@ -1178,8 +1178,8 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
                         detector = EasyOCRDetector()
                         with PILImage.open(str(input_file)) as orig_img:
                             easyocr_texts = detector.detect_text(orig_img)
-                    except Exception:
-                        pass  # Silently skip EasyOCR errors in batch mode
+                    except Exception as _e:
+                        click.echo("WARN: text-detection skipped on {}: {}".format(input_file.name, _e))
 
                 processed_image, metadata = processor.process(
                     input_path=str(input_file),
@@ -1240,8 +1240,8 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
                                     detector = EasyOCRDetector()
                                     with PILImage.open(scaled_temp.name) as scaled_img:
                                         easyocr_texts = detector.detect_text(scaled_img)
-                                except Exception:
-                                    pass  # Silently skip in batch mode
+                                except Exception as _e:
+                                    click.echo("WARN: text-detection skipped on scaled {}: {}".format(input_file.name, _e))
 
                             # Re-process the scaled image
                             processed_image, metadata = processor.process(
@@ -1262,8 +1262,8 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
                                 metadata['detected_texts'] = easyocr_texts
 
                             detected_texts = metadata.get('detected_texts', [])
-                    except Exception:
-                        pass  # Silently skip scaling errors in batch mode
+                    except Exception as _e:
+                        click.echo("WARN: auto-scale skipped on {}: {}".format(input_file.name, _e))
 
                 # Convert detected text to Braille labels if text detection was enabled
                 braille_labels = None

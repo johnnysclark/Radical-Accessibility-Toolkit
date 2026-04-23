@@ -395,6 +395,8 @@ tasc run my_site.py
 tasc run my_site.py --no-rhino       # skip Rhino connection
 ```
 
+**Security note:** `tasc run` executes the script with the full privileges of the current process — there is no sandbox. Only run scripts you trust. The command prints a `WARN:` line at startup to make this audible to screen-reader users.
+
 ---
 
 ## Python DSL Reference

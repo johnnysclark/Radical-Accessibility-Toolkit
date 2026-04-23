@@ -17,6 +17,11 @@ import copy
 import json
 import os
 
+try:
+    from controller.io_utils import atomic_write as _atomic_write
+except ImportError:
+    from io_utils import atomic_write as _atomic_write
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -34,22 +39,6 @@ BUILTIN_HATCHES = frozenset([
 # Required top-level keys in a style profile
 REQUIRED_SECTIONS = ("name", "description", "lineweights", "hatches",
                      "labels", "layout", "density", "drawing_overrides")
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _atomic_write(path, text):
-    """Write text to path via tmp + replace for crash safety."""
-    folder = os.path.dirname(os.path.abspath(path))
-    os.makedirs(folder, exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
 
 
 def _deep_get(d, key_path):
@@ -152,7 +141,10 @@ class StyleManager:
                 name = data.get("name", os.path.splitext(fname)[0])
                 self._profiles[name] = data
                 self._saved[name] = copy.deepcopy(data)
-            except (json.JSONDecodeError, IOError):
+            except (json.JSONDecodeError, IOError) as e:
+                # Don't crash style loading on a bad file, but don't hide
+                # it either — users deserve to know why a profile vanished.
+                print("WARN: skipped corrupted style {}: {}".format(fpath, e))
                 continue
 
     def _generate_defaults(self):
