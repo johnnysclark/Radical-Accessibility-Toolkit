@@ -11,11 +11,11 @@ Watches `controller/state.json` and fully rebuilds Rhino geometry on every write
 - `redraw(state)` — clears JIG layers, runs 15 ordered draw steps, caches stats, exports inventory
 - `_export_inventory(state)` — writes `object_inventory.json` for the Model Navigator
 - `_apply_pending_edits()` — reads `pending_edits.json` on the main thread; supports move, rotate, scale, delete, rename, layer
-- `_run_pending_script()` — executes `pending_script.py` on the main thread; `RhinoBridge` (`rhino_client.py`) is the Python 3 TCP client on port 1998
+- `_run_pending_script()` — executes `pending_script.py` on the main thread; `RhinoBridge` (`rhino_client.py`) is a Python 3 TCP client on port 1998
 
 ## Dependencies
 - IronPython 2.7 with `rhinoscriptsyntax` and `Rhino`/`scriptcontext`
-- `startup.py` loads the watcher via `exec()`, starts RhinoMCP, sets LightPen display mode, sets feet units
+- `startup.py` loads the watcher via `exec()`, starts RhinoMCP, sets LightPen display mode and feet units
 - Reads `controller/state.json`; side-channel files `object_inventory.json`, `pending_edits.json`, `pending_script.py` sit alongside it
 - Windows PowerShell subprocess for audio chime/TTS
 

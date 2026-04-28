@@ -2,7 +2,7 @@
 # 01 — MCP Server subsystem
 
 ## Purpose
-`mcp/mcp_server.py` wraps the Layout Jig controller and related engines as a FastMCP server, exposing them to Claude Code via MCP. The controller is a Python CLI the agent cannot call directly; MCP functions are the typed, documented bridge.
+`mcp/mcp_server.py` wraps the Layout Jig controller and related engines as a FastMCP server, exposing them to Claude Code via the Model Context Protocol. The controller is a Python CLI the agent cannot call directly; MCP functions are the typed, documented bridge that makes every command accessible.
 
 ## Public API / entry points
 71 `@mcp.tool()` functions, 6 `@mcp.resource()` endpoints, 4 `@mcp.prompt()` generators.
@@ -26,15 +26,15 @@
 
 ## What's essential
 - `_run()` as the single dispatch path: load state, call `cli.apply_command`, save atomically.
-- Stdout globally redirected to stderr so JSON-RPC is never corrupted.
+- Stdout globally redirected to stderr so JSON-RPC framing is never corrupted.
 - All responses return plain strings with `OK:` / `ERROR:` / `READY:` prefixes for screen-reader compatibility.
-- Optional subsystems fail gracefully with `ImportError` guards, never crashing the server.
+- Optional subsystems guarded by `ImportError` blocks so the server starts even without optional packages.
 
 ## What's accidental
 - `tactile3d._export_once` flag cleared inside `_run()` — side-effect logic that belongs in the controller.
-- `extend_controller` writes Python source to `controller_cli.py` at runtime — unsafe and file-layout-coupled.
-- View tools embed rendering logic directly instead of delegating to a renderer module.
-- `_swell_available` is a vestigial alias of `_style_available` from a prior architecture split.
-- Version changelogs (v2.0–v4.0) belong in git history, not the module docstring.
-- 2590-line single file; tool groups share only `_run()` and `STATE_PATH` and are separable.
+- `extend_controller` writes Python source directly to `controller_cli.py` at runtime — unsafe and file-layout-coupled.
+- View tools (`view_plan`, `view_section`, etc.) embed rendering dispatch inline rather than delegating to a renderer module.
+- `_swell_available` is a vestigial alias of `_style_available` left over from a prior architecture split.
+- Version changelogs (v2.0–v4.0) are embedded in the module docstring; they belong in git history.
+- At 2590 lines in one file, tool groups share only `_run()` and `STATE_PATH` and could be split into focused modules.
 ---
