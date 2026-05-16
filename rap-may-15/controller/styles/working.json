@@ -1,0 +1,119 @@
+{
+  "name": "working",
+  "description": "Everyday design iteration. Medium weights, compact layout.",
+  "lineweights": {
+    "column": 3.0,
+    "wall_exterior": 2.5,
+    "wall_interior": 1.5,
+    "corridor_edge": 1.0,
+    "corridor_dash": 0.8,
+    "door_swing": 0.6,
+    "door_frame": 0.8,
+    "window_line": 0.6,
+    "portal_line": 0.6,
+    "grid_line": 0.3,
+    "section_cut": 3.5,
+    "section_beyond": 0.8,
+    "hatch_line": 0.4,
+    "dimension_line": 0.3,
+    "leader_line": 0.3,
+    "site_boundary": 2.0,
+    "north_arrow": 1.5
+  },
+  "hatches": {
+    "diagonal": {
+      "spacing_mm": 8.0,
+      "angle_deg": 45,
+      "weight_pt": 0.4
+    },
+    "crosshatch": {
+      "spacing_mm": 8.0,
+      "angle_deg": [45, 135],
+      "weight_pt": 0.4
+    },
+    "horizontal": {
+      "spacing_mm": 6.0,
+      "angle_deg": 0,
+      "weight_pt": 0.4
+    },
+    "vertical": {
+      "spacing_mm": 6.0,
+      "angle_deg": 90,
+      "weight_pt": 0.4
+    },
+    "dots": {
+      "spacing_mm": 5.0,
+      "radius_mm": 1.0,
+      "filled": true
+    },
+    "dense_diagonal": {
+      "spacing_mm": 5.0,
+      "angle_deg": 45,
+      "weight_pt": 0.5
+    },
+    "sparse_diagonal": {
+      "spacing_mm": 12.0,
+      "angle_deg": 45,
+      "weight_pt": 0.3
+    }
+  },
+  "labels": {
+    "braille_pt": 30,
+    "room_name_pt": 12,
+    "dimension_pt": 8,
+    "legend_title_pt": 14,
+    "legend_entry_pt": 10,
+    "bay_label_pt": 14,
+    "grid_label_pt": 10
+  },
+  "layout": {
+    "paper": "letter",
+    "orientation": "landscape",
+    "margin_inches": 0.5,
+    "scale": "auto",
+    "title_block": true,
+    "legend": true,
+    "north_arrow": true,
+    "grid_labels": true,
+    "braille_labels": true,
+    "english_labels": true,
+    "dimensions": false,
+    "section_marks": true
+  },
+  "density": {
+    "target_percent": 30,
+    "warning_percent": 40,
+    "reject_percent": 45,
+    "auto_adjust": true,
+    "priority": [
+      "column",
+      "wall_exterior",
+      "wall_interior",
+      "corridor_edge",
+      "section_cut",
+      "door_frame",
+      "labels",
+      "hatches",
+      "grid_line"
+    ]
+  },
+  "drawing_overrides": {
+    "plan": {},
+    "section": {
+      "poche_fill": true,
+      "beyond_weight_factor": 0.5,
+      "hatches_beyond_cut": false
+    },
+    "axon": {
+      "hatches": false,
+      "depth_fade": true,
+      "depth_fade_min_factor": 0.3,
+      "hidden_line": true,
+      "projection_angle": [30, 60]
+    },
+    "elevation": {
+      "hatches": true,
+      "depth_fade": false
+    }
+  }
+}
