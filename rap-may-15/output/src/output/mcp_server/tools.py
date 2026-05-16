@@ -2048,7 +2048,7 @@ async def state_to_piaf(
     paper_size: str = "letter",
     output_format: str = "pdf",
 ) -> str:
-    """Render a Layout Jig state.json to a PIAF-ready tactile graphic.
+    """Render a Controller state.json to a PIAF-ready tactile graphic.
 
     Reads the canonical model artifact (state.json) and produces a 300 DPI
     black-and-white architectural plan suitable for swell-paper printing.

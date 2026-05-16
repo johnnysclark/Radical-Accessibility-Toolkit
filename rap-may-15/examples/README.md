@@ -51,7 +51,7 @@ Alternative path. Reach the same end state by replaying the construction command
 
        macro run build-case-study-house
 
-   The macro prints one OK line per command. After the 26 commands execute, the state matches `case-study-house.state.json`.
+   The macro prints one OK line per command. After the 27 commands execute, the state matches `case-study-house.state.json`.
 
 ## Capture the paper figures
 
@@ -59,24 +59,28 @@ Three commands, one per output format.
 
 1. PIAF JPG for the swell-paper figure:
 
-       output-cli render controller/state.json --format jpg --out figures/case-study-plan.jpg
+       output-cli render controller/state.json --format jpg
+
+   The `render` command has no `--out` flag. The output filename is auto-derived from the input as `<input-stem>_tactile.<ext>` and written next to the state file (here, `controller/state_tactile.jpg`). Move or rename the file afterwards if you need it under `figures/`.
 
 2. SVG for the vector figure:
 
-       output-cli render controller/state.json --format svg --out figures/case-study-plan.svg
+       output-cli render controller/state.json --format svg
+
+   Same naming rule: produces `controller/state_tactile.svg`.
 
 3. STL for the printed tactile model. From the controller prompt:
 
        tactile3d export figures/case-study-model.stl
 
-   The STL exports the extruded walls and slab in one mesh, ready for the Bambu printer.
+   The STL exports the extruded walls and slab in one mesh, ready for the Bambu printer. `tactile3d export` takes an optional positional path; with no argument it writes to the configured `export_path` (default `./tactile3d_export.stl`).
 
 ## Inspect the source
 
 Both example files are plain text and readable end-to-end.
 
 - `case-study-house.state.json` is the canonical state. Top-level keys: `schema`, `meta`, `site`, `zones`, `grid`, `style`, `bays`, `blocks`, `rooms`, `legend`, `tactile3d`, `tts`, `section`, `hatch_library_path`, `print`. The bay A apertures list shows where each window and the door land on each face.
-- `build-case-study-house.macro.json` is a 26-command macro that produces the same state from the controller's default start. Each command prints an `OK:` line, so the full run produces a screen-reader-friendly log of the construction sequence.
+- `build-case-study-house.macro.json` is a 27-command macro that produces the same state from the controller's default start. Each command prints an `OK:` line, so the full run produces a screen-reader-friendly log of the construction sequence.
 
 The `expected/` folder describes what the three captured outputs should look like, so reviewers can verify their own runs without an authoritative binary to diff against.
 

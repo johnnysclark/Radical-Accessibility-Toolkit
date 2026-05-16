@@ -29,7 +29,7 @@ The project's research documentation lives in an Obsidian vault symlinked at `do
 
 Key vault locations:
 - `docs/vault/Work-Sessions/` — session logs (use the template at `Templates/Work-Session-Template.md`)
-- `docs/vault/Tools/` — tool documentation (Web-UI, TACT, TASC, etc.)
+- `docs/vault/Tools/` — tool documentation
 - `docs/vault/Workflows/` — process documentation
 - `docs/vault/Timesheet.md` — hour tracking across 10 workstreams
 - `docs/vault/People/` — team member profiles
@@ -44,7 +44,7 @@ If `controller/state.json` does not exist, this is a fresh clone. Run:
 
     python setup.py
 
-This installs all dependencies (mcp, tact, easyocr), creates `.mcp.json`,
+This installs all dependencies (mcp, output, easyocr), creates `.mcp.json`,
 and initializes `state.json`. The MCP servers will be available immediately
 after setup completes.
 
@@ -151,7 +151,7 @@ Branch names must be speakable and understandable when read aloud by a screen re
 **Good examples:**
 - `john/add-tactile-export`
 - `ethan/fix-watcher-crash-on-empty-state`
-- `claude/update-webui-hooks`
+- `claude/update-startup-hooks`
 - `claude/add-bay-rotation-command`
 
 **Bad examples (do not use):**

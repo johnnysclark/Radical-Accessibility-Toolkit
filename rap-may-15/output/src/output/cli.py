@@ -878,7 +878,7 @@ def info():
     logger = AccessibleLogger(verbose=True)
 
     logger.info("=" * 60)
-    logger.info("TACT — Tactile Architectural Conversion Tool")
+    logger.info("OUTPUT — Tactile-Ready Renderer")
     logger.info(f"Version: {__version__}")
     logger.info("=" * 60)
     logger.blank_line()
@@ -913,7 +913,7 @@ def info():
     logger.info("  - Verbose mode for detailed progress")
     logger.blank_line()
 
-    logger.info("For help with commands, use: tact --help")
+    logger.info("For help with commands, use: output-cli --help")
     logger.info("=" * 60)
 
 
@@ -939,10 +939,10 @@ def list_presets():
 
         logger.info("=" * 60)
         logger.info("Usage:")
-        logger.info("  tact IMAGE.jpg --preset PRESET_NAME")
+        logger.info("  output-cli IMAGE.jpg --preset PRESET_NAME")
         logger.blank_line()
         logger.info("Example:")
-        logger.info("  tact floor-plan.jpg --preset floor_plan")
+        logger.info("  output-cli floor-plan.jpg --preset floor_plan")
         logger.info("=" * 60)
 
     except PresetError as e:
@@ -1064,19 +1064,19 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
     Examples:
 
     Convert all JPGs in a folder with floor_plan preset:
-        tact batch ./drawings ./output --preset floor_plan
+        output-cli batch ./drawings ./output --preset floor_plan
 
     Convert all images recursively:
-        tact batch ./all-drawings ./output --recursive --preset floor_plan
+        output-cli batch ./all-drawings ./output --recursive --preset floor_plan
 
     Custom settings for all files:
-        tact batch ./sketches ./output --threshold 130 --enhance s_curve
+        output-cli batch ./sketches ./output --threshold 130 --enhance s_curve
 
     Process only PNG files:
-        tact batch ./images ./output --pattern "*.png" --preset photograph
+        output-cli batch ./images ./output --pattern "*.png" --preset photograph
 
     Batch with automatic density reduction:
-        tact batch ./drawings ./output --auto-reduce-density --verbose
+        output-cli batch ./drawings ./output --auto-reduce-density --verbose
     """
     import glob as glob_module
     from pathlib import Path as PathLib
