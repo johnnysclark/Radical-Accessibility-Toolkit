@@ -42,7 +42,7 @@ def _ensure_imports():
     from output.core.grid_overlay import create_grid_overlay as _CGO, grid_cell_to_percent as _GCP
     from output.utils.cache import cache_tesseract_results as _CTR, load_cached_tesseract as _LCT
     from output.core.label_scaler import analyze_label_fit as _ALF
-    from output.core.rainbowtact import RainbowTactConverter as _RTC, RainbowTactConfig as _RTCfg
+    from output.core.color_to_tactile import RainbowTactConverter as _RTC, RainbowTactConfig as _RTCfg
 
     ImageProcessor, ImageProcessorError = _IP, _IPE
     PIAFPDFGenerator, PDFGeneratorError = _PPG, _PDFE
@@ -373,7 +373,7 @@ async def _process_multipage_pdf(
     })
 
 
-async def _process_rainbowtact(
+async def _process_color_to_tactile(
     processor,
     image_path_for_processing: str,
     image_file,
@@ -398,12 +398,12 @@ async def _process_rainbowtact(
 
     try:
         # Run RainbowTact processing
-        from output.core.rainbowtact import RainbowTactConverter, RainbowTactConfig
+        from output.core.color_to_tactile import RainbowTactConverter, RainbowTactConfig
 
         processed_image, metadata, color_regions, tactile_patterns = \
-            processor.process_with_rainbowtact(
+            processor.process_with_color_to_tactile(
                 input_path=image_path_for_processing,
-                num_colors=rainbowtact_num_colors,
+                num_colors=color_to_tactile_num_colors,
                 detect_text=detect_text and not merged_detected_texts,
                 paper_size=effective_paper_size,
             )
@@ -558,7 +558,7 @@ async def _process_rainbowtact(
         return json.dumps({
             "success": False,
             "error": str(e),
-            "error_type": "rainbowtact_error"
+            "error_type": "color_to_tactile_error"
         })
 
 
@@ -585,7 +585,7 @@ async def image_to_piaf(
     zoom_regions: Optional[List[Dict[str, Any]]] = None,
     sticker_workflow: bool = False,
     color_to_tactile: bool = False,
-    rainbowtact_num_colors: int = 5
+    color_to_tactile_num_colors: int = 5
 ) -> str:
     """
     Convert an architectural image to a PIAF-ready tactile PDF.
@@ -647,7 +647,7 @@ async def image_to_piaf(
                          B&W thresholding, maps colors to distinguishable tactile patterns
                          (waves for chromatic colors, dots for achromatic). Includes a color
                          pattern legend page. Default: False.
-        rainbowtact_num_colors: Number of color clusters for RainbowTact segmentation (2-10).
+        color_to_tactile_num_colors: Number of color clusters for RainbowTact segmentation (2-10).
                                More colors = more patterns but harder to distinguish. Default: 5.
 
     Returns:
@@ -1035,7 +1035,7 @@ async def image_to_piaf(
         # RAINBOWTACT: Color-to-Tactile Pattern Conversion
         # ============================================================
         if color_to_tactile:
-            return await _process_rainbowtact(
+            return await _process_color_to_tactile(
                 processor=processor,
                 image_path_for_processing=image_path_for_processing,
                 image_file=image_file,
@@ -1045,7 +1045,7 @@ async def image_to_piaf(
                 preset=preset,
                 detect_text=detect_text,
                 braille_grade=braille_grade,
-                rainbowtact_num_colors=rainbowtact_num_colors,
+                color_to_tactile_num_colors=color_to_tactile_num_colors,
                 merged_detected_texts=merged_detected_texts,
                 use_abbreviation_key=use_abbreviation_key,
                 force_abbreviation_key=force_abbreviation_key,

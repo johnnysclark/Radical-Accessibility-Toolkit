@@ -1,9 +1,9 @@
 {
-  "schema": "plan_layout_jig_v3.0",
+  "schema": "rap_controller_v1.0",
   "meta": {
-    "created": "2026-05-16T00:00:00",
-    "last_saved": "2026-05-16T00:00:00",
-    "notes": "Case study house example. Three-layer demo: structure (column grid), panels (perimeter walls with apertures), slabs (tactile3d floor). See examples/README.md."
+    "created": "2026-05-16 00:00:00",
+    "last_saved": "2026-05-16 00:00:00",
+    "notes": "Case study house example. Three-layer paper demo: STRUCTURE (column grid in bay A), PANELS (perimeter walls with apertures), SLABS (tactile3d floor enabled). Site 80x60 ft, footprint 48x24 ft centered, 4x3 column grid on 16x12 ft spacing."
   },
   "site": {
     "origin": [0.0, 0.0],
@@ -19,10 +19,10 @@
   "zones": {
     "living": {
       "corners": [
-        [32.0, 18.0],
+        [32.1, 18.0],
         [64.0, 18.0],
         [64.0, 42.0],
-        [32.0, 42.0]
+        [32.1, 42.0]
       ],
       "program_type": "living",
       "label": "living",
@@ -31,8 +31,8 @@
     "service": {
       "corners": [
         [16.0, 18.0],
-        [32.0, 18.0],
-        [32.0, 42.0],
+        [31.9, 18.0],
+        [31.9, 42.0],
         [16.0, 42.0]
       ],
       "program_type": "service",
@@ -89,7 +89,7 @@
           "type": "window",
           "axis": "x",
           "gridline": 0,
-          "corner": 8.0,
+          "corner": 4.0,
           "width": 8.0,
           "height": 4.0,
           "hinge": "start",
@@ -100,7 +100,7 @@
           "type": "window",
           "axis": "x",
           "gridline": 0,
-          "corner": 32.0,
+          "corner": 36.0,
           "width": 8.0,
           "height": 4.0,
           "hinge": "start",

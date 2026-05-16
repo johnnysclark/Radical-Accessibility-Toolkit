@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Auditor  v1.0
-================================
-Spatial analysis, validation, and rich description of layout jig models.
+RADICAL ACCESSIBILITY CONTROLLER — Auditor  v1.0
+=================================================
+Spatial analysis, validation, and rich description of controller models.
 
 All functions take a state dict (the CMA) and return plain-text strings
 formatted for screen readers.  No Rhino dependency — pure math on the

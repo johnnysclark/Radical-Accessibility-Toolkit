@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Rhino Client  v1.0
+RADICAL ACCESSIBILITY CONTROLLER — Rhino Client  v1.0
 ======================================
 Optional TCP client that talks to the Rhino watcher's query listener.
 

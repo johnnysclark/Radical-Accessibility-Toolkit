@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Tactile Print Pipeline  v1.0
+RADICAL ACCESSIBILITY CONTROLLER — STL Export Pipeline  v1.0
 ================================================
 Pure-Python companion module that reads state.json, builds
 watertight triangle meshes of the section plan, writes binary STL,
@@ -411,7 +411,7 @@ def write_binary_stl(triangles, filepath):
 
     with open(filepath, "wb") as f:
         # Header
-        header = b"Plan Layout Jig tactile model" + b"\0" * 51
+        header = b"Radical Accessibility Controller tactile model" + b"\0" * 34
         f.write(header[:80])
         # Triangle count
         f.write(struct.pack("<I", len(triangles)))
@@ -575,7 +575,7 @@ def do_export(state, filepath=None):
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
-        description="Plan Layout Jig — Tactile Print Pipeline")
+        description="Radical Accessibility Controller — STL Export Pipeline")
     ap.add_argument("state_file", help="Path to state_v2.json")
     ap.add_argument("--output", "-o", default="./tactile_model.stl",
                     help="Output STL path")

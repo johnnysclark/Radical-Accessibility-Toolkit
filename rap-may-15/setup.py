@@ -58,7 +58,7 @@ def main():
     if not os.path.exists(state_path):
         now = datetime.datetime.utcnow().isoformat() + "Z"
         state = {
-            "schema": "plan_layout_jig_v3.0",
+            "schema": "rap_controller_v1.0",
             "meta": {"created": now},
             "site": {
                 "origin": [0, 0],

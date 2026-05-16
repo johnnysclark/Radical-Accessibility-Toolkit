@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Terminal Controller  v3.0
-============================================
+RADICAL ACCESSIBILITY CONTROLLER — Terminal Console  v1.0
+==========================================================
 Python CLI that writes a JSON state file. A separate Rhino watcher
 script reads that file and rebuilds geometry on every save.
 
@@ -48,7 +48,7 @@ def get_style_manager():
         _style_mgr = _style_mod.StyleManager()
     return _style_mgr
 
-SCHEMA = "plan_layout_jig_v3.0"
+SCHEMA = "rap_controller_v1.0"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
@@ -454,7 +454,7 @@ def default_state():
     return {
         "schema": SCHEMA,
         "meta": {"created": _now(), "last_saved": _now(),
-                 "notes": "Plan Layout Jig v3.0"},
+                 "notes": "Radical Accessibility Controller v1.0"},
         "site": {"origin": [0.0, 0.0], "width": 180.0, "height": 260.0,
                  "corners": [[0.0, 0.0], [180.0, 0.0], [180.0, 260.0], [0.0, 260.0]]},
         "zones": {},
@@ -616,7 +616,7 @@ def describe(state):
     s = state["site"]; st = state["style"]
     meta = state.get("meta", {})
     lines = ["=" * 60,
-             "PLAN LAYOUT JIG — Full Model Description",
+             "RADICAL ACCESSIBILITY CONTROLLER — Full Model Description",
              "=" * 60, ""]
 
     # ── Meta ──
@@ -2783,7 +2783,7 @@ def do_print(state, state_file):
     return "\n".join(lines)
 
 HELP_TEXT = """
-PLAN LAYOUT JIG v3.0 — Commands
+RADICAL ACCESSIBILITY CONTROLLER v1.0 — Commands
 ====================================
 describe / d ............. Full model description (all settings and geometry)
 list bays / l bays ....... Compact bay table
@@ -2937,7 +2937,7 @@ SETUP (Rhino auto-launch):
 """
 
 def main():
-    ap = argparse.ArgumentParser(description="Plan Layout Jig — Terminal CLI")
+    ap = argparse.ArgumentParser(description="Radical Accessibility Controller — Terminal Console")
     ap.add_argument("--state", default=_default_state_path(),
                     help="Path to the JSON state file")
     ap.add_argument("--tts", action="store_true",
@@ -2946,10 +2946,10 @@ def main():
     try: state = load_state(state_file)
     except Exception as e: print(f"[ERROR] {e}"); sys.exit(1)
     # Schema migration: accept old or new schema
-    _accepted_schemas = (SCHEMA, "plan_layout_jig_v2.3", "school_jig_2d_v2.2")
+    _accepted_schemas = (SCHEMA, "plan_layout_jig_v3.0", "plan_layout_jig_v2.3", "school_jig_2d_v2.2")
     if state.get("schema") not in _accepted_schemas:
         state = default_state()
-    if state.get("schema") in ("school_jig_2d_v2.2", "plan_layout_jig_v2.3"):
+    if state.get("schema") in ("school_jig_2d_v2.2", "plan_layout_jig_v2.3", "plan_layout_jig_v3.0"):
         state["schema"] = SCHEMA
     if "legend" not in state: state["legend"] = _default_legend()
     if "tactile3d" not in state: state["tactile3d"] = _default_tactile3d()
@@ -2975,7 +2975,7 @@ def main():
 
     undo_stack = []
     history_seq = _history_count(state_file)
-    _out("PLAN LAYOUT JIG v3.0 — Terminal CLI")
+    _out("RADICAL ACCESSIBILITY CONTROLLER v1.0 — Terminal Console")
     print(f"State: {state_file}")
     if state.get("tts", {}).get("enabled"):
         print("TTS: ON")

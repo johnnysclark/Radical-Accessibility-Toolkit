@@ -3,7 +3,7 @@
 Radical Accessibility — Rhino Startup Script
 =============================================
 Auto-loads everything needed for accessible Rhino modeling:
-  1. Layout Jig watcher (file watching, inventory export, pending edits)
+  1. Controller watcher (file watching, inventory export, pending edits)
   2. LightPen display mode on ALL viewports
   3. Model units set to Feet
 

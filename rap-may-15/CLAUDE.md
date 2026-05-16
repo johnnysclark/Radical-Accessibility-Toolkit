@@ -2,7 +2,7 @@
 
 ## Taxonomy (use these terms consistently)
 
-- **Tool** — a major capability module. Layout Jig, Image Describer, Tactile Printer, TACT, Rhino Viewer.
+- **Tool** — a major capability module. Controller, Watcher, Output, MCP. (Image Describer, Tactile Printer, etc. live in the parent repo's older layout.)
 - **Command** — an individual action within a tool. `set bay A rotation 30`, `wall A on`, `describe image.jpg`.
 - **Macro** — a saved sequence of commands, replayable with parameters. Stored as JSON in `controller/macros/`. Pure data. Invoked via `macro run <name>` or `macro_run` MCP.
 - **Template** — a startup state generator in `controller/templates/`. Produces a complete `state.json` from parameters. Loaded via `template load` in the CLI or `template_load` via MCP. Different from a macro: templates replace state, macros replay commands on existing state.
@@ -171,7 +171,7 @@ Branch names must be speakable and understandable when read aloud by a screen re
 
 ## Controller Extensions
 
-The Layout Jig controller (`controller/console.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
+The Controller (`controller/console.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
 
 ---
 

@@ -2,7 +2,7 @@
 """
 State Renderer — Render state.json to PIAF-ready B&W image  v2.0
 =================================================================
-Reads the Layout Jig Canonical Model Artifact (state.json) and
+Reads the Controller Canonical Model Artifact (state.json) and
 draws a high-contrast black-and-white plan at 300 DPI, suitable
 for PIAF swell-paper printing.
 

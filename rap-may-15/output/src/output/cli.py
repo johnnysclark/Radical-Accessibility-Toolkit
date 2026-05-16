@@ -1382,7 +1382,7 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
 def render(state_path, paper_size, output_format, fmt, dpi):
     """Render state.json to a PIAF-ready tactile graphic.
 
-    Reads the Layout Jig state file and produces output in one of three
+    Reads the Controller state file and produces output in one of three
     formats: a 300 DPI black-and-white PDF plan suitable for swell-paper
     printing, a high-DPI JPEG raster, or a 2D vector SVG plan view.
 

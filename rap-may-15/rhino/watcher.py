@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Rhino Watcher  v2.3
+RADICAL ACCESSIBILITY CONTROLLER — Rhino Watcher  v2.3
 ======================================
 This script runs inside Rhino or Grasshopper. It watches the JSON
 state file written by the terminal controller. Every time the file
@@ -1288,7 +1288,7 @@ def _export_stl(obj_ids, filepath):
         f = open(filepath, "wb")
         try:
             # 80-byte header
-            hdr = "Binary STL - Layout Jig"
+            hdr = "Binary STL - Radical Accessibility Controller"
             hdr = hdr + "\0" * (80 - len(hdr))
             f.write(hdr.encode("ascii") if hasattr(hdr, "encode") else hdr)
             # triangle count (uint32 LE)

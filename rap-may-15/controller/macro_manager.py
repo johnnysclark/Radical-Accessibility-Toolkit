@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PLAN LAYOUT JIG — Macro Manager  v1.0
+RADICAL ACCESSIBILITY CONTROLLER — Macro Manager  v1.0
 =======================================
 Stores, lists, and replays reusable command sequences ("macros").
 
