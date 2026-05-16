@@ -29,7 +29,7 @@ one-way: controller writes, watcher reads.
     JIG_TACTILE3D    Extruded walls, floor slab, clipping plane
 
 Run inside Rhino or Grasshopper Python:
-    exec(open("C:/path/to/rhino_watcher.py").read())
+    exec(open("C:/path/to/watcher.py").read())
 """
 import io, json, math, os, subprocess, time, threading
 
@@ -47,7 +47,7 @@ except ImportError:
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
 # Allow STATE_FILE to be pre-set before exec(), e.g.:
 #   STATE_FILE = r"C:\path\to\controller\state.json"
-#   exec(open(r"C:\path\to\rhino_watcher.py").read())
+#   exec(open(r"C:\path\to\watcher.py").read())
 if 'STATE_FILE' not in dir() or not globals().get('STATE_FILE'):
     # Try next to the script first (flat layout)
     _candidate = os.path.join(SCRIPT_DIR, "state.json")
@@ -1552,7 +1552,7 @@ def _run_pending_script():
 # TCP QUERY LISTENER (v3.0)
 # ══════════════════════════════════════════════════════════
 # Optional TCP server on port 1998 that answers read-only queries
-# from the MCP server's rhino_client.
+# from the MCP server's client.
 #
 # Supported queries:
 #   {"type": "ping"}                   -> {"status": "ok"}
@@ -1831,4 +1831,4 @@ if state:
     print("[PLJ] Ready. Edit state.json and the viewport updates automatically.")
 else:
     print("[PLJ] No state file at {0}".format(STATE_FILE))
-    print("  Run controller_cli.py to generate one.")
+    print("  Run console.py to generate one.")

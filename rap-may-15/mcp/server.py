@@ -58,17 +58,17 @@ v3.0 changes (from v2.0):
 Requires: pip install mcp  (tested with mcp 1.26.0)
 
 Usage:
-    python mcp_server.py --state path/to/state.json
+    python server.py --state path/to/state.json
 
 Or set the environment variable:
-    LAYOUT_JIG_STATE=path/to/state.json python mcp_server.py
+    LAYOUT_JIG_STATE=path/to/state.json python server.py
 
 Claude Code config (.mcp.json at project root):
 {
   "mcpServers": {
     "layout-jig": {
       "command": "python",
-      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+      "args": ["mcp/server.py", "--state", "controller/state.json"]
     }
   }
 }
@@ -91,7 +91,7 @@ def _stderr_print(*args, **kwargs):
 
 builtins.print = _stderr_print
 
-# ── Import controller_cli from controller/ directory ───
+# ── Import console (formerly controller_cli) from controller/ directory ───
 _here = os.path.dirname(os.path.abspath(__file__))
 _root = os.path.dirname(_here)
 _controller = os.path.join(_root, "controller")
@@ -102,7 +102,7 @@ _rhino_dir = os.path.join(_root, "rhino")
 if _rhino_dir not in sys.path:
     sys.path.insert(0, _rhino_dir)
 
-import controller_cli as cli
+import console as cli
 import braille
 
 # ── Import engines (lazy-safe: all stdlib-only) ────────
@@ -112,7 +112,7 @@ try:
     import template_manager
 except ImportError:
     template_manager = None
-import rhino_client
+import client as rhino_client
 
 # ── MCP dependency ─────────────────────────────────────
 try:
@@ -1025,7 +1025,7 @@ def extend_controller(function_name: str, code: str) -> str:
     """Add a new command handler function to the controller CLI.
 
     This extends the Layout Jig with new commands at runtime. The
-    function is appended to controller_cli.py and registered in the
+    function is appended to console.py and registered in the
     command dispatch chain.
 
     The function MUST follow this signature:
@@ -1079,21 +1079,21 @@ def extend_controller(function_name: str, code: str) -> str:
         return f"ERROR: Command '{cmd_word}' already exists. Choose a different name."
 
     # Read current controller file
-    cli_path = os.path.join(_controller, "controller_cli.py")
+    cli_path = os.path.join(_controller, "console.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             cli_source = f.read()
     except OSError as e:
-        return f"ERROR: Cannot read controller_cli.py: {e}"
+        return f"ERROR: Cannot read console.py: {e}"
 
     # Check if function already exists
     if f"def {function_name}(" in cli_source:
-        return f"ERROR: Function '{function_name}' already exists in controller_cli.py."
+        return f"ERROR: Function '{function_name}' already exists in console.py."
 
     # Find the dispatch insertion point (before "if cmd != \"set\":")
     dispatch_marker = 'if cmd != "set":'
     if dispatch_marker not in cli_source:
-        return "ERROR: Cannot find dispatch insertion point in controller_cli.py."
+        return "ERROR: Cannot find dispatch insertion point in console.py."
 
     # Build new dispatch line
     dispatch_line = f'    if cmd == "{cmd_word}": return {function_name}(state, tokens)\n'
@@ -1107,7 +1107,7 @@ def extend_controller(function_name: str, code: str) -> str:
     # Append function before apply_command
     apply_marker = "def apply_command(state, tokens, state_file=None):"
     if apply_marker not in cli_source:
-        return "ERROR: Cannot find apply_command in controller_cli.py."
+        return "ERROR: Cannot find apply_command in console.py."
 
     cli_source = cli_source.replace(
         apply_marker,
@@ -1121,7 +1121,7 @@ def extend_controller(function_name: str, code: str) -> str:
             f.write(cli_source)
         os.replace(tmp, cli_path)
     except OSError as e:
-        return f"ERROR: Cannot write controller_cli.py: {e}"
+        return f"ERROR: Cannot write console.py: {e}"
 
     # Reload the controller module
     try:
@@ -1412,12 +1412,12 @@ def list_commands() -> str:
     category. Includes commands added via extend_controller.
     """
     import re
-    cli_path = os.path.join(_controller, "controller_cli.py")
+    cli_path = os.path.join(_controller, "console.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             source = f.read()
     except OSError as e:
-        return f"ERROR: Cannot read controller_cli.py: {e}"
+        return f"ERROR: Cannot read console.py: {e}"
 
     # Find dispatch lines: if cmd == "xxx": return cmd_xxx(...)
     pattern = r'if cmd == "(\w+)":\s*return (\w+)\('
@@ -1471,12 +1471,12 @@ def show_command_source(command: str) -> str:
         command: Command word (e.g. "corridor", "wall", "aperture")
             or full function name (e.g. "cmd_corridor", "_cmd_set_bay")
     """
-    cli_path = os.path.join(_controller, "controller_cli.py")
+    cli_path = os.path.join(_controller, "console.py")
     try:
         with open(cli_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
     except OSError as e:
-        return f"ERROR: Cannot read controller_cli.py: {e}"
+        return f"ERROR: Cannot read console.py: {e}"
 
     # Normalize to function name
     if command.startswith("cmd_") or command.startswith("_cmd_"):
@@ -2580,7 +2580,7 @@ if __name__ == "__main__":
     _real_print(f"Layout Jig MCP Server v4.0 starting...", file=sys.stderr)
     _real_print(f"State file: {STATE_PATH}", file=sys.stderr)
     _real_print(f"Tools: 65+ (v2-v4 combined)", file=sys.stderr)
-    _real_print(f"Engines: auditor, macro_manager, rhino_client", file=sys.stderr)
+    _real_print(f"Engines: auditor, macro_manager, client", file=sys.stderr)
     _real_print(f"Swell-print: {'available' if _swell_available else 'not installed'}", file=sys.stderr)
     _real_print(f"Style profiles: {'available' if _style_available else 'not available'}", file=sys.stderr)
     _real_print(f"Macros dir: {macro_manager.MACROS_DIR}", file=sys.stderr)

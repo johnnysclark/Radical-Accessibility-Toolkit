@@ -921,7 +921,7 @@ class PIAFPDFGenerator:
         if not regions or not patterns:
             return
 
-        from output.core.rainbowtact import RainbowTactConverter, RainbowTactConfig
+        from output.core.color_to_tactile import RainbowTactConverter, RainbowTactConfig
 
         # Layout constants
         margin = 0.75 * inch

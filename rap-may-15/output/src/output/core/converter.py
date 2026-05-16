@@ -84,7 +84,7 @@ class ConversionParams:
 
     # Color-to-tactile (RainbowTact)
     color_to_tactile: bool = False
-    rainbowtact_num_colors: int = 5
+    color_to_tactile_num_colors: int = 5
 
     # Pre-detected texts (for hybrid OCR or CLI text injection)
     predetected_texts: Optional[List[DetectedText]] = None
@@ -353,7 +353,7 @@ class TactileConverter:
             # RAINBOWTACT: Color-to-Tactile Pattern Conversion
             # ============================================================
             if params.color_to_tactile:
-                return self._convert_with_rainbowtact(
+                return self._convert_with_color_to_tactile(
                     params, processor, standards, image_path_for_processing,
                     paper_size, threshold, zoom_applied,
                     original_img_width, original_img_height, img_width, img_height
@@ -588,7 +588,7 @@ class TactileConverter:
                 error_type="unexpected_error"
             )
 
-    def _convert_with_rainbowtact(
+    def _convert_with_color_to_tactile(
         self,
         params: ConversionParams,
         processor: 'ImageProcessor',
@@ -604,9 +604,9 @@ class TactileConverter:
         try:
             # Run RainbowTact processing
             processed_image, metadata, color_regions, tactile_patterns = \
-                processor.process_with_rainbowtact(
+                processor.process_with_color_to_tactile(
                     input_path=image_path_for_processing,
-                    num_colors=params.rainbowtact_num_colors,
+                    num_colors=params.color_to_tactile_num_colors,
                     detect_text=params.detect_text,
                     paper_size=paper_size,
                 )
@@ -803,7 +803,7 @@ class TactileConverter:
             return ConversionResult(
                 success=False,
                 error=str(e),
-                error_type="rainbowtact_error"
+                error_type="color_to_tactile_error"
             )
 
     def convert_multipage(

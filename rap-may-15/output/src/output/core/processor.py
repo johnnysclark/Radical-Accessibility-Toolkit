@@ -15,7 +15,7 @@ from output.utils.validators import validate_image_file
 from output.core.contrast import ContrastEnhancer
 from output.core.text_detector import TextDetector, TextDetectionConfig, DetectedText
 from output.core.braille_converter import BRAILLE_DPI, BRAILLE_FONT_SIZE_POINTS
-from output.core.rainbowtact import RainbowTactConverter, RainbowTactConfig, ColorRegion, TactilePattern
+from output.core.color_to_tactile import RainbowTactConverter, RainbowTactConfig, ColorRegion, TactilePattern
 
 
 class ImageProcessorError(Exception):
@@ -877,7 +877,7 @@ class ImageProcessor:
         except Exception as e:
             raise ImageProcessorError(f"Processing failed: {str(e)}") from e
 
-    def process_with_rainbowtact(
+    def process_with_color_to_tactile(
         self,
         input_path: str,
         num_colors: int = 5,

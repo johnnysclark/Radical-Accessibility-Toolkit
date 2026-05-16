@@ -43,8 +43,8 @@ def main():
             text = fh.read()
         base = os.path.abspath(".")
         text = text.replace(
-            '"mcp/mcp_server.py"',
-            '"{}/mcp/mcp_server.py"'.format(base))
+            '"mcp/server.py"',
+            '"{}/mcp/server.py"'.format(base))
         text = text.replace(
             '"controller/state.json"',
             '"{}/controller/state.json"'.format(base))

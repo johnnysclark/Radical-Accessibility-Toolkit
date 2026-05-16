@@ -16,7 +16,7 @@ import cv2
 from PIL import Image
 import logging
 
-logger = logging.getLogger("tactile.rainbowtact")
+logger = logging.getLogger("tactile.color_to_tactile")
 
 
 @dataclass

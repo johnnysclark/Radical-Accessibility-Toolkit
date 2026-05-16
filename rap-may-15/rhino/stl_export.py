@@ -13,13 +13,13 @@ rectangular bays → wall segments (gaps at apertures) → extruded
 boxes clipped at cut_height, plus an optional floor slab.
 
 Usage from controller:
-    import tactile_print as tp
+    import stl_export as tp
     tp.export_stl(state, "/path/to/output.stl")
     tp.preview(state)
     tp.send_to_bambu(state, "/path/to/sliced.3mf")
 
 Standalone:
-    python tactile_print.py state.json [--output model.stl]
+    python stl_export.py state.json [--output model.stl]
 """
 
 import json

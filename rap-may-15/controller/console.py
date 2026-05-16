@@ -22,8 +22,8 @@ Features
 
 Usage
 -----
-  python controller_cli.py
-  python controller_cli.py --state "/path/to/state.json"
+  python console.py
+  python console.py --state "/path/to/state.json"
 """
 import argparse, copy, json, math, os, subprocess, sys, time
 from datetime import datetime
@@ -52,7 +52,7 @@ SCHEMA = "plan_layout_jig_v3.0"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
-# ── Ensure sibling rhino/ is importable (for tactile_print) ──
+# ── Ensure sibling rhino/ is importable (for stl_export) ──
 _controller_dir = os.path.dirname(os.path.abspath(__file__))
 _rhino_dir = os.path.join(os.path.dirname(_controller_dir), "rhino")
 if os.path.isdir(_rhino_dir) and _rhino_dir not in sys.path:
@@ -1651,10 +1651,10 @@ def cmd_section(state, tokens):
         if sec["axis"] is None:
             raise ValueError("No section cut defined. Use 'section x|y <offset>' first.")
         try:
-            import tactile_print as tp
+            import stl_export as tp
         except ImportError:
             raise RuntimeError(
-                "tactile_print.py not found. Place it in the same folder.")
+                "stl_export.py not found. Place it in the same folder.")
         triangles = tp.build_mesh(state)
         if not triangles:
             raise RuntimeError("No mesh geometry. Enable walls on at least one bay.")
@@ -1924,7 +1924,7 @@ def cmd_setup(state, tokens, state_file):
             "\"C:\\Program Files\\Rhino 8\\System\\Rhino.exe\"")
 
     # Build watcher path (WSL filesystem path)
-    watcher_path = os.path.join(_script_dir(), "rhino", "rhino_watcher.py")
+    watcher_path = os.path.join(_script_dir(), "rhino", "watcher.py")
     if not os.path.isfile(watcher_path):
         return state, (
             "ERROR: Watcher not found at {}.".format(watcher_path))
@@ -3022,11 +3022,11 @@ def main():
             if t3 and t3.get("auto_export") and t3.get("enabled"):
                 _export_path = t3.get("export_path", "./tactile3d_export.stl")
                 try:
-                    import tactile_print as _tp
+                    import stl_export as _tp
                     _export_msg = _tp.do_export(state, _export_path)
                     _out("AUTO-EXPORT: " + _export_msg)
                 except ImportError:
-                    pass  # tactile_print not available; silent skip
+                    pass  # stl_export not available; silent skip
                 except Exception as _e:
                     _out(f"[WARNING] Auto-export failed: {_e}")
         except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")

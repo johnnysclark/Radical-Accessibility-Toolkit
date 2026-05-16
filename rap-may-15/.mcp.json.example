@@ -2,7 +2,7 @@
   "mcpServers": {
     "controller": {
       "command": "python3",
-      "args": ["mcp/mcp_server.py", "--state", "controller/state.json"]
+      "args": ["mcp/server.py", "--state", "controller/state.json"]
     },
     "output": {
       "command": "python3",

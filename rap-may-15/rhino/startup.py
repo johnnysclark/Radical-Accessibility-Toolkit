@@ -39,7 +39,7 @@ if os.path.exists(state_path):
 
 # ── Step 2: Load the watcher ──────────────────────────────
 
-watcher_path = os.path.join(SCRIPT_DIR, "rhino_watcher.py")
+watcher_path = os.path.join(SCRIPT_DIR, "watcher.py")
 if os.path.exists(watcher_path):
     print("[STARTUP] Loading watcher from {0}".format(watcher_path))
     STATE_FILE = state_path
