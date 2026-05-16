@@ -1,7 +1,7 @@
 {
   "name": "build-case-study-house",
-  "description": "Build the three-layer case study house example: structure (4x3 column grid), panels (perimeter walls with apertures), slabs (tactile3d floor). Configures bay A in place. Does NOT remove default bays B and C; the watcher ignores them once their apertures and walls stay defaulted off, but for a pristine demo load case-study-house.state.json directly.",
-  "version": 1,
+  "description": "Builds a 48 by 24 foot modernist case study house on a 4 by 3 structural column grid. Sets the site footprint, configures bay A as the house envelope, raises perimeter walls a half foot thick, removes the default door and window apertures, then adds six new apertures (two south windows, one north door, one north window, one east window, one west window). Defines two interior program zones, a living zone and a service zone, and enables tactile3d output with a ten foot wall height and a four foot section cut so the model prints as a three dimensional tactile floor plan. Ends with a describe command so a screen reader user hears the full model summary after replay. Note: default bays B and C remain unless removed manually; the current controller has no bay delete command, so for a pristine demo load case-study-house.state.json directly or start from an empty state before running this macro.",
+  "version": "1.0",
   "commands": [
     "set site corners 0,0 80,0 80,60 0,60",
     "set bay A origin 16 18",
@@ -28,7 +28,8 @@
     "tactile3d on",
     "tactile3d wall_height 10",
     "tactile3d cut_height 4",
-    "tactile3d floor on"
+    "tactile3d floor on",
+    "describe"
   ],
   "params": {}
 }

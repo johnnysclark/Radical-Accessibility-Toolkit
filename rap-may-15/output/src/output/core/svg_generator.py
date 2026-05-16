@@ -151,15 +151,16 @@ def export_svg(state, output_path, stroke_width=0.5):
         '<polygon points="{0}" fill="#fff" stroke="#000" stroke-width="1.0"/>'.format(site_pts)
     )
 
-    # 2. Zones (with label at centroid)
-    for zone in (state.get("zones") or []):
+    # 2. Zones (with label at centroid).
+    # Controller schema stores zones as a dict keyed by zone name.
+    for zone_name, zone in (state.get("zones") or {}).items():
         zc = _zone_corners(zone)
         if not zc:
             continue
         pts = " ".join("{0},{1}".format(p[0], p[1]) for p in zc)
         parts.append('<polygon class="zone" points="{0}"/>'.format(pts))
         cx, cy = _centroid(zc)
-        label = zone.get("label") or zone.get("name") or zone.get("id") or ""
+        label = zone.get("label") or zone.get("name") or zone.get("id") or zone_name or ""
         # Counter-flip the text so it's readable despite the group transform.
         parts.append(
             '<text class="label" x="{0}" y="{1}" '
@@ -167,8 +168,9 @@ def export_svg(state, output_path, stroke_width=0.5):
             '{2}</text>'.format(cx, cy, _escape_xml(label))
         )
 
-    # 3. Bays - column dots at every grid intersection
-    for bay in (state.get("bays") or []):
+    # 3. Bays - column dots at every grid intersection.
+    # Controller schema stores bays as a dict keyed by bay name.
+    for bay in (state.get("bays") or {}).values():
         for (px, py) in _bay_grid_points(bay):
             parts.append(
                 '<circle cx="{0}" cy="{1}" r="0.4" fill="#000"/>'.format(px, py)

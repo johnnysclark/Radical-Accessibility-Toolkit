@@ -38,6 +38,11 @@ try:
 except ImportError:
     _style_mod = None
 
+try:
+    import macro_manager as _macro_mgr
+except ImportError:
+    _macro_mgr = None
+
 # Global style manager instance (initialized in main() or by MCP server)
 _style_mgr = None
 
@@ -423,9 +428,6 @@ def default_state():
     cor_a = {"enabled": True, "axis": "x", "position": 1,
              "width": 8.0, "loading": "double",
              "hatch": "Hatch1", "hatch_scale": 4.0}
-    cor_c = {"enabled": True, "axis": "y", "position": 2,
-             "width": 8.0, "loading": "single",
-             "hatch": "Hatch1", "hatch_scale": 4.0}
     walls_a = {"enabled": True, "thickness": 0.5}
     ap_a = [
         {"id": "d1", "type": "door",   "axis": "x", "gridline": 0,
@@ -438,18 +440,12 @@ def default_state():
          "corner": 30.0, "width": 10.0, "height": 9.0,
          "hinge": "start", "swing": "positive"},
     ]
+    # Single default bay; users add more via 'set bay <name> ...'
     bays_dict = {
         "A": _default_bay("A", (18,8), grid_type="rectangular", z_order=0,
                 bays=(6,3), spacing=(24,24),
                 corridor=cor_a, walls=walls_a, apertures=ap_a,
                 void_center=(90,44), void_size=(30,18)),
-        "B": _default_bay("B", (90,145), grid_type="radial", z_order=2,
-                rings=3, ring_spacing=20, arms=8,
-                void_center=(90,145), void_size=(20,20), void_shape="circle"),
-        "C": _default_bay("C", (30,210), grid_type="rectangular", z_order=1,
-                bays=(4,1), spacing=(24,30),
-                corridor=cor_c,
-                void_center=(78,225), void_size=(20,14)),
     }
     return {
         "schema": SCHEMA,
@@ -1427,9 +1423,20 @@ def cmd_tactile3d(state, tokens):
         old = t3.get("scale_factor",1.0); t3["scale_factor"] = v
         return state, f"Tactile3D scale_factor = {v}. Was {old}."
     if sub == "export":
-        # Trigger a one-time export on next redraw
+        # Trigger a one-time export on next redraw (Rhino watcher path).
         t3["_export_once"] = True
-        return state, f"Tactile3D export queued to: {t3.get('export_path','./tactile3d_export.stl')}"
+        out = tokens[2] if len(tokens) > 2 else t3.get("export_path", "./tactile_model.stl")
+        # Also write STL directly from Python so the file appears immediately
+        # even if Rhino is not running (macOS quick-screenshot flow).
+        try:
+            import stl_export as _stl
+            tri_count = _stl.export_stl(state, out)
+            msg = "OK: STL written to {0} ({1} triangles)".format(out, tri_count)
+        except ImportError:
+            msg = "ERROR: stl_export module not available."
+        except Exception as e:
+            msg = "ERROR: STL export failed: {0}".format(e)
+        return state, msg
     raise ValueError("Tactile3D subcommands: on, off, wall_height, cut_height, "
                      "floor_thickness, floor, auto_export, export_path, scale_factor, export")
 
@@ -2683,6 +2690,109 @@ def cmd_template(state, tokens):
     raise ValueError("Unknown template command: '{}'. Use: list, show, load".format(sub))
 
 
+def _macros_dir():
+    """Return the absolute path to the macros/ folder."""
+    return os.path.join(_script_dir(), "macros")
+
+
+def cmd_macro(state, tokens, state_file=None):
+    """Handle macro list | show <name> | run <name> [key=val ...] | save <name> | delete <name>."""
+    if _macro_mgr is None:
+        return state, "ERROR: macro support unavailable."
+    if len(tokens) < 2:
+        raise ValueError("Usage: macro list | show <name> | run <name> [key=val ...] | save <name> | delete <name>")
+    sub = tokens[1].lower()
+
+    if sub == "list":
+        try:
+            macros = _macro_mgr.list_macros()
+            return state, _macro_mgr.format_macro_list(macros)
+        except Exception as e:
+            return state, "ERROR: macro list failed: {}".format(e)
+
+    if sub == "show":
+        if len(tokens) < 3:
+            raise ValueError("Usage: macro show <name>")
+        try:
+            macro = _macro_mgr.load_macro(tokens[2])
+            return state, _macro_mgr.format_macro_detail(macro)
+        except Exception as e:
+            return state, "ERROR: {}".format(e)
+
+    if sub == "run":
+        if len(tokens) < 3:
+            raise ValueError("Usage: macro run <name> [key=val ...]")
+        name = tokens[2]
+        overrides = {}
+        for t in tokens[3:]:
+            if "=" in t:
+                k, v = t.split("=", 1)
+                overrides[k] = v
+
+        # Build a run_fn that dispatches each command string through apply_command
+        # against the current in-memory state, accumulating mutations.
+        results = []
+        count = [0]
+        errored = [False]
+
+        def _run_one(command_str):
+            if errored[0]:
+                return "SKIPPED"
+            sub_tokens = tokenize(command_str)
+            if not sub_tokens:
+                return "OK: (empty)"
+            try:
+                new_state, msg = apply_command(state, sub_tokens, state_file=state_file)
+            except Exception as e:
+                errored[0] = True
+                return "ERROR: {}".format(e)
+            # Mutate state in place: replace top-level keys so closure sees update
+            state.clear()
+            state.update(new_state)
+            count[0] += 1
+            return msg if isinstance(msg, str) else "OK"
+
+        try:
+            out = _macro_mgr.run_macro(name, overrides, _run_one)
+        except Exception as e:
+            return state, "ERROR: macro run failed: {}".format(e)
+        results.append(out)
+        results.append("OK: macro run '{}' completed ({} commands).".format(name, count[0]))
+        results.append("READY:")
+        return state, "\n".join(results)
+
+    if sub == "save":
+        if len(tokens) < 3:
+            raise ValueError("Usage: macro save <name> <description> <cmd1; cmd2; ...>")
+        name = tokens[2]
+        desc = tokens[3] if len(tokens) > 3 else "(no description)"
+        # Remaining tokens treated as a single semicolon-separated command list
+        rest = " ".join(tokens[4:]) if len(tokens) > 4 else ""
+        cmd_list = [c.strip() for c in rest.split(";") if c.strip()]
+        if not cmd_list:
+            return state, "ERROR: No commands provided. Use 'macro save <name> <desc> cmd1; cmd2; ...'."
+        try:
+            msg = _macro_mgr.save_macro(name, desc, cmd_list)
+            return state, msg
+        except Exception as e:
+            return state, "ERROR: macro save failed: {}".format(e)
+
+    if sub == "delete":
+        if len(tokens) < 3:
+            raise ValueError("Usage: macro delete <name>")
+        name = tokens[2]
+        path = os.path.join(_macros_dir(), "{}.json".format(name))
+        if not os.path.isfile(path):
+            return state, "ERROR: macro '{}' not found at {}.".format(name, path)
+        try:
+            os.remove(path)
+            return state, "OK: Deleted macro '{}'.".format(name)
+        except Exception as e:
+            return state, "ERROR: macro delete failed: {}".format(e)
+
+    raise ValueError("Unknown macro command: '{}'. Use: list, show, run, save, delete".format(sub))
+
+
 def apply_command(state, tokens, state_file=None):
     if not tokens: return state, ""
     cmd = tokens[0].lower()
@@ -2714,6 +2824,7 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "grid":     return _cmd_grid(state, tokens)
     if cmd == "export":   return _cmd_export(state, tokens, state_file)
     if cmd == "template": return cmd_template(state, tokens)
+    if cmd == "macro":    return cmd_macro(state, tokens, state_file)
     if cmd == "style":   return cmd_style(state, tokens, state_file)
     if cmd == "view":    return cmd_view(state, tokens, state_file)
     if cmd != "set":
@@ -2930,10 +3041,16 @@ VIEW COMMANDS (tactile output types):
   view axon [angle1] [angle2] [--hidden] [--style <name>]
   view elevation <north|south|east|west> [--style <name>]
 
-SETUP (Rhino auto-launch):
-  setup rhino ............. launch Rhino with watcher + set units to Feet
-  setup rhino --path <exe>  specify Rhino executable path
-  setup status ............ check if Rhino watcher is connected
+SETUP (Rhino launch / status):
+  setup rhino ............. Launch Rhino (Windows) or print manual launch
+                            instructions (macOS) for the current platform.
+  setup rhino --path <exe>  Specify Rhino executable path (Windows launch).
+  setup status ............ Check if the Rhino watcher is reachable.
+
+MACROS:
+  macro list                  List available macros.
+  macro show <name>           Show macro commands.
+  macro run <name> [k=v...]   Replay a macro on current state.
 """
 
 def main():

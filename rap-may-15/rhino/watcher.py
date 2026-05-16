@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# RUNTIME: runs inside Rhino. Watches state.json and rebuilds geometry on idle.
 """
 RADICAL ACCESSIBILITY CONTROLLER — Rhino Watcher  v2.3
 ======================================
@@ -1124,7 +1125,7 @@ def _draw_tactile3d(state):
         rs.ScaleObjects(created_ids, (origin_pt[0], origin_pt[1], 0),
                         (scale_f, scale_f, scale_f))
 
-    print("[PLJ TACTILE3D] Created {0} objects.".format(len(created_ids)))
+    print("[WATCHER TACTILE3D] Created {0} objects.".format(len(created_ids)))
     # ── Export only when explicitly requested ──
     should_export = (auto_export or export_once) and export_path and created_ids
     if should_export:
@@ -1147,7 +1148,7 @@ def _draw_tactile3d(state):
                 # Update mtime so we don't re-trigger a redraw
                 _watcher_state["last_mtime"] = os.stat(STATE_FILE).st_mtime
         except Exception as _e:
-            print("[PLJ] Could not clear _export_once: {0}".format(_e))
+            print("[WATCHER] Could not clear _export_once: {0}".format(_e))
 
 
 def _extrude_wall_box(seg_start, seg_end, fixed_val, axis, half_t,
@@ -1172,12 +1173,12 @@ def _extrude_wall_box(seg_start, seg_end, fixed_val, axis, half_t,
     corners.append(corners[0])
     profile = rs.AddPolyline(corners)
     if not profile:
-        print("[PLJ TACTILE3D] AddPolyline failed for segment {0}..{1}".format(seg_start, seg_end))
+        print("[WATCHER TACTILE3D] AddPolyline failed for segment {0}..{1}".format(seg_start, seg_end))
         return None
     brep = rs.ExtrudeCurveStraight(profile, (0, 0, 0), (0, 0, height))
     rs.DeleteObject(profile)
     if not brep:
-        print("[PLJ TACTILE3D] ExtrudeCurveStraight failed for segment {0}..{1}".format(seg_start, seg_end))
+        print("[WATCHER TACTILE3D] ExtrudeCurveStraight failed for segment {0}..{1}".format(seg_start, seg_end))
         return None
     rs.CapPlanarHoles(brep)
     return brep
@@ -1223,7 +1224,7 @@ def _add_clipping_plane(state, cut_height):
         return sc.doc.Objects.AddClippingPlane(
             plane, extent, extent, sc.doc.Views.ActiveView.ActiveViewportID)
     except Exception as e:
-        print("[PLJ TACTILE3D] Clipping plane: {0}".format(e))
+        print("[WATCHER TACTILE3D] Clipping plane: {0}".format(e))
         return None
 
 
@@ -1265,7 +1266,7 @@ def _export_stl(obj_ids, filepath):
                             meshes.append(m)
 
         if not meshes:
-            print("[PLJ TACTILE3D] No meshable geometry found.")
+            print("[WATCHER TACTILE3D] No meshable geometry found.")
             return
 
         # --- join into one mesh, triangulate ---
@@ -1308,10 +1309,10 @@ def _export_stl(obj_ids, filepath):
             f.close()
 
         sz = os.path.getsize(filepath)
-        print("[PLJ TACTILE3D] Exported {0} triangles ({1} KB) to {2}".format(
+        print("[WATCHER TACTILE3D] Exported {0} triangles ({1} KB) to {2}".format(
             tri_count, sz // 1024, filepath))
     except Exception as e:
-        print("[PLJ TACTILE3D] Export error: {0}".format(e))
+        print("[WATCHER TACTILE3D] Export error: {0}".format(e))
 
 # ══════════════════════════════════════════════════════════
 # MASTER REDRAW
@@ -1346,7 +1347,7 @@ def redraw(state):
             try:
                 step_fn(state)
             except Exception as e:
-                print("[PLJ] WARNING: {0} failed: {1}".format(step_name, e))
+                print("[WATCHER] WARNING: {0} failed: {1}".format(step_name, e))
         rs.ZoomExtents()
     finally:
         rs.EnableRedraw(True)
@@ -1385,7 +1386,7 @@ def redraw(state):
     t3_s = "  tactile3D ON (cut {0}ft)".format(t3.get("cut_height", 4.0)) if t3.get("enabled") else ""
     leg_s = "  legend ON" if state.get("legend",{}).get("enabled") else ""
     total_aps = sum(len(b.get("apertures",[])) for b in state["bays"].values())
-    print("[PLJ] Redrawn: {0} bays, {1} apertures, {2} rooms{3}{4}".format(
+    print("[WATCHER] Redrawn: {0} bays, {1} apertures, {2} rooms{3}{4}".format(
         len(state["bays"]), total_aps, len(state.get("rooms", {})), leg_s, t3_s))
     _audio_feedback(state)
     _export_inventory(state)
@@ -1441,7 +1442,7 @@ def _export_inventory(state):
             os.remove(inv_path)
         os.rename(tmp_path, inv_path)
     except Exception as e:
-        print("[PLJ] WARNING: inventory export failed: {0}".format(e))
+        print("[WATCHER] WARNING: inventory export failed: {0}".format(e))
 
 
 # ══════════════════════════════════════════════════════════
@@ -1464,7 +1465,7 @@ def _apply_pending_edits():
             data = json.load(f)
         os.remove(edits_path)
     except Exception as e:
-        print("[PLJ] WARNING: reading pending edits failed: {0}".format(e))
+        print("[WATCHER] WARNING: reading pending edits failed: {0}".format(e))
         return
     edits = data.get("edits", [])
     if not edits:
@@ -1476,7 +1477,7 @@ def _apply_pending_edits():
         params = edit.get("params", {})
         try:
             if not rs.IsObject(obj_id):
-                print("[PLJ] WARNING: object {0} not found, skipping".format(obj_id))
+                print("[WATCHER] WARNING: object {0} not found, skipping".format(obj_id))
                 continue
             if action == "move":
                 bb = rs.BoundingBox(obj_id)
@@ -1511,11 +1512,11 @@ def _apply_pending_edits():
                     rs.ObjectLayer(obj_id, new_layer)
                     applied += 1
             else:
-                print("[PLJ] WARNING: unknown edit action '{0}'".format(action))
+                print("[WATCHER] WARNING: unknown edit action '{0}'".format(action))
         except Exception as e:
-            print("[PLJ] WARNING: edit {0} on {1} failed: {2}".format(action, obj_id, e))
+            print("[WATCHER] WARNING: edit {0} on {1} failed: {2}".format(action, obj_id, e))
     if applied > 0:
-        print("[PLJ] Applied {0} edits.".format(applied))
+        print("[WATCHER] Applied {0} edits.".format(applied))
         state = _load_state()
         if state:
             _export_inventory(state)
@@ -1540,12 +1541,12 @@ def _run_pending_script():
             code = f.read()
         os.remove(script_path)
         exec(code)
-        print("[PLJ] Script executed successfully.")
+        print("[WATCHER] Script executed successfully.")
         state = _load_state()
         if state:
             _export_inventory(state)
     except Exception as e:
-        print("[PLJ] Script error: {0}".format(e))
+        print("[WATCHER] Script error: {0}".format(e))
 
 
 # ══════════════════════════════════════════════════════════
@@ -1652,10 +1653,10 @@ def _listener_loop():
         srv.bind((QUERY_HOST, QUERY_PORT))
         srv.listen(1)
         srv.settimeout(2.0)
-        print("[PLJ] TCP listener on {0}:{1}".format(QUERY_HOST, QUERY_PORT))
+        print("[WATCHER] TCP listener on {0}:{1}".format(QUERY_HOST, QUERY_PORT))
     except Exception as e:
-        print("[PLJ] TCP listener failed to start: {0}".format(e))
-        print("[PLJ] (MCP bridge will report OFFLINE -- this is fine)")
+        print("[WATCHER] TCP listener failed to start: {0}".format(e))
+        print("[WATCHER] (MCP bridge will report OFFLINE -- this is fine)")
         return
 
     while True:
@@ -1749,7 +1750,7 @@ def _on_idle(sender, args):
             if state:
                 redraw(state)
     except Exception as e:
-        print("[PLJ] Watcher error: {0}".format(e))
+        print("[WATCHER] Watcher error: {0}".format(e))
 
 
 def start_watcher():
@@ -1759,7 +1760,7 @@ def start_watcher():
     Unhooks any previous handler first to prevent accumulation.
     """
     if not IN_RHINO:
-        print("[PLJ] Not in Rhino. Using fallback thread watcher.")
+        print("[WATCHER] Not in Rhino. Using fallback thread watcher.")
         _start_thread_watcher()
         return
     # Remove previous handler if exec() was called again
@@ -1768,11 +1769,11 @@ def start_watcher():
             Rhino.RhinoApp.Idle -= _on_idle
         except Exception:
             pass
-        print("[PLJ] Stopped previous watcher.")
+        print("[WATCHER] Stopped previous watcher.")
     Rhino.RhinoApp.Idle += _on_idle
     _watcher_state["running"] = True
-    print("[PLJ] Watching: {0}".format(STATE_FILE))
-    print("[PLJ] Watcher attached to Rhino Idle event.")
+    print("[WATCHER] Watching: {0}".format(STATE_FILE))
+    print("[WATCHER] Watcher attached to Rhino Idle event.")
 
 
 def stop_watcher():
@@ -1783,7 +1784,7 @@ def stop_watcher():
         except Exception:
             pass
         _watcher_state["running"] = False
-        print("[PLJ] Watcher stopped.")
+        print("[WATCHER] Watcher stopped.")
 
 
 def _start_thread_watcher():
@@ -1802,7 +1803,7 @@ def _start_thread_watcher():
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                print("[PLJ] Error: {0}".format(e))
+                print("[WATCHER] Error: {0}".format(e))
                 time.sleep(2)
     t = threading.Thread(target=_loop)
     t.daemon = True
@@ -1816,7 +1817,7 @@ if state:
     try:
         redraw(state)
     except Exception as e:
-        print("[PLJ] Initial redraw failed: {0}".format(e))
+        print("[WATCHER] Initial redraw failed: {0}".format(e))
         if IN_RHINO:
             try:
                 rs.EnableRedraw(True)
@@ -1828,7 +1829,7 @@ if state:
     # rhino_query tool will report OFFLINE, but the watcher itself
     # is unaffected.  Uncomment to re-enable if needed:
     # start_listener()
-    print("[PLJ] Ready. Edit state.json and the viewport updates automatically.")
+    print("[WATCHER] Ready. Edit state.json and the viewport updates automatically.")
 else:
-    print("[PLJ] No state file at {0}".format(STATE_FILE))
+    print("[WATCHER] No state file at {0}".format(STATE_FILE))
     print("  Run console.py to generate one.")

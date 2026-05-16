@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# RUNTIME: pure Python, no Rhino dependency. Imported by the controller for offline STL export.
 """
 RADICAL ACCESSIBILITY CONTROLLER — STL Export Pipeline  v1.0
 ================================================

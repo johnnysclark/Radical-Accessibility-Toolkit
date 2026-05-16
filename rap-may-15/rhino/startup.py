@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# RUNTIME: runs inside Rhino 8 (CPython 3 on Mac, IronPython 2.7 on Windows). Bootstraps the watcher.
 """
 Radical Accessibility — Rhino Startup Script
 =============================================

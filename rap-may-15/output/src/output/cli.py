@@ -1,9 +1,10 @@
 """
-TACT — Tactile Architectural Conversion Tool
+OUTPUT — Tactile-Ready Renderer
 
-A continuation of Way & Barner's 1997 TACTICS system, updated for the AI era.
-Provides accessible, screen-reader friendly commands for converting
-images to tactile-ready formats for PIAF swell paper printing.
+Radical Accessibility Controller — Output. Continuation of Way & Barner's
+1997 TACTICS system, updated for the AI era. Provides accessible,
+screen-reader friendly commands for converting images to tactile-ready
+formats for PIAF swell paper printing.
 """
 
 import sys
@@ -41,21 +42,21 @@ class DefaultGroup(click.Group):
 @click.version_option(version=__version__, prog_name="output")
 def main():
     """
-    TACT — Tactile Architectural Conversion Tool
+    OUTPUT — Tactile-Ready Renderer
 
     Convert images to tactile-ready PDFs for PIAF swell paper printing.
     Designed for accessibility and full screen-reader compatibility.
 
     \b
     Quick usage:
-        tact IMAGE.jpg --preset floor_plan --verbose
+        output-cli IMAGE.jpg --preset floor_plan --verbose
 
     \b
     Subcommands:
-        tact presets    List available presets
-        tact batch      Batch convert a folder
-        tact info       Show tool information
-        tact render     Render state.json to tactile output
+        output-cli presets    List available presets
+        output-cli batch      Batch convert a folder
+        output-cli info       Show tool information
+        output-cli render     Render state.json to tactile output
     """
     pass
 
@@ -98,7 +99,7 @@ def main():
     '--preset',
     type=str,
     default=None,
-    help='Use a preset configuration (floor_plan, sketch, photograph, etc.). Use "tact presets" to see all.'
+    help='Use a preset configuration (floor_plan, sketch, photograph, etc.). Use "output-cli presets" to see all.'
 )
 @click.option(
     '--enhance', '-e',
@@ -214,52 +215,52 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
 
     \b
     Examples:
-        tact floor-plan.jpg --preset floor_plan --verbose
-        tact sketch.png --threshold 140 --output result.pdf
-        tact photo.jpg --preset photograph --detect-text --braille-grade 2
+        output-cli floor-plan.jpg --preset floor_plan --verbose
+        output-cli sketch.png --threshold 140 --output result.pdf
+        output-cli photo.jpg --preset photograph --detect-text --braille-grade 2
 
     Strong enhancement for faint images:
-        tact faint-sketch.jpg --enhance s_curve --enhance-strength 1.5
+        output-cli faint-sketch.jpg --enhance s_curve --enhance-strength 1.5
 
     Interactive mode with detailed output:
-        tact drawing.jpg --interactive --verbose
+        output-cli drawing.jpg --interactive --verbose
 
     Automatic density reduction (fixes high density issues):
-        tact dense-image.jpg --auto-reduce-density --verbose
+        output-cli dense-image.jpg --auto-reduce-density --verbose
 
     Custom density reduction target:
-        tact floor-plan.jpg --auto-reduce-density --target-density 0.25
+        output-cli floor-plan.jpg --auto-reduce-density --target-density 0.25
 
     Density reduction with more iterations:
-        tact complex-drawing.png --auto-reduce-density --max-reduction-iterations 15
+        output-cli complex-drawing.png --auto-reduce-density --max-reduction-iterations 15
 
     Enable tiling for large images:
-        tact large-plan.jpg --enable-tiling --verbose
+        output-cli large-plan.jpg --enable-tiling --verbose
 
     Tiling with custom overlap:
-        tact huge-drawing.png --enable-tiling --tile-overlap 0.15
+        output-cli huge-drawing.png --enable-tiling --tile-overlap 0.15
 
     Tiling without registration marks:
-        tact large-map.tif --enable-tiling --no-registration-marks
+        output-cli large-map.tif --enable-tiling --no-registration-marks
 
     Manual scaling (zoom in 150%):
-        tact floor-plan.jpg --scale-percent 150 --detect-text
+        output-cli floor-plan.jpg --scale-percent 150 --detect-text
 
     Auto-scale with cap (max 200%):
-        tact floor-plan.jpg --detect-text --max-scale-factor 2.0
+        output-cli floor-plan.jpg --detect-text --max-scale-factor 2.0
 
     Disable auto-scaling:
-        tact floor-plan.jpg --detect-text --no-auto-scale
+        output-cli floor-plan.jpg --detect-text --no-auto-scale
 
     Force abbreviation key for all labels:
-        tact dense-plan.jpg --detect-text --force-abbreviation-key
+        output-cli dense-plan.jpg --detect-text --force-abbreviation-key
 
     Disable abbreviation key:
-        tact floor-plan.jpg --detect-text --no-abbreviation-key
+        output-cli floor-plan.jpg --detect-text --no-abbreviation-key
 
     Supported formats: JPG, PNG, TIFF, BMP, GIF, PDF
 
-    Use 'tact presets' to see all available presets.
+    Use 'output-cli presets' to see all available presets.
     """
     # Initialize logger
     logger = AccessibleLogger(verbose=verbose or interactive)
@@ -274,7 +275,7 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
         # Display welcome message for interactive mode
         if interactive:
             logger.info("=" * 60)
-            logger.info("TACT — Tactile Architectural Conversion Tool")
+            logger.info("OUTPUT — Tactile-Ready Renderer")
             logger.info("=" * 60)
             logger.blank_line()
 
@@ -318,7 +319,7 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
 
             except PresetError as e:
                 logger.error("Invalid preset", e)
-                logger.solution("Use 'tact presets' to see available presets")
+                logger.solution("Use 'output-cli presets' to see available presets")
                 sys.exit(1)
 
         # Get default threshold from config if still not specified
@@ -867,7 +868,7 @@ def convert(input_path, output, threshold, paper_size, verbose, interactive, con
 @main.command(name="version")
 def version():
     """Display version information."""
-    click.echo(f"TACT — Tactile Architectural Conversion Tool v{__version__}")
+    click.echo(f"OUTPUT — Tactile-Ready Renderer v{__version__}")
     click.echo("Convert images to tactile-ready formats for PIAF swell paper printing")
 
 
@@ -1469,7 +1470,7 @@ def render(state_path, paper_size, output_format, fmt, dpi):
         try:
             from output.core.pdf_generator import PIAFPDFGenerator
             gen = PIAFPDFGenerator()
-            gen.generate_single_page_pdf(img, str(out_path), paper_size=paper_size)
+            gen.generate(img, str(out_path), paper_size=paper_size)
         except ImportError:
             # Fall back to PNG if reportlab not available
             out_path = out_dir / f"{base}_tactile.png"

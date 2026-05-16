@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# RUNTIME: runs from the controller side (CPython 3). TCP client that pings the watcher's port 1998.
 """
 RADICAL ACCESSIBILITY CONTROLLER — Rhino Client  v1.0
 ======================================

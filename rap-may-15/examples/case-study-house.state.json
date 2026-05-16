@@ -2,27 +2,54 @@
   "schema": "rap_controller_v1.0",
   "meta": {
     "created": "2026-05-16 00:00:00",
-    "last_saved": "2026-05-16 00:00:00",
+    "last_saved": "2026-05-16 05:19:16",
     "notes": "Case study house example. Three-layer paper demo: STRUCTURE (column grid in bay A), PANELS (perimeter walls with apertures), SLABS (tactile3d floor enabled). Site 80x60 ft, footprint 48x24 ft centered, 4x3 column grid on 16x12 ft spacing."
   },
   "site": {
-    "origin": [0.0, 0.0],
+    "origin": [
+      0.0,
+      0.0
+    ],
     "width": 80.0,
     "height": 60.0,
     "corners": [
-      [0.0, 0.0],
-      [80.0, 0.0],
-      [80.0, 60.0],
-      [0.0, 60.0]
+      [
+        0.0,
+        0.0
+      ],
+      [
+        80.0,
+        0.0
+      ],
+      [
+        80.0,
+        60.0
+      ],
+      [
+        0.0,
+        60.0
+      ]
     ]
   },
   "zones": {
     "living": {
       "corners": [
-        [32.1, 18.0],
-        [64.0, 18.0],
-        [64.0, 42.0],
-        [32.1, 42.0]
+        [
+          32.1,
+          18.0
+        ],
+        [
+          64.0,
+          18.0
+        ],
+        [
+          64.0,
+          42.0
+        ],
+        [
+          32.1,
+          42.0
+        ]
       ],
       "program_type": "living",
       "label": "living",
@@ -30,10 +57,22 @@
     },
     "service": {
       "corners": [
-        [16.0, 18.0],
-        [31.9, 18.0],
-        [31.9, 42.0],
-        [16.0, 42.0]
+        [
+          16.0,
+          18.0
+        ],
+        [
+          31.9,
+          18.0
+        ],
+        [
+          31.9,
+          42.0
+        ],
+        [
+          16.0,
+          42.0
+        ]
       ],
       "program_type": "service",
       "label": "service",
@@ -43,7 +82,7 @@
   "grid": null,
   "style": {
     "column_size": 1.5,
-    "heavy_lineweight_mm": 1.40,
+    "heavy_lineweight_mm": 1.4,
     "light_lineweight_mm": 0.08,
     "corridor_lineweight_mm": 0.35,
     "wall_lineweight_mm": 0.25,
@@ -59,10 +98,19 @@
     "A": {
       "grid_type": "rectangular",
       "z_order": 0,
-      "origin": [16.0, 18.0],
+      "origin": [
+        16.0,
+        18.0
+      ],
       "rotation_deg": 0.0,
-      "bays": [3, 2],
-      "spacing": [16.0, 12.0],
+      "bays": [
+        3,
+        2
+      ],
+      "spacing": [
+        16.0,
+        12.0
+      ],
       "spacing_x": null,
       "spacing_y": null,
       "rings": 4,
@@ -151,8 +199,14 @@
           "swing": "positive"
         }
       ],
-      "void_center": [40.0, 30.0],
-      "void_size": [0.0, 0.0],
+      "void_center": [
+        40.0,
+        30.0
+      ],
+      "void_size": [
+        0.0,
+        0.0
+      ],
       "void_shape": "rectangle",
       "label": "Case Study House",
       "braille": ""
@@ -184,7 +238,7 @@
       "symbol": "boundary_label",
       "show_label": true,
       "label_height": 3.0,
-      "tactile_weight_mm": 0.50
+      "tactile_weight_mm": 0.5
     }
   },
   "rooms": {
@@ -219,7 +273,10 @@
   "legend": {
     "enabled": true,
     "position": "bottom-right",
-    "custom_origin": [0, 0],
+    "custom_origin": [
+      0,
+      0
+    ],
     "width": 40.0,
     "title": "Legend",
     "title_braille": "",
@@ -230,7 +287,7 @@
     "row_height": 7.0,
     "text_height": 2.0,
     "braille_height": 2.5,
-    "border_weight_mm": 0.50,
+    "border_weight_mm": 0.5,
     "padding": 3.0
   },
   "tactile3d": {
@@ -241,7 +298,8 @@
     "floor_enabled": true,
     "auto_export": false,
     "export_path": "./tactile3d_export.stl",
-    "scale_factor": 1.0
+    "scale_factor": 1.0,
+    "_export_once": false
   },
   "tts": {
     "enabled": false,
