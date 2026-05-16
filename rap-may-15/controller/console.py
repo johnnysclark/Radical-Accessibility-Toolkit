@@ -57,12 +57,6 @@ SCHEMA = "rap_controller_v1.0"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
-# ── Ensure sibling rhino/ is importable (for stl_export) ──
-_controller_dir = os.path.dirname(os.path.abspath(__file__))
-_rhino_dir = os.path.join(os.path.dirname(_controller_dir), "rhino")
-if os.path.isdir(_rhino_dir) and _rhino_dir not in sys.path:
-    sys.path.insert(0, _rhino_dir)
-
 # ── utilities ─────────────────────────────────────────────
 
 def _now():
@@ -3061,7 +3055,7 @@ def main():
                     help="Enable text-to-speech on startup")
     args = ap.parse_args(); state_file = os.path.abspath(args.state)
     try: state = load_state(state_file)
-    except Exception as e: print(f"[ERROR] {e}"); sys.exit(1)
+    except Exception as e: print(f"ERROR: {e}"); sys.exit(1)
     # Schema migration: accept old or new schema
     _accepted_schemas = (SCHEMA, "plan_layout_jig_v3.0", "plan_layout_jig_v2.3", "school_jig_2d_v2.2")
     if state.get("schema") not in _accepted_schemas:
@@ -3096,7 +3090,7 @@ def main():
     print(f"State: {state_file}")
     if state.get("tts", {}).get("enabled"):
         print("TTS: ON")
-    print("Type 'help' for commands, 'describe' for full model info.\n")
+    print("Type 'help' for commands, 'describe' for full model info, 'macro list' for ready-made command sequences.\n")
     save_state(state_file, state)
     while True:
         try: raw = input(">> ").strip()
@@ -3104,7 +3098,7 @@ def main():
         if not raw: continue
         tokens = tokenize(raw); before = copy.deepcopy(state)
         try: state, msg = apply_command(state, tokens, state_file=state_file)
-        except Exception as e: _out(f"Error: {e}"); continue
+        except Exception as e: _out(f"ERROR: {e}"); continue
         if msg == "__QUIT__": break
         if msg == "__HELP__": print(HELP_TEXT); continue
         if msg == "__STATUS__":
@@ -3145,8 +3139,8 @@ def main():
                 except ImportError:
                     pass  # stl_export not available; silent skip
                 except Exception as _e:
-                    _out(f"[WARNING] Auto-export failed: {_e}")
-        except Exception as e: state = before; undo_stack.pop(); _out(f"[ERROR] {e}")
+                    _out(f"WARNING: Auto-export failed: {_e}")
+        except Exception as e: state = before; undo_stack.pop(); _out(f"ERROR: {e}")
     try: save_state(state_file, state)
     except: pass
 

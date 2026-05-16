@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# RUNTIME: pure Python, no Rhino dependency. Imported by the controller for offline STL export.
+# RUNTIME: pure Python, runs from the controller side. Builds meshes and writes binary STL.
 """
 RADICAL ACCESSIBILITY CONTROLLER — STL Export Pipeline  v1.0
 ================================================
 Pure-Python companion module that reads state.json, builds
-watertight triangle meshes of the section plan, writes binary STL,
-and optionally slices + sends to a Bambu Lab printer.
+watertight triangle meshes of the section plan, and writes binary STL
+suitable for any 3D printer or downstream tactile-relief processor.
 
 No Rhino dependency. No numpy. Just math and struct.
 
@@ -17,19 +17,15 @@ Usage from controller:
     import stl_export as tp
     tp.export_stl(state, "/path/to/output.stl")
     tp.preview(state)
-    tp.send_to_bambu(state, "/path/to/sliced.3mf")
 
 Standalone:
-    python stl_export.py state.json [--output model.stl]
+    python3 controller/stl_export.py state.json [--output model.stl]
 """
 
 import json
 import math
 import os
 import struct
-import subprocess
-import sys
-import time
 
 # ══════════════════════════════════════════════════════════
 # CONSTANTS
@@ -39,21 +35,7 @@ FT_TO_MM = 304.8           # 1 foot = 304.8 mm
 
 # Build plate sizes (mm) for fit validation
 BUILD_PLATES = {
-    "x1c":      (256, 256, 256),
-    "x1e":      (256, 256, 256),
     "p1s":      (256, 256, 256),
-    "p1p":      (256, 256, 256),
-    "a1":       (256, 256, 256),
-    "a1_mini":  (180, 180, 180),
-}
-
-# Default slicer profile tuned for tactile models
-TACTILE_SLICER_DEFAULTS = {
-    "layer_height": 0.2,        # smooth finger feel
-    "wall_loops": 4,            # structural integrity
-    "infill_density": 100,      # solid for thin floor
-    "support_enabled": False,   # walls are vertical
-    "brim_type": "outer_only",  # adhesion for small footprint
 }
 
 # ══════════════════════════════════════════════════════════
@@ -475,7 +457,7 @@ def preview(state):
         f"Triangles: {len(triangles_ft)}",
         f"Scale: 1:{rep_scale}",
         f"Print size: {size_x:.1f} x {size_y:.1f} x {size_z:.1f} mm",
-        f"Printer: {printer.upper()} (plate {plate[0]}x{plate[1]}x{plate[2]} mm)",
+        f"Printer: P1S (plate {plate[0]}x{plate[1]}x{plate[2]} mm)",
     ]
     if fits:
         lines.append("OK: Model fits on build plate.")
@@ -534,7 +516,7 @@ def export_stl(state, filepath):
                            "one rectangular bay and ensure tactile3d "
                            "settings are configured.")
 
-    cfg = state.get("bambu", {})
+    cfg = state.get("tactile3d", {})
     rep_scale = cfg.get("print_scale", 200)
     ft_to_mm = FT_TO_MM / rep_scale
 
@@ -589,10 +571,10 @@ if __name__ == "__main__":
     with open(args.state_file, "r", encoding="utf-8") as f:
         state = json.load(f)
 
-    # Inject scale into bambu config for this run
-    if "bambu" not in state:
-        state["bambu"] = {}
-    state["bambu"]["print_scale"] = args.scale
+    # Inject scale into tactile3d config for this run
+    if "tactile3d" not in state:
+        state["tactile3d"] = {}
+    state["tactile3d"]["print_scale"] = args.scale
 
     if args.preview:
         print(preview(state))

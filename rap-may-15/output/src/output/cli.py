@@ -1375,19 +1375,23 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
 @click.argument('state_path', required=False, type=click.Path(exists=True))
 @click.option('--paper-size', '-p', default='letter', type=click.Choice(['letter', 'tabloid']),
               help='Paper size for output.')
-@click.option('--output-format', '-f', default='pdf', type=click.Choice(['pdf', 'png']),
-              help='Raster output format (used only when --format pdf falls back).')
-@click.option('--format', 'fmt', default='pdf', type=click.Choice(['pdf', 'jpg', 'svg']),
-              help='Render output format: pdf (PIAF), jpg (high-DPI raster), or svg (vector plan).')
+@click.option('--format', '-f', 'fmt', default='pdf',
+              type=click.Choice(['pdf', 'jpg', 'svg', 'png']),
+              help='Render output format: pdf (PIAF), jpg (high-DPI raster), '
+                   'svg (vector plan), or png (raster fallback).')
 @click.option('--dpi', default=300, type=int, help='Output resolution.')
-def render(state_path, paper_size, output_format, fmt, dpi):
+def render(state_path, paper_size, fmt, dpi):
     """Render state.json to a PIAF-ready tactile graphic.
 
-    Reads the Controller state file and produces output in one of three
+    Reads the Controller state file and produces output in one of four
     formats: a 300 DPI black-and-white PDF plan suitable for swell-paper
-    printing, a high-DPI JPEG raster, or a 2D vector SVG plan view.
+    printing, a high-DPI JPEG raster, a 2D vector SVG plan view, or a
+    PNG raster (used when reportlab is unavailable for PDF).
 
     No Rhino dependency — reads JSON directly.
+
+    Note: the prior `--output-format` flag (pdf|png) was consolidated into
+    `--format`. Use `--format png` to get the PNG output directly.
     """
     import json
 
@@ -1464,8 +1468,12 @@ def render(state_path, paper_size, output_format, fmt, dpi):
         click.echo("READY:")
         return
 
-    # Default: PDF
-    if output_format == 'pdf':
+    # PNG: write raster directly, no reportlab needed.
+    if fmt == 'png':
+        out_path = out_dir / f"{base}_tactile.png"
+        img.save(str(out_path), dpi=(dpi, dpi))
+    else:
+        # Default: PDF
         out_path = out_dir / f"{base}_tactile.pdf"
         try:
             from output.core.pdf_generator import PIAFPDFGenerator
@@ -1475,9 +1483,6 @@ def render(state_path, paper_size, output_format, fmt, dpi):
             # Fall back to PNG if reportlab not available
             out_path = out_dir / f"{base}_tactile.png"
             img.save(str(out_path), dpi=(dpi, dpi))
-    else:
-        out_path = out_dir / f"{base}_tactile.png"
-        img.save(str(out_path), dpi=(dpi, dpi))
 
     d = sr_density(img)
     click.echo(f"OK: Rendered {out_path.name} ({paper_size.title()}, {dpi} DPI, density {d:.1f}%)")

@@ -273,7 +273,7 @@ class PIAFPDFGenerator:
 
             # Set metadata
             c.setTitle(metadata.get('source_file', 'PIAF Image') if metadata else 'PIAF Image')
-            c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+            c.setAuthor("Radical Accessibility Controller")
             c.setSubject("Tactile graphics for PIAF printing")
             c.setCreator("tact")
 
@@ -1292,7 +1292,7 @@ class PIAFPDFGenerator:
 
             # Set metadata
             c.setTitle(metadata.get('source_file', 'PIAF Tiled Image') if metadata else 'PIAF Tiled Image')
-            c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+            c.setAuthor("Radical Accessibility Controller")
             c.setSubject("Tiled tactile graphics for PIAF printing")
             c.setCreator("tact")
 
@@ -1440,7 +1440,7 @@ class PIAFPDFGenerator:
 
             # Set metadata
             c.setTitle("Multi-page PIAF Document")
-            c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+            c.setAuthor("Radical Accessibility Controller")
             c.setSubject("Multi-page tactile graphics for PIAF printing")
             c.setCreator("tact")
 
@@ -1590,7 +1590,7 @@ class PIAFPDFGenerator:
 
             # Set metadata
             c.setTitle("Text Layer for Sticker Workflow")
-            c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+            c.setAuthor("Radical Accessibility Controller")
             c.setSubject("Text-only output for second print pass")
             c.setCreator("tact")
 

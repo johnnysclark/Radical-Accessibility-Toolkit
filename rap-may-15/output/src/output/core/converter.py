@@ -707,7 +707,7 @@ class TactileConverter:
 
                 c = reportlab_canvas.Canvas(output_path, pagesize=(page_width_pts, page_height_pts))
                 c.setTitle(metadata.get('source_file', 'PIAF Color-Tactile') if metadata else 'PIAF Color-Tactile')
-                c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+                c.setAuthor("Radical Accessibility Controller")
                 c.setSubject("Color-to-tactile graphics for PIAF printing")
                 c.setCreator("tact")
 

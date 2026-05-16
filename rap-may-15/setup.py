@@ -26,6 +26,7 @@ def main():
         sys.exit(1)
 
     print("OK: Installing output package...")
+    print("OK: Removing legacy 'tact' install (if present) before reinstalling as 'output'.")
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "tact"],
         check=False)
@@ -75,7 +76,8 @@ def main():
         with open(state_path, "w") as fh:
             json.dump(state, fh, indent=2)
 
-    print("OK: Setup complete. Run scripts/start-mac.sh to launch.")
+    print("OK: Setup complete.")
+    print("Next: ./scripts/start-mac.sh")
 
 
 if __name__ == "__main__":

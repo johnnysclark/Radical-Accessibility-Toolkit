@@ -58,16 +58,16 @@ v3.0 changes (from v2.0):
 Requires: pip install mcp  (tested with mcp 1.26.0)
 
 Usage:
-    python server.py --state path/to/state.json
+    python3 mcp/server.py --state controller/state.json
 
 Or set the environment variable:
-    LAYOUT_JIG_STATE=path/to/state.json python server.py
+    RAP_CONTROLLER_STATE=/path/to/state.json python3 mcp/server.py
 
 Claude Code config (.mcp.json at project root):
 {
   "mcpServers": {
-    "layout-jig": {
-      "command": "python",
+    "controller": {
+      "command": "python3",
       "args": ["mcp/server.py", "--state", "controller/state.json"]
     }
   }
@@ -129,7 +129,7 @@ def _resolve_state_path():
     for i, arg in enumerate(sys.argv):
         if arg == "--state" and i + 1 < len(sys.argv):
             return os.path.abspath(sys.argv[i + 1])
-    env = os.environ.get("LAYOUT_JIG_STATE")
+    env = os.environ.get("RAP_CONTROLLER_STATE") or os.environ.get("LAYOUT_JIG_STATE")
     if env:
         return os.path.abspath(env)
     return os.path.join(_controller, "state.json")
@@ -310,7 +310,7 @@ def _diff_dicts(prefix, current, snapshot, diffs, max_depth=5):
 # MCP SERVER
 # ══════════════════════════════════════════════════════════
 
-mcp = FastMCP("layout-jig")
+mcp = FastMCP("controller")
 
 
 # ──────────────────────────────────────────────────────────

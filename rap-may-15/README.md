@@ -2,7 +2,7 @@
 
 ## Overview
 
-macOS demo for the Radical Accessibility Toolkit. Four components: CONTROLLER (the authoritative CLI in `controller/`), STATE (the canonical JSON model at `controller/state.json`), WATCHER (the Rhino-side rebuilder in `rhino/`), and MCP (the proprietary Model Context Protocol bridge in `mcp/`, no rhinomcp). Produces three tactile-ready outputs: PIAF JPG (swell-paper raster), SVG (vector for screen review or further processing), and STL (3D-printable relief). No WebUI, no third-party Rhino plugins.
+macOS demo for the Radical Accessibility Toolkit. The CONTROLLER (`controller/`) is a text REPL that mutates one JSON file, STATE (`controller/state.json`). Every command prints `OK:` or `ERROR:`, then saves. The WATCHER (`rhino/`) is a script inside Rhino that re-reads STATE on every file change and rebuilds the 3D model; Rhino is a passive viewer and can crash without data loss. OUTPUT (`output/`) is a separate CLI that reads STATE and produces tactile-ready files: a swell-paper JPG, a vector SVG, and a 3D-printable STL. MCP (`mcp/`) exposes the controller to Claude.
 
 ## Install
 
@@ -27,7 +27,7 @@ Step 2. In Rhino 8 Mac, type at the command line:
 
     _-RunPythonScript "/path/to/rap-may-15/rhino/startup.py"
 
-Step 3. Drive the controller from the prompt:
+Step 3. Drive the controller from the prompt. Type 'macro list' to see ready-made command sequences, or 'describe' to read the current model aloud.
 
     set site corners 0,0 100,0 100,80 0,80
     zone add lobby corners 10,10 40,10 40,40 10,40
@@ -64,11 +64,13 @@ Rhino viewport screenshots can be captured with macOS Shift-Cmd-4 once the watch
 
 ## Layout
 
-- `controller/` — the authoritative CLI and state engine.
-- `rhino/` — the watcher script that runs inside Rhino 8 Mac (`startup.py`).
-- `output/` — the renderer package (PIAF JPG, SVG, STL) and its MCP entry point.
-- `mcp/` — the proprietary controller MCP server.
-- `scripts/` — macOS launcher helpers.
+- controller/ — CONTROLLER: the authoritative CLI and state engine.
+- controller/state.json — STATE: the single source of truth.
+- rhino/ — WATCHER: a script that runs inside Rhino 8 Mac (startup.py).
+- output/ — OUTPUT: the renderer package (PIAF JPG, SVG, STL) and its MCP entry point.
+- mcp/ — MCP: the controller's proprietary Model Context Protocol server.
+- scripts/ — launchers.
+- examples/ — runnable demos (case-study-house.state.json and the equivalent macro).
 
 ## What's not here
 
@@ -88,4 +90,4 @@ Q: watcher not running.
 A: In Rhino 8 Mac, run the `_-RunPythonScript "..../rhino/startup.py"` line shown by `start-mac.sh`, then type `setup status` in the controller. Expected: `OK: Rhino watcher is connected on 127.0.0.1:1998.` If you see `OFFLINE: Rhino watcher is not responding on 127.0.0.1:1998.`, retry the script.
 
 Q: output package not found.
-A: Re-run `python3 setup.py` from the `rap-may-15/` folder. Expected: `OK: Installing output package...` followed by `OK: Setup complete. Run scripts/start-mac.sh to launch.`
+A: Re-run `python3 setup.py` from the `rap-may-15/` folder. Expected: `OK: Installing output package...` followed by `OK: Setup complete.` and `Next: ./scripts/start-mac.sh`.
