@@ -38,7 +38,7 @@ class DefaultGroup(click.Group):
 
 
 @click.group(cls=DefaultGroup)
-@click.version_option(version=__version__, prog_name="tact")
+@click.version_option(version=__version__, prog_name="output")
 def main():
     """
     TACT — Tactile Architectural Conversion Tool
@@ -1375,14 +1375,16 @@ def batch(input_dir, output_dir, pattern, preset, threshold, enhance, paper_size
 @click.option('--paper-size', '-p', default='letter', type=click.Choice(['letter', 'tabloid']),
               help='Paper size for output.')
 @click.option('--output-format', '-f', default='pdf', type=click.Choice(['pdf', 'png']),
-              help='Output format.')
+              help='Raster output format (used only when --format pdf falls back).')
+@click.option('--format', 'fmt', default='pdf', type=click.Choice(['pdf', 'jpg', 'svg']),
+              help='Render output format: pdf (PIAF), jpg (high-DPI raster), or svg (vector plan).')
 @click.option('--dpi', default=300, type=int, help='Output resolution.')
-def render(state_path, paper_size, output_format, dpi):
+def render(state_path, paper_size, output_format, fmt, dpi):
     """Render state.json to a PIAF-ready tactile graphic.
 
-    Reads the Layout Jig state file and produces a 300 DPI black-and-white
-    plan suitable for swell-paper printing. Draws columns, walls, corridors,
-    apertures, room hatches, labels, legend, and section cuts.
+    Reads the Layout Jig state file and produces output in one of three
+    formats: a 300 DPI black-and-white PDF plan suitable for swell-paper
+    printing, a high-DPI JPEG raster, or a 2D vector SVG plan view.
 
     No Rhino dependency — reads JSON directly.
     """
@@ -1405,16 +1407,33 @@ def render(state_path, paper_size, output_format, dpi):
             raise SystemExit(1)
 
     try:
-        from output.core.state_renderer import render as sr_render, density as sr_density
-    except ImportError as e:
-        click.echo(f"ERROR: Could not import state_renderer: {e}")
-        raise SystemExit(1)
-
-    try:
         with open(state_path, 'r') as f:
             state = json.load(f)
     except (json.JSONDecodeError, IOError) as e:
         click.echo(f"ERROR: Could not read state file: {e}")
+        raise SystemExit(1)
+
+    # SVG path: stdlib-only, no raster render needed.
+    if fmt == 'svg':
+        base = Path(state_path).stem
+        out_dir = Path(state_path).parent
+        out_path = out_dir / f"{base}_tactile.svg"
+        try:
+            from output.core.svg_generator import export_svg
+            export_svg(state, str(out_path))
+        except Exception as e:
+            click.echo(f"ERROR: SVG render failed: {e}")
+            raise SystemExit(1)
+        click.echo(f"OK: Rendered {out_path.name} (SVG vector plan)")
+        click.echo(f"  Path: {out_path}")
+        click.echo("READY:")
+        return
+
+    # PDF / JPG paths both need the raster state renderer.
+    try:
+        from output.core.state_renderer import render as sr_render, density as sr_density
+    except ImportError as e:
+        click.echo(f"ERROR: Could not import state_renderer: {e}")
         raise SystemExit(1)
 
     try:
@@ -1427,6 +1446,24 @@ def render(state_path, paper_size, output_format, dpi):
     base = Path(state_path).stem
     out_dir = Path(state_path).parent
 
+    if fmt == 'jpg':
+        out_path = out_dir / f"{base}_tactile.jpg"
+        try:
+            from output.core.pdf_generator import PIAFPDFGenerator
+            gen = PIAFPDFGenerator()
+            gen.generate_jpg(img, str(out_path), dpi=dpi)
+        except Exception as e:
+            click.echo(f"ERROR: JPG render failed: {e}")
+            raise SystemExit(1)
+        d = sr_density(img)
+        click.echo(f"OK: Rendered {out_path.name} ({paper_size.title()}, {dpi} DPI JPG, density {d:.1f}%)")
+        click.echo(f"  Path: {out_path}")
+        if d > 40:
+            click.echo("  WARNING: Density above 40% may reduce PIAF clarity.")
+        click.echo("READY:")
+        return
+
+    # Default: PDF
     if output_format == 'pdf':
         out_path = out_dir / f"{base}_tactile.pdf"
         try:

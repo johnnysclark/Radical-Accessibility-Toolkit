@@ -22,11 +22,9 @@ Standalone:
     python tactile_print.py state.json [--output model.stl]
 """
 
-import ftplib
 import json
 import math
 import os
-import ssl
 import struct
 import subprocess
 import sys
@@ -37,9 +35,6 @@ import time
 # ══════════════════════════════════════════════════════════
 
 FT_TO_MM = 304.8           # 1 foot = 304.8 mm
-BAMBU_FTP_PORT = 990       # FTPS implicit TLS
-BAMBU_MQTT_PORT = 8883     # MQTT over TLS
-BAMBU_USER = "bblp"        # fixed Bambu username
 
 # Build plate sizes (mm) for fit validation
 BUILD_PLATES = {
@@ -447,7 +442,7 @@ def _mesh_bounds(triangles):
             (max(xs), max(ys), max(zs)))
 
 
-def preview(state, bambu_cfg=None):
+def preview(state):
     """Return a multiline preview string with model dimensions and fit check.
 
     Does a full mesh build to get exact bounds and triangle count.
@@ -457,10 +452,8 @@ def preview(state, bambu_cfg=None):
         return "No mesh geometry. Enable walls on at least one rectangular bay."
 
     t3 = state.get("tactile3d", {})
-    cfg = bambu_cfg or state.get("bambu", {})
-    rep_scale = cfg.get("print_scale", 200)  # 1:N
-    printer = cfg.get("printer_model", "p1s").lower()
-    plate = BUILD_PLATES.get(printer, BUILD_PLATES["p1s"])
+    rep_scale = t3.get("print_scale", 200)
+    plate = BUILD_PLATES["p1s"]
 
     # Convert feet → mm at representation scale
     ft_to_print_mm = FT_TO_MM / rep_scale
@@ -529,10 +522,10 @@ def _auto_scale(triangles_ft, plate):
 # EXPORT — full pipeline: mesh → STL → optional re-center
 # ══════════════════════════════════════════════════════════
 
-def export_stl(state, filepath, bambu_cfg=None):
+def export_stl(state, filepath):
     """Build mesh, scale to mm, center on origin, write binary STL.
 
-    Returns (filepath, triangle_count, size_mm_tuple) on success.
+    Returns the triangle count on success.
     """
     triangles_ft = build_mesh(state)
     if not triangles_ft:
@@ -540,7 +533,7 @@ def export_stl(state, filepath, bambu_cfg=None):
                            "one rectangular bay and ensure tactile3d "
                            "settings are configured.")
 
-    cfg = bambu_cfg or state.get("bambu", {})
+    cfg = state.get("bambu", {})
     rep_scale = cfg.get("print_scale", 200)
     ft_to_mm = FT_TO_MM / rep_scale
 
@@ -561,443 +554,18 @@ def export_stl(state, filepath, bambu_cfg=None):
         ))
 
     count = write_binary_stl(centered, filepath)
-    size_mm = (bmax[0]-bmin[0], bmax[1]-bmin[1], bmax[2]-bmin[2])
-    return filepath, count, size_mm
+    return count
 
 
 # ══════════════════════════════════════════════════════════
-# ORCASLICER — slice STL → 3MF
-# ══════════════════════════════════════════════════════════
-
-def slice_model(stl_path, slicer_path, output_3mf=None, profile_overrides=None):
-    """Slice an STL file to 3MF using OrcaSlicer CLI.
-
-    Args:
-        stl_path: Path to the input STL file.
-        slicer_path: Path to the OrcaSlicer executable.
-        output_3mf: Output path. Defaults to same name with .3mf extension.
-        profile_overrides: Dict of slicer settings to override.
-
-    Returns the output 3MF path on success.
-    Raises RuntimeError on failure.
-    """
-    if not os.path.isfile(stl_path):
-        raise RuntimeError(f"STL not found: {stl_path}")
-    if not os.path.isfile(slicer_path):
-        raise RuntimeError(
-            f"OrcaSlicer not found: {slicer_path}\n"
-            "  Download from: https://github.com/SoftFever/OrcaSlicer/releases\n"
-            "  Then: bambu config slicer_path <path_to_orca_slicer>")
-
-    if output_3mf is None:
-        output_3mf = os.path.splitext(stl_path)[0] + ".3mf"
-
-    # Build slicer CLI arguments
-    settings = dict(TACTILE_SLICER_DEFAULTS)
-    if profile_overrides:
-        settings.update(profile_overrides)
-
-    cmd = [slicer_path, "--slice", "0"]
-    for key, val in settings.items():
-        if isinstance(val, bool):
-            cmd.extend([f"--{key}", "1" if val else "0"])
-        else:
-            cmd.extend([f"--{key}", str(val)])
-    cmd.extend(["--output", output_3mf, stl_path])
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"OrcaSlicer failed (exit {result.returncode}):\n"
-                f"  {result.stderr.strip()}")
-        if not os.path.isfile(output_3mf):
-            raise RuntimeError(
-                f"OrcaSlicer ran but output not found: {output_3mf}\n"
-                f"  stdout: {result.stdout.strip()}")
-    except FileNotFoundError:
-        raise RuntimeError(f"OrcaSlicer executable not found: {slicer_path}")
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("OrcaSlicer timed out after 120 seconds.")
-
-    return output_3mf
-
-
-# ══════════════════════════════════════════════════════════
-# BAMBU PRINTER — FTP upload + MQTT print trigger
-# ══════════════════════════════════════════════════════════
-
-def _bambu_ftp_upload(filepath, printer_ip, access_code, remote_name=None):
-    """Upload a file to the Bambu printer's SD card via FTPS (port 990).
-
-    Bambu printers run an implicit-TLS FTP server:
-      Port: 990
-      User: bblp
-      Pass: access code from printer LCD → Network → Access Code
-      Path: / (root of SD card)
-    """
-    if remote_name is None:
-        remote_name = os.path.basename(filepath)
-
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE  # printer uses self-signed cert
-
-    try:
-        ftp = ftplib.FTP_TLS(context=context)
-        ftp.connect(printer_ip, BAMBU_FTP_PORT, timeout=15)
-        ftp.login(BAMBU_USER, access_code)
-        ftp.prot_p()  # switch data connection to TLS
-
-        with open(filepath, "rb") as f:
-            ftp.storbinary(f"STOR {remote_name}", f)
-
-        ftp.quit()
-        return remote_name
-    except ftplib.all_errors as e:
-        raise RuntimeError(
-            f"FTP upload failed: {e}\n"
-            f"  Verify: printer IP ({printer_ip}), access code, "
-            f"printer powered on and on same network.")
-
-
-def _bambu_mqtt_print(printer_ip, access_code, serial_number,
-                      remote_filename, subtask_name="tactile_model"):
-    """Send a print command to the Bambu printer via MQTT.
-
-    Requires paho-mqtt. If not installed, provides clear instructions.
-
-    MQTT protocol:
-      Broker: printer IP, port 8883 (TLS)
-      User: bblp / access_code
-      Topic: device/{serial}/request
-      Payload: JSON print command
-    """
-    try:
-        import paho.mqtt.client as mqtt
-    except ImportError:
-        raise RuntimeError(
-            "paho-mqtt not installed. Install with:\n"
-            "  pip install paho-mqtt\n"
-            "Or upload the 3MF file to the printer manually via SD card.")
-
-    publish_topic = f"device/{serial_number}/request"
-    payload = json.dumps({
-        "print": {
-            "command": "project_file",
-            "param": "Metadata/plate_1.gcode",
-            "subtask_name": subtask_name,
-            "file": f"/sdcard/{remote_filename}",
-            "bed_type": "auto",
-            "timelapse": False,
-            "use_ams": False,
-        }
-    })
-
-    connected = [False]
-    published = [False]
-    error_msg = [None]
-
-    def on_connect(client, userdata, flags, rc, properties=None):
-        if rc == 0:
-            connected[0] = True
-        else:
-            error_msg[0] = f"MQTT connect failed with code {rc}"
-
-    def on_publish(client, userdata, mid, reason_code=None, properties=None):
-        published[0] = True
-
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-
-    try:
-        # Support both paho-mqtt v1 and v2
-        try:
-            client = mqtt.Client(
-                client_id="plj_tactile",
-                callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
-        except (AttributeError, TypeError):
-            client = mqtt.Client(client_id="plj_tactile")
-
-        client.on_connect = on_connect
-        client.on_publish = on_publish
-        client.tls_set_context(context)
-        client.username_pw_set(BAMBU_USER, access_code)
-        client.connect(printer_ip, BAMBU_MQTT_PORT, keepalive=10)
-        client.loop_start()
-
-        # Wait for connection
-        deadline = time.time() + 10
-        while not connected[0] and not error_msg[0] and time.time() < deadline:
-            time.sleep(0.1)
-        if error_msg[0]:
-            raise RuntimeError(error_msg[0])
-        if not connected[0]:
-            raise RuntimeError("MQTT connection timed out.")
-
-        # Publish print command
-        result = client.publish(publish_topic, payload)
-        deadline = time.time() + 5
-        while not published[0] and time.time() < deadline:
-            time.sleep(0.1)
-
-        client.loop_stop()
-        client.disconnect()
-
-        if not published[0]:
-            raise RuntimeError("MQTT publish timed out.")
-
-    except (ConnectionRefusedError, OSError) as e:
-        raise RuntimeError(
-            f"MQTT connection failed: {e}\n"
-            f"  Verify: printer IP ({printer_ip}), access code, "
-            f"serial ({serial_number}), printer on same network.")
-
-
-def _bambu_mqtt_status(printer_ip, access_code, serial_number, timeout=8):
-    """Poll the Bambu printer for current status via MQTT.
-
-    Returns a dict with status fields, or raises RuntimeError.
-    """
-    try:
-        import paho.mqtt.client as mqtt
-    except ImportError:
-        raise RuntimeError("paho-mqtt not installed. pip install paho-mqtt")
-
-    report_topic = f"device/{serial_number}/report"
-    status = {"raw": None}
-
-    def on_connect(client, userdata, flags, rc, properties=None):
-        if rc == 0:
-            client.subscribe(report_topic)
-
-    def on_message(client, userdata, msg):
-        try:
-            data = json.loads(msg.payload.decode())
-            status["raw"] = data
-        except Exception:
-            pass
-
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-
-    try:
-        try:
-            client = mqtt.Client(
-                client_id="plj_status",
-                callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
-        except (AttributeError, TypeError):
-            client = mqtt.Client(client_id="plj_status")
-
-        client.on_connect = on_connect
-        client.on_message = on_message
-        client.tls_set_context(context)
-        client.username_pw_set(BAMBU_USER, access_code)
-        client.connect(printer_ip, BAMBU_MQTT_PORT, keepalive=10)
-        client.loop_start()
-
-        deadline = time.time() + timeout
-        while status["raw"] is None and time.time() < deadline:
-            time.sleep(0.2)
-
-        client.loop_stop()
-        client.disconnect()
-
-    except (ConnectionRefusedError, OSError) as e:
-        raise RuntimeError(f"MQTT status failed: {e}")
-
-    raw = status["raw"]
-    if raw is None:
-        raise RuntimeError("No status received within timeout.")
-
-    # Parse Bambu status report
-    p = raw.get("print", {})
-    result = {
-        "state": p.get("gcode_state", "UNKNOWN"),
-        "progress": p.get("mc_percent", 0),
-        "layer": p.get("layer_num", 0),
-        "total_layers": p.get("total_layer_num", 0),
-        "remaining_min": p.get("mc_remaining_time", 0),
-        "subtask_name": p.get("subtask_name", ""),
-        "bed_temp": p.get("bed_temper", 0),
-        "nozzle_temp": p.get("nozzle_temper", 0),
-        "fan_speed": p.get("big_fan1_speed", "0"),
-    }
-    return result
-
-
-def format_status(status_dict):
-    """Format a printer status dict as a readable string."""
-    s = status_dict
-    state_map = {
-        "IDLE": "Idle",
-        "RUNNING": "Printing",
-        "PAUSE": "Paused",
-        "FINISH": "Finished",
-        "FAILED": "Failed",
-        "PREPARE": "Preparing",
-    }
-    state = state_map.get(s["state"], s["state"])
-    lines = [f"Printer: {state}"]
-
-    if s["state"] == "RUNNING":
-        pct = s["progress"]
-        layer = s["layer"]
-        total = s["total_layers"]
-        remain = s["remaining_min"]
-        h = remain // 60
-        m = remain % 60
-        lines.append(f"Progress: {pct}%  (layer {layer}/{total})")
-        if h > 0:
-            lines.append(f"Remaining: {h}h {m}m")
-        else:
-            lines.append(f"Remaining: {m}m")
-
-    if s.get("subtask_name"):
-        lines.append(f"Job: {s['subtask_name']}")
-
-    lines.append(f"Bed: {s['bed_temp']}\u00b0C  Nozzle: {s['nozzle_temp']}\u00b0C")
-    return "\n".join(lines)
-
-
-# ══════════════════════════════════════════════════════════
-# HIGH-LEVEL OPERATIONS (called by controller)
+# HIGH-LEVEL OPERATION (called by controller)
 # ══════════════════════════════════════════════════════════
 
 def do_export(state, filepath=None):
-    """Export the tactile model as a scaled, centered binary STL.
-
-    Returns a status message string.
-    """
-    cfg = state.get("bambu", {})
-    if filepath is None:
-        filepath = cfg.get("stl_path", "./tactile_model.stl")
-
-    path, count, size = export_stl(state, filepath)
-    fsize = os.path.getsize(path)
-    return (f"OK: Exported {count} triangles to {path}\n"
-            f"  Size: {size[0]:.1f} x {size[1]:.1f} x {size[2]:.1f} mm  "
-            f"({fsize:,} bytes)")
-
-
-def do_slice(state):
-    """Export STL and slice to 3MF. Returns status message."""
-    cfg = state.get("bambu", {})
-    stl = cfg.get("stl_path", "./tactile_model.stl")
-    slicer = cfg.get("slicer_path", "")
-    if not slicer:
-        raise RuntimeError(
-            "Slicer path not set. Configure with:\n"
-            "  bambu config slicer_path <path_to_orca_slicer>")
-
-    # Export STL first
-    path, count, size = export_stl(state, stl)
-
-    # Slice
-    output_3mf = os.path.splitext(stl)[0] + ".3mf"
-    result = slice_model(stl, slicer, output_3mf)
-    fsize = os.path.getsize(result)
-    return (f"OK: Sliced {count} triangles.\n"
-            f"  STL: {stl}\n"
-            f"  3MF: {result} ({fsize:,} bytes)")
-
-
-def do_send(state, filepath=None):
-    """Upload a 3MF file to the Bambu printer and start printing.
-
-    Returns status message.
-    """
-    cfg = state.get("bambu", {})
-    ip = cfg.get("printer_ip", "")
-    code = cfg.get("access_code", "")
-    serial = cfg.get("serial_number", "")
-
-    if not ip:
-        raise RuntimeError("Printer IP not set. bambu config ip <address>")
-    if not code:
-        raise RuntimeError("Access code not set. bambu config access_code <code>")
-    if not serial:
-        raise RuntimeError("Serial number not set. bambu config serial <number>")
-
-    if filepath is None:
-        stl = cfg.get("stl_path", "./tactile_model.stl")
-        filepath = os.path.splitext(stl)[0] + ".3mf"
-
-    if not os.path.isfile(filepath):
-        raise RuntimeError(
-            f"File not found: {filepath}\n"
-            "  Run 'bambu slice' first to generate the 3MF file.")
-
-    remote = os.path.basename(filepath)
-    lines = [f"Uploading {remote} to {ip}..."]
-    _bambu_ftp_upload(filepath, ip, code, remote)
-    lines.append(f"OK: Uploaded to printer SD card.")
-
-    lines.append("Sending print command...")
-    _bambu_mqtt_print(ip, code, serial, remote)
-    lines.append("OK: Print started.")
-
-    return "\n".join(lines)
-
-
-def do_print(state):
-    """Full pipeline: export → slice → upload → print.
-
-    Returns combined status message.
-    """
-    msgs = []
-
-    # 1. Export STL
-    cfg = state.get("bambu", {})
-    stl = cfg.get("stl_path", "./tactile_model.stl")
-    path, count, size = export_stl(state, stl)
-    msgs.append(f"Exported {count} triangles "
-                f"({size[0]:.1f}x{size[1]:.1f}x{size[2]:.1f} mm)")
-
-    # 2. Slice
-    slicer = cfg.get("slicer_path", "")
-    if not slicer:
-        raise RuntimeError(
-            "Slicer path not set. Configure with:\n"
-            "  bambu config slicer_path <path_to_orca_slicer>")
-    output_3mf = os.path.splitext(stl)[0] + ".3mf"
-    slice_model(stl, slicer, output_3mf)
-    msgs.append(f"Sliced to {output_3mf}")
-
-    # 3. Upload + print
-    ip = cfg.get("printer_ip", "")
-    code = cfg.get("access_code", "")
-    serial = cfg.get("serial_number", "")
-    if not all([ip, code, serial]):
-        msgs.append(f"3MF ready at {output_3mf}.")
-        msgs.append("Printer not fully configured — upload manually or set:")
-        if not ip: msgs.append("  bambu config ip <address>")
-        if not code: msgs.append("  bambu config access_code <code>")
-        if not serial: msgs.append("  bambu config serial <number>")
-        return "\n".join(msgs)
-
-    remote = os.path.basename(output_3mf)
-    _bambu_ftp_upload(output_3mf, ip, code, remote)
-    msgs.append(f"Uploaded {remote} to printer.")
-    _bambu_mqtt_print(ip, code, serial, remote)
-    msgs.append("OK: Print started on " + ip)
-
-    return "\n".join(msgs)
-
-
-def do_status(state):
-    """Poll the printer for current status. Returns formatted string."""
-    cfg = state.get("bambu", {})
-    ip = cfg.get("printer_ip", "")
-    code = cfg.get("access_code", "")
-    serial = cfg.get("serial_number", "")
-    if not all([ip, code, serial]):
-        raise RuntimeError(
-            "Printer not configured. Set ip, access_code, and serial first.")
-    status = _bambu_mqtt_status(ip, code, serial)
-    return format_status(status)
+    """CLI wrapper: export STL to filepath (defaults to ./tactile_model.stl)."""
+    out = filepath or "./tactile_model.stl"
+    tri_count = export_stl(state, out)
+    return "OK: STL written to {0} ({1} triangles)".format(out, tri_count)
 
 
 # ══════════════════════════════════════════════════════════

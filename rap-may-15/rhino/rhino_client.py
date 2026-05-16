@@ -13,8 +13,6 @@ port 1998, this bridge can ask read-only questions:
 If Rhino is not running, every function returns an OFFLINE message.
 No function ever fails — offline mode is a first-class result.
 
-Port 1998 is used (not 1999) to avoid conflicting with rhinomcp.
-
 Requires: Python 3 stdlib only (socket, json).
 """
 

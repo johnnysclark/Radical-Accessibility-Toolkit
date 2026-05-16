@@ -368,6 +368,24 @@ class PIAFPDFGenerator:
         except Exception as e:
             raise PDFGeneratorError(f"Failed to generate PDF: {str(e)}") from e
 
+    def generate_jpg(self, image, output_path, dpi=None, quality=95):
+        """Save the processed PIL Image directly as a high-DPI JPEG (no PDF wrapper).
+
+        Args:
+            image: PIL Image (any mode; converted to RGB on save).
+            output_path: target .jpg path.
+            dpi: output DPI (defaults to TARGET_DPI on self, else 300).
+            quality: JPEG quality 1-100.
+        Returns:
+            output_path string.
+        """
+        target_dpi = dpi if dpi is not None else getattr(self, "TARGET_DPI", 300)
+        rgb = image.convert("RGB") if image.mode != "RGB" else image
+        rgb.save(output_path, "JPEG", quality=quality, dpi=(target_dpi, target_dpi))
+        if hasattr(self, "logger") and hasattr(self.logger, "success"):
+            self.logger.success("JPG saved: {0}".format(output_path))
+        return output_path
+
     def _filter_overflow_labels(
         self,
         labels: list,

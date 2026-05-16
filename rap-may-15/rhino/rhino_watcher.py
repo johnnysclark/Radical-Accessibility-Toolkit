@@ -51,8 +51,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() e
 if 'STATE_FILE' not in dir() or not globals().get('STATE_FILE'):
     # Try next to the script first (flat layout)
     _candidate = os.path.join(SCRIPT_DIR, "state.json")
-    # Then try the CONTROLLER project structure (tools/rhino/ -> ../../controller/)
-    _project = os.path.join(SCRIPT_DIR, "..", "..", "controller", "state.json")
+    # Then try the rap-may-15 layout (rhino/ -> ../controller/)
+    _project = os.path.join(SCRIPT_DIR, "..", "controller", "state.json")
     if os.path.exists(_candidate):
         STATE_FILE = _candidate
     elif os.path.exists(_project):
@@ -1552,8 +1552,7 @@ def _run_pending_script():
 # TCP QUERY LISTENER (v3.0)
 # ══════════════════════════════════════════════════════════
 # Optional TCP server on port 1998 that answers read-only queries
-# from the MCP server's rhino_client.  Port 1998 avoids conflict
-# with rhinomcp (port 1999).
+# from the MCP server's rhino_client.
 #
 # Supported queries:
 #   {"type": "ping"}                   -> {"status": "ok"}

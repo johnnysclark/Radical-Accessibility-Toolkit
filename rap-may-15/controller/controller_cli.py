@@ -52,11 +52,11 @@ SCHEMA = "plan_layout_jig_v3.0"
 DEFAULT_STATE_FILENAME = "state.json"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 
-# ── Ensure tools/rhino is importable (for tactile_print) ──
+# ── Ensure sibling rhino/ is importable (for tactile_print) ──
 _controller_dir = os.path.dirname(os.path.abspath(__file__))
-_tools_rhino = os.path.join(os.path.dirname(_controller_dir), "tools", "rhino")
-if os.path.isdir(_tools_rhino) and _tools_rhino not in sys.path:
-    sys.path.insert(0, _tools_rhino)
+_rhino_dir = os.path.join(os.path.dirname(_controller_dir), "rhino")
+if os.path.isdir(_rhino_dir) and _rhino_dir not in sys.path:
+    sys.path.insert(0, _rhino_dir)
 
 # ── utilities ─────────────────────────────────────────────
 
@@ -79,29 +79,50 @@ def _atomic_write(path, text):
     os.replace(tmp, path)
 
 def _speak(text, rate=2):
-    """Fire-and-forget TTS via PowerShell SpeechSynthesizer.
+    """Fire-and-forget TTS, cross-platform.
 
-    Strips OK:/ERROR: prefixes for cleaner speech.
+    macOS: `say` command.
+    Windows: PowerShell SpeechSynthesizer.
+    Linux/other: `spd-say` if available.
+    Strips OK:/ERROR:/CHANGED: prefixes for cleaner speech.
     Returns True on success, False if speech fails.
     """
-    clean = text.strip()
-    for prefix in ("OK: ", "ERROR: ", "CHANGED: "):
-        if clean.startswith(prefix):
-            clean = clean[len(prefix):]
-            break
-    # Escape single quotes for PowerShell
-    escaped = clean.replace("'", "''")
-    ps_cmd = (
-        f"Add-Type -AssemblyName System.Speech;"
-        f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
-        f"$s.Rate={int(rate)};"
-        f"$s.Speak('{escaped}')"
-    )
     try:
-        subprocess.Popen(
-            ["powershell", "-NoProfile", "-Command", ps_cmd],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return True
+        clean = text.strip()
+        for prefix in ("OK: ", "ERROR: ", "CHANGED: "):
+            if clean.startswith(prefix):
+                clean = clean[len(prefix):]
+                break
+        if sys.platform == "darwin":
+            wpm = max(120, min(320, 200 + int(rate) * 12))
+            subprocess.Popen(
+                ["say", "-r", str(wpm), clean],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        elif sys.platform in ("win32", "cygwin"):
+            # Escape single quotes for PowerShell
+            escaped = clean.replace("'", "''")
+            ps_cmd = (
+                f"Add-Type -AssemblyName System.Speech;"
+                f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+                f"$s.Rate={int(rate)};"
+                f"$s.Speak('{escaped}')"
+            )
+            try:
+                subprocess.Popen(
+                    ["powershell", "-NoProfile", "-Command", ps_cmd],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except Exception:
+                return False
+        else:
+            try:
+                subprocess.Popen(
+                    ["spd-say", clean],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except Exception:
+                return False
     except Exception:
         return False
 
@@ -261,17 +282,6 @@ def _default_tactile3d():
         "auto_export": False,
         "export_path": "./tactile3d_export.stl",
         "scale_factor": 1.0,
-    }
-
-def _default_bambu():
-    return {
-        "printer_ip": "",
-        "access_code": "",
-        "serial_number": "",
-        "printer_model": "p1s",
-        "print_scale": 200,         # 1:N representation scale
-        "stl_path": "./tactile_model.stl",
-        "slicer_path": "",          # path to OrcaSlicer executable
     }
 
 def _default_tts():
@@ -465,7 +475,6 @@ def default_state():
         "tactile3d": _default_tactile3d(),
         "hatch_library_path": "./hatches/",
         "print": _default_print(),
-        "bambu": _default_bambu(),
     }
 
 # ══════════════════════════════════════════════════════════
@@ -821,19 +830,6 @@ def describe(state):
     lines.append(f"  auto_export={t3.get('auto_export',False)}  "
                  f"export_path={t3.get('export_path','')}  "
                  f"scale_factor={t3.get('scale_factor',1.0)}")
-    lines.append("")
-
-    # ── Bambu printer ──
-    bam = state.get("bambu", {})
-    ip = bam.get("printer_ip", "")
-    lines.append(f"BAMBU PRINTER: {'configured' if ip else 'not configured'}")
-    if ip:
-        lines.append(f"  ip={ip}  model={bam.get('printer_model','p1s')}  "
-                     f"serial={bam.get('serial_number','(not set)')}")
-    lines.append(f"  print_scale=1:{bam.get('print_scale',200)}  "
-                 f"stl_path={bam.get('stl_path','./tactile_model.stl')}")
-    if bam.get("slicer_path"):
-        lines.append(f"  slicer={bam['slicer_path']}")
     lines.append("")
 
     # ── TTS ──
@@ -1438,104 +1434,6 @@ def cmd_tactile3d(state, tokens):
                      "floor_thickness, floor, auto_export, export_path, scale_factor, export")
 
 
-def cmd_bambu(state, tokens):
-    """Configure and operate the Bambu 3D printer pipeline.
-
-    Subcommands:
-        config <field> <value>   Set printer configuration
-        preview                  Show model dimensions and fit check
-        export [path]            Build mesh and write binary STL
-        slice                    Export STL then slice to 3MF
-        send [path]              Upload 3MF to printer and start print
-        print                    Full pipeline: export → slice → send
-        status                   Poll printer for current status
-    """
-    if "bambu" not in state:
-        state["bambu"] = _default_bambu()
-    bam = state["bambu"]
-    if len(tokens) < 2:
-        raise ValueError(
-            "Usage: bambu config|preview|export|slice|send|print|status")
-
-    sub = tokens[1].lower()
-
-    # ── config ──
-    if sub in ("config", "cfg", "set"):
-        if len(tokens) < 4:
-            raise ValueError(
-                "bambu config <field> <value>\n"
-                "  Fields: ip, access_code, serial, printer_model,\n"
-                "          print_scale, stl_path, slicer_path")
-        field = tokens[2].lower()
-        val = tokens[3]
-        alias = {"printer_ip": "ip", "access": "access_code",
-                 "code": "access_code", "model": "printer_model",
-                 "scale": "print_scale", "stl": "stl_path",
-                 "slicer": "slicer_path"}
-        field = alias.get(field, field)
-        if field == "ip":
-            old = bam.get("printer_ip", ""); bam["printer_ip"] = val
-            return state, f"Bambu printer_ip = {val}. Was '{old}'."
-        if field == "access_code":
-            bam["access_code"] = val
-            return state, "Bambu access_code set."
-        if field == "serial":
-            old = bam.get("serial_number", ""); bam["serial_number"] = val
-            return state, f"Bambu serial = {val}. Was '{old}'."
-        if field == "printer_model":
-            val_l = val.lower().replace("-", "_").replace(" ", "_")
-            bam["printer_model"] = val_l
-            return state, f"Bambu printer_model = {val_l}."
-        if field == "print_scale":
-            v = _int_pos(val, "print_scale")
-            old = bam.get("print_scale", 200); bam["print_scale"] = v
-            return state, f"Bambu print_scale = 1:{v}. Was 1:{old}."
-        if field == "stl_path":
-            old = bam.get("stl_path", ""); bam["stl_path"] = val
-            return state, f"Bambu stl_path = {val}. Was '{old}'."
-        if field == "slicer_path":
-            old = bam.get("slicer_path", ""); bam["slicer_path"] = val
-            return state, f"Bambu slicer_path = {val}. Was '{old}'."
-        raise ValueError(
-            "Unknown bambu config field. Options: ip, access_code, serial, "
-            "printer_model, print_scale, stl_path, slicer_path")
-
-    # ── All other subcommands need tactile_print module ──
-    try:
-        import tactile_print as tp
-    except ImportError:
-        raise RuntimeError(
-            "tactile_print.py not found. Place it in the same folder as "
-            "this controller to enable mesh generation and printing.")
-
-    if sub == "preview":
-        return state, tp.preview(state, bam)
-
-    if sub == "export":
-        path = tokens[2] if len(tokens) > 2 else None
-        msg = tp.do_export(state, path)
-        return state, msg
-
-    if sub == "slice":
-        msg = tp.do_slice(state)
-        return state, msg
-
-    if sub == "send":
-        path = tokens[2] if len(tokens) > 2 else None
-        msg = tp.do_send(state, path)
-        return state, msg
-
-    if sub in ("print", "go"):
-        msg = tp.do_print(state)
-        return state, msg
-
-    if sub == "status":
-        msg = tp.do_status(state)
-        return state, msg
-
-    raise ValueError(
-        "Bambu subcommands: config, preview, export, slice, send, print, status")
-
 # ══════════════════════════════════════════════════════════
 # SET COMMANDS
 # ══════════════════════════════════════════════════════════
@@ -1897,6 +1795,12 @@ _RHINO_WIN_PATHS = [
     r"C:\Program Files (x86)\Rhino 8\System\Rhino.exe",
 ]
 
+_RHINO_MAC_PATHS = [
+    "/Applications/Rhino 8.app/Contents/MacOS/Rhinoceros",
+    "/Applications/Rhino 7.app/Contents/MacOS/Rhinoceros",
+    "/Applications/RhinoWIP.app/Contents/MacOS/Rhinoceros",
+]
+
 def _is_wsl():
     """Detect if running inside WSL."""
     try:
@@ -1923,7 +1827,13 @@ def _wsl_to_win(wsl_path):
 
 def _find_rhino():
     """Return the Rhino executable path if found, else None.
+    On macOS, checks /Applications paths.
     In WSL, checks /mnt/c/ equivalents of Windows paths."""
+    if sys.platform == "darwin":
+        for p in _RHINO_MAC_PATHS:
+            if os.path.isfile(p):
+                return p
+        return None
     if _is_wsl():
         for wp in _RHINO_WIN_PATHS:
             wsl_p = _win_to_wsl(wp)
@@ -1978,6 +1888,19 @@ def cmd_setup(state, tokens, state_file):
     if sub != "rhino":
         raise ValueError(
             "Unknown setup target: '{}'. Options: rhino, status".format(sub))
+
+    # macOS: cannot launch Rhino via subprocess with the script flag the way
+    # Windows does. Print instructions for the user to load the startup script
+    # manually inside Rhino, then poll with 'setup status'.
+    if sys.platform == "darwin":
+        startup_path = os.path.join(
+            os.path.dirname(_script_dir()), "rhino", "startup.py")
+        lines = [
+            "OK: On macOS, start Rhino 8 manually, then in Rhino's command line run:",
+            "    _-RunPythonScript \"{}\"".format(startup_path),
+            "Then run 'setup status' here to confirm the watcher is up.",
+        ]
+        return state, "\n".join(lines)
 
     # Determine Rhino path (always a Windows-style path for launching)
     rhino_path = None
@@ -2060,6 +1983,29 @@ def cmd_setup(state, tokens, state_file):
 # ZONE / GRID / EXPORT COMMANDS
 # ══════════════════════════════════════════════════════════
 
+def _zone_validate(state, zone_name):
+    """Print WARNING lines for any boundary/overlap violations on the named zone.
+
+    Best-effort: silently does nothing if validation module is unavailable.
+    """
+    try:
+        from validation import (
+            check_zone_in_boundary_dict,
+            check_zone_overlaps_dict,
+        )
+        zones = state.get("zones", {})
+        zone = zones.get(zone_name)
+        if zone is None:
+            return
+        site = state.get("site", {})
+        for w in check_zone_in_boundary_dict(zone_name, zone, site):
+            print("WARNING: " + w)
+        for w in check_zone_overlaps_dict(zone_name, zone, zones):
+            print("WARNING: " + w)
+    except Exception:
+        pass
+
+
 def _cmd_zone(state, tokens):
     """Handle zone commands.
 
@@ -2095,6 +2041,7 @@ def _cmd_zone(state, tokens):
                 corners.append([float(parts[0]), float(parts[1])])
             zone = {"corners": corners, "program_type": "", "label": name, "braille": ""}
             zones[name] = zone
+            _zone_validate(state, name)
             area = _zone_area(corners)
             return state, f"Zone {name} added ({len(corners)} corners, {area:.0f} sq ft)."
 
@@ -2110,6 +2057,7 @@ def _cmd_zone(state, tokens):
         corners = [[x, y], [x + w, y], [x + w, y + d], [x, y + d]]
         zone = {"corners": corners, "program_type": ptype, "label": name, "braille": ""}
         zones[name] = zone
+        _zone_validate(state, name)
         return state, f"Zone {name} added ({w:.0f} x {d:.0f} ft at ({x:.0f}, {y:.0f}), area {w*d:.0f} sq ft)."
 
     elif sub == "remove":
@@ -2331,11 +2279,7 @@ def cmd_style(state, tokens, state_file=None):
         fmt = "png"
         # Try PDF if reportlab available
         try:
-            _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                       "..", "tools", "swell-print")
-            if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-                sys.path.insert(0, _swell_dir)
-            import pdf_generator as _pg
+            from output.core import pdf_generator as _pg
             png_path = os.path.join(out_dir, "style_test.png")
             sm.generate_test_swatch(png_path)
             pdf_path = os.path.join(out_dir, "style_test.pdf")
@@ -2428,16 +2372,11 @@ def cmd_view(state, tokens, state_file=None):
 
 
 def _view_plan(state, sm, out_dir, paper_override=None):
-    """Render a plan view using swell-print with style profile."""
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
-
+    """Render a plan view using output.core with style profile."""
     try:
-        import state_renderer as _sr
+        from output.core import state_renderer as _sr
     except ImportError:
-        raise ValueError("swell-print not installed. Run: pip install Pillow")
+        raise ValueError("output.core not installed. Run: pip install -e ./output")
 
     paper = paper_override or sm.get("layout.paper", "letter")
     dpi = 300
@@ -2452,7 +2391,7 @@ def _view_plan(state, sm, out_dir, paper_override=None):
 
     # Also save as PDF if reportlab available
     try:
-        import pdf_generator as _pg
+        from output.core import pdf_generator as _pg
         pdf_path = os.path.join(out_dir, "plan.pdf")
         _pg.generate_pdf(img, pdf_path, paper_size=paper)
         out_path = pdf_path
@@ -2482,15 +2421,10 @@ def _view_section(state, tokens, sm, out_dir):
     if not axis or gridline is None:
         raise ValueError("Usage: view section <x|y> <gridline> [--style <name>]")
 
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
-
     try:
-        import state_renderer as _sr
+        from output.core import state_renderer as _sr
     except ImportError:
-        raise ValueError("swell-print not installed.")
+        raise ValueError("output.core not installed. Run: pip install -e ./output")
 
     paper = sm.get("layout.paper", "letter")
     dpi = 300
@@ -2507,7 +2441,7 @@ def _view_section(state, tokens, sm, out_dir):
     img.save(out_path, dpi=(dpi, dpi))
 
     try:
-        import pdf_generator as _pg
+        from output.core import pdf_generator as _pg
         pdf_name = "section_{}_{}.pdf".format(axis, gridline)
         pdf_path = os.path.join(out_dir, pdf_name)
         _pg.generate_pdf(img, pdf_path, paper_size=paper)
@@ -2547,15 +2481,10 @@ def _view_axon(state, tokens, sm, out_dir):
     if len(positional) >= 2:
         angle2 = positional[1]
 
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
-
     try:
-        import state_renderer as _sr
+        from output.core import state_renderer as _sr
     except ImportError:
-        raise ValueError("swell-print not installed.")
+        raise ValueError("output.core not installed. Run: pip install -e ./output")
 
     paper = sm.get("layout.paper", "letter")
     dpi = 300
@@ -2574,7 +2503,7 @@ def _view_axon(state, tokens, sm, out_dir):
     img.save(out_path, dpi=(dpi, dpi))
 
     try:
-        import pdf_generator as _pg
+        from output.core import pdf_generator as _pg
         pdf_name = "axon{}.pdf".format(suffix)
         pdf_path = os.path.join(out_dir, pdf_name)
         _pg.generate_pdf(img, pdf_path, paper_size=paper)
@@ -2601,15 +2530,10 @@ def _view_elevation(state, tokens, sm, out_dir):
     if not direction:
         raise ValueError("Usage: view elevation <north|south|east|west> [--style <name>]")
 
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
-
     try:
-        import state_renderer as _sr
+        from output.core import state_renderer as _sr
     except ImportError:
-        raise ValueError("swell-print not installed.")
+        raise ValueError("output.core not installed. Run: pip install -e ./output")
 
     paper = sm.get("layout.paper", "letter")
     dpi = 300
@@ -2622,7 +2546,7 @@ def _view_elevation(state, tokens, sm, out_dir):
     img.save(out_path, dpi=(dpi, dpi))
 
     try:
-        import pdf_generator as _pg
+        from output.core import pdf_generator as _pg
         pdf_name = "elevation_{}.pdf".format(direction)
         pdf_path = os.path.join(out_dir, pdf_name)
         _pg.generate_pdf(img, pdf_path, paper_size=paper)
@@ -2668,15 +2592,10 @@ def _view_oblique(state, tokens, sm, out_dir):
     if cut_height is None:
         cut_height = state.get("tactile3d", {}).get("cut_height", 10.0)
 
-    _swell_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "tools", "swell-print")
-    if os.path.isdir(_swell_dir) and _swell_dir not in sys.path:
-        sys.path.insert(0, _swell_dir)
-
     try:
-        import state_renderer as _sr
+        from output.core import state_renderer as _sr
     except ImportError:
-        raise ValueError("swell-print not installed.")
+        raise ValueError("output.core not installed. Run: pip install -e ./output")
 
     paper = sm.get("layout.paper", "letter")
     dpi = 300
@@ -2692,7 +2611,7 @@ def _view_oblique(state, tokens, sm, out_dir):
     img.save(out_path, dpi=(dpi, dpi))
 
     try:
-        import pdf_generator as _pg
+        from output.core import pdf_generator as _pg
         pdf_name = "oblique{}.pdf".format(suffix)
         pdf_path = os.path.join(out_dir, pdf_name)
         _pg.generate_pdf(img, pdf_path, paper_size=paper)
@@ -2786,7 +2705,6 @@ def apply_command(state, tokens, state_file=None):
     if cmd == "hatch":    return cmd_hatch(state, tokens)
     if cmd == "legend":   return cmd_legend(state, tokens)
     if cmd == "tactile3d": return cmd_tactile3d(state, tokens)
-    if cmd == "bambu":    return cmd_bambu(state, tokens)
     if cmd == "tts":      return cmd_tts(state, tokens)
     if cmd == "section":  return cmd_section(state, tokens)
     if cmd == "history":  return cmd_history(state, tokens, state_file)
@@ -2859,7 +2777,7 @@ def do_print(state, state_file):
                     lines.append(f"  {line}")
             else:
                 lines.append("  (tact not installed; no image generated)")
-                lines.append("  Run: pip install -e tools/tact")
+                lines.append("  Run: pip install -e ./output")
     except Exception as e:
         lines.append(f"  (render failed: {e})")
     return "\n".join(lines)
@@ -2944,21 +2862,6 @@ TACTILE 3D (printable plan model):
   tactile3d export_path <filepath>
   tactile3d scale_factor <value>
   tactile3d export ................ trigger one-time STL export
-
-BAMBU PRINTER (3D print pipeline):
-  bambu config ip <address> ...... printer IP address
-  bambu config access_code <code>  access code from printer LCD
-  bambu config serial <number> ... printer serial number
-  bambu config printer_model <m> . p1s, x1c, a1, a1_mini, etc.
-  bambu config print_scale <N> ... 1:N representation scale (default 200)
-  bambu config stl_path <path> ... STL output path
-  bambu config slicer_path <path>  OrcaSlicer executable path
-  bambu preview .................. show dimensions and plate fit
-  bambu export [path] ............ build mesh, write binary STL
-  bambu slice .................... export + slice to 3MF
-  bambu send [path] .............. upload 3MF and start print
-  bambu print .................... full pipeline: export+slice+send
-  bambu status ................... poll printer progress
 
 HATCH LIBRARY:
   hatch list
@@ -3052,7 +2955,6 @@ def main():
     if "tactile3d" not in state: state["tactile3d"] = _default_tactile3d()
     if "auto_export" not in state.get("tactile3d",{}):
         state["tactile3d"]["auto_export"] = False
-    if "bambu" not in state: state["bambu"] = _default_bambu()
     if "tts" not in state: state["tts"] = _default_tts()
     if "section" not in state: state["section"] = _default_section()
     if args.tts:

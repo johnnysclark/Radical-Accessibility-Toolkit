@@ -98,9 +98,9 @@ _controller = os.path.join(_root, "controller")
 if _controller not in sys.path:
     sys.path.insert(0, _controller)
 
-_tools_rhino = os.path.join(_root, "tools", "rhino")
-if _tools_rhino not in sys.path:
-    sys.path.insert(0, _tools_rhino)
+_rhino_dir = os.path.join(_root, "rhino")
+if _rhino_dir not in sys.path:
+    sys.path.insert(0, _rhino_dir)
 
 import controller_cli as cli
 import braille
@@ -152,8 +152,6 @@ def _load_state():
         state["tactile3d"] = cli._default_tactile3d()
     if "auto_export" not in state.get("tactile3d", {}):
         state["tactile3d"]["auto_export"] = False
-    if "bambu" not in state:
-        state["bambu"] = cli._default_bambu()
     if "tts" not in state:
         state["tts"] = cli._default_tts()
     if "section" not in state:
