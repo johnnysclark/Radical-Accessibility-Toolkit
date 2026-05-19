@@ -1071,7 +1071,7 @@ def extend_controller(function_name: str, code: str) -> str:
     # Check command word doesn't conflict with existing commands
     existing_commands = [
         "corridor", "wall", "aperture", "room", "cell", "block",
-        "hatch", "legend", "tactile3d", "bambu", "tts", "section",
+        "hatch", "legend", "tactile3d", "tts", "section",
         "history", "snapshot", "set", "quit", "q", "exit", "help",
         "h", "describe", "d", "list", "l", "undo", "status", "print", "p"
     ]

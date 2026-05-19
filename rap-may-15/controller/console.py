@@ -898,15 +898,15 @@ def cmd_wall(state, tokens):
     w = bay["walls"]; sub = tokens[2].lower()
     if sub == "on":
         w["enabled"] = True
-        return state, f"Bay {name} walls ON, {w['thickness']*12:.0f}-inch thick."
+        return state, f"OK: Bay {name} walls ON, {w['thickness']*12:.0f}-inch thick."
     if sub == "off":
-        w["enabled"] = False; return state, f"Bay {name} walls OFF."
+        w["enabled"] = False; return state, f"OK: Bay {name} walls OFF."
     if sub == "thickness":
         if len(tokens) != 4: raise ValueError("wall <bay> thickness <feet>")
         val = _float(tokens[3],"thickness")
         if val <= 0: raise ValueError("Thickness must be > 0.")
         old = w.get("thickness",0.5); w["thickness"] = val
-        return state, f"Bay {name} wall thickness = {val:.3f} ft ({val*12:.1f} in). Was {old:.3f} ft."
+        return state, f"OK: Bay {name} wall thickness = {val:.3f} ft ({val*12:.1f} in). Was {old:.3f} ft."
     raise ValueError("Wall subcommands: on, off, thickness")
 
 def cmd_aperture(state, tokens):
@@ -945,14 +945,14 @@ def cmd_aperture(state, tokens):
         aps.append({"id": aid, "type": atype, "axis": axis, "gridline": gl,
                     "corner": cn, "width": wd, "height": ht,
                     "hinge": "start", "swing": "positive"})
-        return state, f"Bay {name} aperture '{aid}' added: {atype}, {axis}-gridline {gl}, {wd:.1f} x {ht:.1f} ft."
+        return state, f"OK: Bay {name} aperture '{aid}' added: {atype}, {axis}-gridline {gl}, {wd:.1f} x {ht:.1f} ft."
     if sub == "remove":
         if len(tokens) != 4: raise ValueError("aperture <bay> remove <id>")
         aid = tokens[3]
         idx = next((i for i,a in enumerate(aps) if a["id"]==aid), None)
         if idx is None: raise ValueError(f"No aperture '{aid}' in bay {name}.")
         removed = aps.pop(idx)
-        return state, f"Bay {name} aperture '{aid}' ({removed['type']}) removed."
+        return state, f"OK: Bay {name} aperture '{aid}' ({removed['type']}) removed."
     if sub == "set":
         if len(tokens) < 6: raise ValueError("aperture <bay> set <id> <field> <value>")
         aid = tokens[3]
@@ -962,39 +962,39 @@ def cmd_aperture(state, tokens):
         if field == "type":
             v = val.lower()
             if v not in ("door","window","portal"): raise ValueError("door, window, or portal.")
-            old = ap["type"]; ap["type"] = v; return state, f"Aperture {aid} type = {v}. Was {old}."
+            old = ap["type"]; ap["type"] = v; return state, f"OK: Aperture {aid} type = {v}. Was {old}."
         if field == "axis":
             v = val.lower()
             if v not in ("x","y"): raise ValueError("x or y.")
-            old = ap["axis"]; ap["axis"] = v; return state, f"Aperture {aid} axis = {v}. Was {old}."
+            old = ap["axis"]; ap["axis"] = v; return state, f"OK: Aperture {aid} axis = {v}. Was {old}."
         if field == "gridline":
             v = _int_nn(val,"gridline"); old = ap["gridline"]; ap["gridline"] = v
-            return state, f"Aperture {aid} gridline = {v}. Was {old}."
+            return state, f"OK: Aperture {aid} gridline = {v}. Was {old}."
         if field == "corner":
             v = _float(val,"corner"); old = ap["corner"]; ap["corner"] = v
-            return state, f"Aperture {aid} corner = {v:.1f} ft. Was {old:.1f} ft."
+            return state, f"OK: Aperture {aid} corner = {v:.1f} ft. Was {old:.1f} ft."
         if field == "width":
             v = _float(val,"width")
             if v <= 0: raise ValueError("Width must be > 0.")
             old = ap["width"]; ap["width"] = v
-            return state, f"Aperture {aid} width = {v:.1f} ft. Was {old:.1f} ft."
+            return state, f"OK: Aperture {aid} width = {v:.1f} ft. Was {old:.1f} ft."
         if field == "height":
             v = _float(val,"height")
             if v <= 0: raise ValueError("Height must be > 0.")
             old = ap["height"]; ap["height"] = v
-            return state, f"Aperture {aid} height = {v:.1f} ft. Was {old:.1f} ft."
+            return state, f"OK: Aperture {aid} height = {v:.1f} ft. Was {old:.1f} ft."
         if field == "hinge":
             v = val.lower()
             if v not in ("start","end"): raise ValueError("start or end.")
             old = ap.get("hinge","start"); ap["hinge"] = v
-            return state, f"Aperture {aid} hinge = {v}. Was {old}."
+            return state, f"OK: Aperture {aid} hinge = {v}. Was {old}."
         if field == "swing":
             v = val.lower()
             if v in ("positive","pos"): v = "positive"
             elif v in ("negative","neg"): v = "negative"
             else: raise ValueError("positive (pos) or negative (neg).")
             old = ap.get("swing","positive"); ap["swing"] = v
-            return state, f"Aperture {aid} swing = {v}. Was {old}."
+            return state, f"OK: Aperture {aid} swing = {v}. Was {old}."
         raise ValueError("Aperture fields: type, axis, gridline, corner, width, height, hinge, swing")
     raise ValueError("Aperture subcommands: add, remove, set, list")
 
@@ -2745,9 +2745,15 @@ def cmd_macro(state, tokens, state_file=None):
             except Exception as e:
                 errored[0] = True
                 return "ERROR: {}".format(e)
-            # Mutate state in place: replace top-level keys so closure sees update
-            state.clear()
-            state.update(new_state)
+            # apply_command mutates state in place and returns the same object.
+            # Only re-sync if it actually returned a different dict (defensive).
+            # NOTE: do NOT clear/update when new_state IS state -- that aliases the
+            # same dict and wipes it (DC9 regression: macro run case-study-house
+            # failed on the 2nd command with ERROR: 'bays').
+            if new_state is not state:
+                snapshot = copy.deepcopy(new_state)
+                state.clear()
+                state.update(snapshot)
             count[0] += 1
             return msg if isinstance(msg, str) else "OK"
 

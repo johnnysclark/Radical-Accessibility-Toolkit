@@ -13,6 +13,8 @@ Pass `--allow-non-mac` to override the platform check on Linux or Windows.
 
 ## Run the demo
 
+If you answered "Y" to setup's example prompt, `controller/state.json` is already loaded with the case study house; you can skip the example-loading step in `examples/README.md` and proceed directly below.
+
 Step 1. Launch the controller:
 
     ./scripts/start-mac.sh
@@ -27,6 +29,8 @@ Step 2. In Rhino 8 Mac, type at the command line:
 
     _-RunPythonScript "/path/to/rap-may-15/rhino/startup.py"
 
+Tip: on macOS, `start-mac.sh` already copied this command to your clipboard. In Rhino, just press Cmd-V then Return.
+
 Step 3. Drive the controller from the prompt. Type 'macro list' to see ready-made command sequences, or 'describe' to read the current model aloud.
 
     set site corners 0,0 100,0 100,80 0,80
@@ -34,7 +38,7 @@ Step 3. Drive the controller from the prompt. Type 'macro list' to see ready-mad
     tactile3d on
     tactile3d export
 
-Each command prints `OK: ...` on success or `ERROR: ...` on failure, followed by `READY:` when the state has settled.
+Each command prints `OK: ...` on success or `ERROR: ...` on failure. Multi-step commands (e.g., `macro run`, `template load`) print `READY:` when the full sequence settles.
 
 Site and zone corners use comma-separated `X,Y` pairs (no spaces inside a pair). Site syntax uses the `set` prefix; `zone add` and `tactile3d` do not. `tactile3d export` writes to the configured `export_path` (default `./tactile3d_export.stl`); use `tactile3d export_path "<path>"` to change it before exporting.
 
