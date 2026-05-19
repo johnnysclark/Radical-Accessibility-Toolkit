@@ -1,0 +1,5 @@
+# Radical Accessibility Controller — MCP server dependencies
+#
+# The controller, auditor, macro manager, and rhino client are
+# stdlib-only.  The MCP server is the sole external dependency.
+mcp>=1.26.0

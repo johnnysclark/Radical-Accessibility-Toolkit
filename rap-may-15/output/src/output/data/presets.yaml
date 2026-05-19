@@ -1,0 +1,137 @@
+# Image Conversion Presets
+# Optimized settings for common image types
+
+version: "1.0"
+
+presets:
+  floor_plan:
+    name: "Floor Plan"
+    description: "Architectural floor plans with walls and dimensions"
+    settings:
+      threshold: 140
+      enhance: "s_curve"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 40
+    notes: "Optimized for CAD-generated or hand-drawn floor plans with clean lines"
+
+  elevation:
+    name: "Building Elevation"
+    description: "Building elevations and section drawings"
+    settings:
+      threshold: 135
+      enhance: "s_curve"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 35
+    notes: "Good for elevation drawings that may have hatching patterns"
+
+  section:
+    name: "Section Drawing"
+    description: "Building sections with material hatching"
+    settings:
+      threshold: 145
+      enhance: "s_curve"
+      enhance_strength: 1.2
+      paper_size: "letter"
+      max_density: 35
+    notes: "Stronger enhancement for drawings with material indications"
+
+  photograph:
+    name: "Photograph"
+    description: "Photographs of buildings, models, or site conditions"
+    settings:
+      threshold: 120
+      enhance: "clahe"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 30
+    notes: "Uses CLAHE for photos with varying lighting. Lower density target."
+
+  technical_drawing:
+    name: "Technical Drawing"
+    description: "CAD-generated technical drawings with crisp lines"
+    settings:
+      threshold: 150
+      enhance: null
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 45
+    notes: "No enhancement needed - CAD drawings already have good contrast"
+
+  sketch:
+    name: "Hand Sketch"
+    description: "Hand-drawn sketches with pencil or pen"
+    settings:
+      threshold: 130
+      enhance: "s_curve"
+      enhance_strength: 1.3
+      paper_size: "letter"
+      max_density: 35
+    notes: "Stronger enhancement to capture lighter pencil lines"
+
+  diagram:
+    name: "Diagram"
+    description: "Conceptual diagrams, bubble diagrams, parti diagrams"
+    settings:
+      threshold: 135
+      enhance: "auto_contrast"
+      enhance_strength: 1.0
+      paper_size: "letter"
+      max_density: 35
+    notes: "Auto-contrast works well for simple diagrams"
+
+  site_plan:
+    name: "Site Plan"
+    description: "Site plans with landscape elements and topography"
+    settings:
+      threshold: 140
+      enhance: "s_curve"
+      enhance_strength: 1.0
+      paper_size: "tabloid"
+      max_density: 38
+    notes: "Often larger format, may need tabloid paper"
+
+  detail_drawing:
+    name: "Detail Drawing"
+    description: "Construction details and enlarged views"
+    settings:
+      threshold: 145
+      enhance: "s_curve"
+      enhance_strength: 1.1
+      paper_size: "letter"
+      max_density: 40
+    notes: "Higher threshold for detailed line work"
+
+  presentation:
+    name: "Presentation Board"
+    description: "Presentation boards with mixed content"
+    settings:
+      threshold: 125
+      enhance: "clahe"
+      enhance_strength: 1.0
+      paper_size: "tabloid"
+      max_density: 32
+    notes: "CLAHE for mixed images and text. Often larger format."
+
+# Default preset if none specified
+default: "floor_plan"
+
+# Preset recommendations based on image characteristics
+# These are suggestions for the interactive mode
+recommendations:
+  high_contrast:
+    - "technical_drawing"
+    - "floor_plan"
+
+  low_contrast:
+    - "sketch"
+    - "photograph"
+
+  large_format:
+    - "site_plan"
+    - "presentation"
+
+  detailed:
+    - "detail_drawing"
+    - "section"
