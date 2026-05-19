@@ -25,6 +25,8 @@ Lean macOS subset of the toolkit. CONTROLLER lives in `controller/`, WATCHER in 
 
 ## Obsidian Vault (docs/vault/)
 
+Note: these vault paths are at the repository root, not inside this `rap-may-15/` folder. The parent CLAUDE.md is authoritative; this section is kept here for cross-reference.
+
 The project's research documentation lives in an Obsidian vault symlinked at `docs/vault/`. This is the team's knowledge base — work sessions, tool docs, workflows, people, and project planning. The vault lives on OneDrive and is gitignored.
 
 Key vault locations:
@@ -40,13 +42,15 @@ When logging work sessions, use wiki-links (`[[Note-Name]]`) for cross-reference
 
 ## First-Time Setup
 
-If `controller/state.json` does not exist, this is a fresh clone. Run:
+If `controller/state.json` does not exist, this is a fresh clone. From the
+`rap-may-15/` folder run:
 
-    python setup.py
+    python3 setup.py
 
-This installs all dependencies (mcp, output, easyocr), creates `.mcp.json`,
-and initializes `state.json`. The MCP servers will be available immediately
-after setup completes.
+On non-macOS platforms add `--allow-non-mac`. This uninstalls the legacy
+"tact" package (if present), installs the OUTPUT package in editable mode,
+installs MCP server requirements, writes `.mcp.json` with absolute paths,
+and seeds a blank `controller/state.json`.
 
 No API keys needed — MCP servers run through the Claude Code subscription.
 
@@ -115,7 +119,7 @@ No API keys needed — MCP servers run through the Claude Code subscription.
 - Hook `Rhino.RhinoApp.Idle += on_idle` for file watching.
 - Check `os.path.getmtime()` to detect changes.
 - Full rebuild on change (correctness > speed). If incremental rebuild is added later, it must be layer-scoped and deterministic.
-- Tag all created objects with `JIG_OWNER`, `JIG_ID`, `JIG_SCHEMA` UserText.
+- Tag all created objects with `JIG_OWNER`, `JIG_ID`, `JIG_SCHEMA` UserText. JIG_OWNER value = `RAP` (formerly `PLJ` — old Rhino documents may still carry the legacy value).
 - Print status to Rhino command line: `"[ToolName] Rebuilt: 42 columns."`.
 - **No f-strings** — IronPython 2.7 doesn't support them. Use `.format()`.
 - **No pathlib** — use `os.path` throughout.
@@ -169,9 +173,11 @@ Branch names must be speakable and understandable when read aloud by a screen re
 
 ---
 
-## Controller Extensions
+## Controller Commands
 
-The Controller (`controller/console.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`, `export piaf`) output the model in multiple formats. These are built into the controller.
+The Controller (`controller/console.py`) includes zone, grid, and export commands for site-scale planning. Zone commands (`zone add`, `zone remove`, `zone list`, `zone describe`) manage named program zones. Grid commands (`grid set`, `grid describe`) manage structural grid overlays. Export commands (`export 3dm`, `export text`) output the model in multiple formats. These are built into the controller.
+
+PIAF tactile graphics are produced separately via the OUTPUT package: `output-cli render <state> --format jpg`.
 
 ---
 

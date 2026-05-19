@@ -1,5 +1,5 @@
 """
-MCP Server for TACT — Tactile Architectural Conversion Tool.
+MCP Server for OUTPUT — Tactile-Ready Renderer.
 
 Exposes tactile conversion tools to Claude, enabling natural language
 interaction for converting architectural images to tactile graphics.

@@ -32,7 +32,7 @@ one-way: controller writes, watcher reads.
 Run inside Rhino or Grasshopper Python:
     exec(open("C:/path/to/watcher.py").read())
 """
-import io, json, math, os, subprocess, time, threading
+import io, json, math, os, subprocess, sys, time, threading
 
 try:
     import rhinoscriptsyntax as rs
@@ -97,12 +97,15 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif"}
 #   "speak"  — spoken summary via Windows TTS (e.g. "2 bays, 1 door")
 #   "both"   — chime then speak
 #   "none"   — silent (screen reader users who read Rhino output)
-AUDIO_MODE = os.environ.get("LAYOUT_JIG_AUDIO", "both")
-SPEAK_RATE = int(os.environ.get("LAYOUT_JIG_SPEAK_RATE", "3"))
+AUDIO_MODE = os.environ.get("RAP_AUDIO", os.environ.get("LAYOUT_JIG_AUDIO", "both"))
+SPEAK_RATE = int(os.environ.get("RAP_SPEAK_RATE", os.environ.get("LAYOUT_JIG_SPEAK_RATE", "3")))
 
 
 def _chime():
     """Play a short system beep. Non-blocking, fire-and-forget."""
+    # Windows-only: powershell.exe doesn't exist on macOS/Linux.
+    if sys.platform != 'win32':
+        return
     try:
         # Windows: [System.Console]::Beep(frequency_hz, duration_ms)
         subprocess.Popen(
@@ -118,6 +121,10 @@ def _speak(text):
 
     Non-blocking (fire-and-forget). Uses SPEAK_RATE for speed.
     """
+    # Windows-only: powershell.exe doesn't exist on macOS/Linux. On macOS
+    # the user already has VoiceOver, so doubling up via `say` would be noisy.
+    if sys.platform != 'win32':
+        return
     escaped = text.replace("'", "''")
     ps_cmd = (
         "Add-Type -AssemblyName System.Speech;"
@@ -331,7 +338,7 @@ def _draw_zones(state):
         pts.append(rs.CreatePoint(corners[0][0], corners[0][1], 0))  # close
         obj = rs.AddPolyline(pts)
         if obj:
-            rs.SetUserText(obj, "JIG_OWNER", "PLJ")
+            rs.SetUserText(obj, "JIG_OWNER", "RAP")
             rs.SetUserText(obj, "JIG_ID", "zone_{0}".format(zname))
         # Label at centroid
         label = zdata.get("label", zname)

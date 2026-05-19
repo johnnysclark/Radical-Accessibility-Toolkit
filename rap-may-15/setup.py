@@ -76,6 +76,28 @@ def main():
         with open(state_path, "w") as fh:
             json.dump(state, fh, indent=2)
 
+    # Offer to load the case-study-house example
+    example_src = os.path.join("examples", "case-study-house.state.json")
+    example_macro = os.path.join("examples", "case-study-house.macro.json")
+    macros_dir = os.path.join("controller", "macros")
+    if os.path.isfile(example_src):
+        print("OK: A case-study-house example is bundled in examples/.")
+        answer = ""
+        try:
+            answer = input("Load it as the active state now? [Y/n] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            answer = "n"
+        if answer in ("", "y", "yes"):
+            import shutil
+            shutil.copyfile(example_src, os.path.join("controller", "state.json"))
+            os.makedirs(macros_dir, exist_ok=True)
+            if os.path.isfile(example_macro):
+                shutil.copyfile(example_macro, os.path.join(macros_dir, "case-study-house.macro.json"))
+            print("OK: Loaded examples/case-study-house.state.json into controller/state.json")
+            print("OK: Copied case-study-house.macro.json into controller/macros/")
+        else:
+            print("Skipped. To load later: cp examples/case-study-house.state.json controller/state.json")
+
     print("OK: Setup complete.")
     print("Next: ./scripts/start-mac.sh")
 

@@ -486,7 +486,7 @@ def load_state(path):
     return state
 
 def save_state(path, state):
-    state["meta"]["last_saved"] = _now()
+    state.setdefault("meta", {})["last_saved"] = _now()
     _atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False))
 
 # ══════════════════════════════════════════════════════════
@@ -1420,6 +1420,11 @@ def cmd_tactile3d(state, tokens):
         # Trigger a one-time export on next redraw (Rhino watcher path).
         t3["_export_once"] = True
         out = tokens[2] if len(tokens) > 2 else t3.get("export_path", "./tactile_model.stl")
+        # Auto-create parent dir so `tactile3d export figures/house.stl` works
+        # on first run instead of erroring on a missing folder.
+        _parent = os.path.dirname(os.path.abspath(out))
+        if _parent and not os.path.isdir(_parent):
+            os.makedirs(_parent, exist_ok=True)
         # Also write STL directly from Python so the file appears immediately
         # even if Rhino is not running (macOS quick-screenshot flow).
         try:
@@ -3013,7 +3018,7 @@ OUTPUT:
   print
 
 TEMPLATES (startup configurations):
-  template list ............ list available jig templates
+  template list ............ list available templates
   template show <name> ..... show template parameters
   template load <name> ..... load a template (replaces state, undoable)
   template load <name> key=val  load with parameter overrides
@@ -3090,7 +3095,15 @@ def main():
     print(f"State: {state_file}")
     if state.get("tts", {}).get("enabled"):
         print("TTS: ON")
-    print("Type 'help' for commands, 'describe' for full model info, 'macro list' for ready-made command sequences.\n")
+    print("Type 'help' for commands, 'describe' for full model info, 'macro list' for ready-made command sequences.")
+    try:
+        if _rhino_is_connected():
+            print("OK: Rhino watcher detected on 127.0.0.1:1998.")
+        else:
+            print("Note: Rhino watcher not detected. To activate it, in Rhino 8 Mac type the line printed by scripts/start-mac.sh.")
+    except Exception:
+        print("Tip: run 'setup status' to verify the Rhino watcher is reachable.")
+    print()
     save_state(state_file, state)
     while True:
         try: raw = input(">> ").strip()

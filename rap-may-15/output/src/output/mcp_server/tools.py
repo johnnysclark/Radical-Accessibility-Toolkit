@@ -11,12 +11,12 @@ from pathlib import Path
 from typing import Optional, Union, List, Dict, Any, Tuple
 
 # Heavy imports are lazy-loaded for fast MCP server startup.
-# Call _ensure_imports() before using any tact classes.
+# Call _ensure_imports() before using any output classes.
 _imports_loaded = False
 
 
 def _ensure_imports():
-    """Lazy-load heavy tact dependencies on first tool call."""
+    """Lazy-load heavy output dependencies on first tool call."""
     global _imports_loaded
     if _imports_loaded:
         return
@@ -383,7 +383,7 @@ async def _process_color_to_tactile(
     preset,
     detect_text: bool,
     braille_grade: int,
-    rainbowtact_num_colors: int,
+    rainbow_num_colors: int,
     merged_detected_texts,
     use_abbreviation_key: bool,
     force_abbreviation_key: bool,
@@ -403,7 +403,7 @@ async def _process_color_to_tactile(
         processed_image, metadata, color_regions, tactile_patterns = \
             processor.process_with_color_to_tactile(
                 input_path=image_path_for_processing,
-                num_colors=color_to_tactile_num_colors,
+                num_colors=rainbow_num_colors,
                 detect_text=detect_text and not merged_detected_texts,
                 paper_size=effective_paper_size,
             )
@@ -476,9 +476,9 @@ async def _process_color_to_tactile(
 
         c = reportlab_canvas.Canvas(output_path, pagesize=(page_width_pts, page_height_pts))
         c.setTitle(metadata.get('source_file', 'PIAF Color-Tactile'))
-        c.setAuthor("TACT — Tactile Architectural Conversion Tool")
+        c.setAuthor("OUTPUT — Tactile-Ready Renderer")
         c.setSubject("Color-to-tactile graphics for PIAF printing")
-        c.setCreator("tact")
+        c.setCreator("output")
 
         pdf_generator.image_height = processed_image.size[1]
 
@@ -1045,7 +1045,7 @@ async def image_to_piaf(
                 preset=preset,
                 detect_text=detect_text,
                 braille_grade=braille_grade,
-                color_to_tactile_num_colors=color_to_tactile_num_colors,
+                rainbow_num_colors=color_to_tactile_num_colors,
                 merged_detected_texts=merged_detected_texts,
                 use_abbreviation_key=use_abbreviation_key,
                 force_abbreviation_key=force_abbreviation_key,

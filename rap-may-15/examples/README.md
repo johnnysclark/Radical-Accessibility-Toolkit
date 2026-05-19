@@ -12,7 +12,9 @@ The paper frames the demo as three layers. Each layer maps onto a controller pri
 - Layer 2 — Panels. The perimeter walls with apertures. With walls enabled and aperture entries for the south, north, east, and west faces, the watcher cuts a door and five windows into the panels surrounding the structural bay.
 - Layer 3 — Slabs. The tactile3d floor option. With `tactile3d` enabled and `floor on`, the watcher extrudes a floor slab under the footprint. This is the slab the user reads with their hands.
 
-## Run the example (load the pre-built state)
+## Run the example
+
+If you ran `setup.py` interactively and answered yes to the example prompt, the state is already loaded — skip to Step 2.
 
 Three commands. From the `rap-may-15` folder:
 
@@ -39,9 +41,9 @@ Three commands. From the `rap-may-15` folder:
 
    The geometry rebuilds in the viewport: site rectangle, 12 column dots, perimeter walls with the six apertures cut out, two zones, and the tactile3d slab.
 
-## Run the example (rebuild from the macro)
+### Alternative: rebuild from a macro
 
-Alternative path. Reach the same end state by replaying the construction commands on a default start.
+If you want to see how the house is composed step-by-step, you can replay the macro instead. This rebuilds the same geometry from a sequence of CLI commands.
 
 1. Copy the macro into the controller's macros folder:
 
@@ -52,6 +54,8 @@ Alternative path. Reach the same end state by replaying the construction command
        macro run case-study-house
 
    The macro prints one OK line per command. After the 27 commands execute, the state matches `case-study-house.state.json`.
+
+   Note: the macro only adds the constructed bay (A). If the default start includes any pre-seeded bays B or C, those will remain in the state alongside bay A.
 
 ## Capture the paper figures
 

@@ -35,8 +35,8 @@ from output.mcp_server.tools import (
 
 # Initialize MCP server
 mcp = FastMCP(
-    name="tact",
-    instructions="TACT — Tactile Architectural Conversion Tool. Use image_to_piaf to convert images to PIAF-ready PDFs — text detection and Braille conversion happen automatically in a single call. Use list_presets to see available presets, analyze_image for pre-conversion checks, and describe_image for detailed accessibility descriptions of architectural images. For Braille sticker workflows, use sticker_workflow=true to generate dual PDFs (PIAF version + text-only for second print pass). For color images, use color_to_tactile=true to convert colors into distinguishable tactile patterns (waves for chromatic, dots for achromatic) with a color pattern legend page."
+    name="output",
+    instructions="OUTPUT — Tactile-Ready Renderer for the Radical Accessibility Controller. Use image_to_piaf to convert images to PIAF-ready PDFs — text detection and Braille conversion happen automatically in a single call. Use list_presets to see available presets, analyze_image for pre-conversion checks, and describe_image for detailed accessibility descriptions of architectural images. For Braille sticker workflows, use sticker_workflow=true to generate dual PDFs (PIAF version + text-only for second print pass). For color images, use color_to_tactile=true to convert colors into distinguishable tactile patterns (waves for chromatic, dots for achromatic) with a color pattern legend page."
 )
 
 # Register tools
