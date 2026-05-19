@@ -1337,8 +1337,8 @@ def cmd_legend(state, tokens):
         "show_braille|show_hatches|show_apertures|swatch_size|"
         "row_height|text_height|braille_height|padding|border_weight_mm")
     sub = tokens[1].lower()
-    if sub == "on":  leg["enabled"] = True;  return state, "Legend ON."
-    if sub == "off": leg["enabled"] = False; return state, "Legend OFF."
+    if sub == "on":  leg["enabled"] = True;  return state, "OK: Legend ON."
+    if sub == "off": leg["enabled"] = False; return state, "OK: Legend OFF."
     if sub == "position":
         v = tokens[2].lower() if len(tokens) > 2 else ""
         valid = ("bottom-right","bottom-left","top-right","top-left","custom")
@@ -1512,10 +1512,10 @@ def _cmd_set_print(state, tokens):
         if "x" not in raw.lower(): raise ValueError('Format: WxH (e.g. 24x36)')
         parts = raw.lower().split("x"); w = _float(parts[0],"w"); h = _float(parts[1],"h")
         pr["paper_width_in"] = w; pr["paper_height_in"] = h
-        return state, f'Paper = {w} x {h} inches.'
+        return state, f'OK: Paper = {w} x {h} inches.'
     if f == "margin":
         v = _float(tokens[3],"margin"); pr["margin_in"] = v
-        return state, f'Margin = {v} inches.'
+        return state, f'OK: Margin = {v} inches.'
     if f == "dpi":
         v = _int_pos(tokens[3],"dpi"); pr["dpi"] = v; return state, f"OK: DPI = {v}."
     if f == "format":
@@ -2153,7 +2153,7 @@ def _cmd_grid(state, tokens):
 
     elif sub == "clear":
         state["grid"] = None
-        return state, "Grid cleared."
+        return state, "OK: Grid cleared."
 
     else:
         raise ValueError(f"Unknown grid subcommand '{sub}'. Use: set, origin, clear")
