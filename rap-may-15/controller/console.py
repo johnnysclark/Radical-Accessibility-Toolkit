@@ -915,7 +915,7 @@ def cmd_aperture(state, tokens):
     if "apertures" not in bay: bay["apertures"] = []
     aps = bay["apertures"]; sub = tokens[2].lower()
     if sub == "list":
-        if not aps: return state, f"Bay {name}: no apertures."
+        if not aps: return state, f"OK: Bay {name}: no apertures."
         lines = [f"Bay {name} apertures ({len(aps)}):"]
         lines.append("  ID     Type     Axis  GL   Corner   Width   Height  Hinge   Swing")
         lines.append("  " + "-" * 70)
@@ -1003,33 +1003,33 @@ def cmd_corridor(state, tokens):
     name, bay = _resolve_bay(state, tokens)
     if "corridor" not in bay: bay["corridor"] = _default_corridor()
     cor = bay["corridor"]; sub = tokens[2].lower()
-    if sub == "on":  cor["enabled"] = True;  return state, f"Bay {name} corridor ON."
-    if sub == "off": cor["enabled"] = False; return state, f"Bay {name} corridor OFF."
+    if sub == "on":  cor["enabled"] = True;  return state, f"OK: Bay {name} corridor ON."
+    if sub == "off": cor["enabled"] = False; return state, f"OK: Bay {name} corridor OFF."
     if len(tokens) < 4: raise ValueError(f"corridor {name} {sub} needs a value.")
     if sub == "axis":
         v = tokens[3].lower()
         if v not in ("x","y"): raise ValueError("x or y.")
-        old = cor["axis"]; cor["axis"] = v; return state, f"Bay {name} corridor axis = {v}. Was {old}."
+        old = cor["axis"]; cor["axis"] = v; return state, f"OK: Bay {name} corridor axis = {v}. Was {old}."
     if sub == "position":
         v = int(tokens[3]); old = cor["position"]; cor["position"] = v
-        return state, f"Bay {name} corridor position = gridline {v}. Was {old}."
+        return state, f"OK: Bay {name} corridor position = gridline {v}. Was {old}."
     if sub == "width":
         v = _float(tokens[3],"width")
         if v <= 0: raise ValueError("Width must be > 0.")
         old = cor["width"]; cor["width"] = v
-        return state, f"Bay {name} corridor width = {v} ft. Was {old} ft."
+        return state, f"OK: Bay {name} corridor width = {v} ft. Was {old} ft."
     if sub == "loading":
         v = tokens[3].lower()
         if v not in ("single","double"): raise ValueError("single or double.")
         old = cor.get("loading","double"); cor["loading"] = v
-        return state, f"Bay {name} corridor loading = {v}. Was {old}."
+        return state, f"OK: Bay {name} corridor loading = {v}. Was {old}."
     if sub == "hatch":
         v = tokens[3]; v = "none" if v.lower() in ("none","off") else v
         old = cor.get("hatch","none"); cor["hatch"] = v
-        return state, f"Bay {name} corridor hatch = {v}. Was {old}."
+        return state, f"OK: Bay {name} corridor hatch = {v}. Was {old}."
     if sub in ("hatch_scale","hatchscale"):
         v = _float(tokens[3],"hatch_scale"); old = cor.get("hatch_scale",4.0); cor["hatch_scale"] = v
-        return state, f"Bay {name} corridor hatch_scale = {v}. Was {old}."
+        return state, f"OK: Bay {name} corridor hatch_scale = {v}. Was {old}."
     raise ValueError("Corridor subcommands: on, off, axis, position, width, loading, hatch, hatch_scale")
 
 # ══════════════════════════════════════════════════════════
@@ -1055,7 +1055,7 @@ def cmd_room(state, tokens):
         return state, "\n".join(lines)
     if sub == "refresh":
         state["rooms"] = _auto_rooms(state.get("bays",{}))
-        return state, f"Rooms refreshed: {len(state['rooms'])} rooms."
+        return state, f"OK: Rooms refreshed: {len(state['rooms'])} rooms."
     if sub == "add":
         if len(tokens) < 4: raise ValueError("room add <id> bay|void|landscape [source_bay]")
         rid = tokens[2]
@@ -1065,12 +1065,12 @@ def cmd_room(state, tokens):
         src = tokens[4].upper() if len(tokens) > 4 else None
         rooms[rid] = {"type": rt, "source_bay": src, "label": rid, "braille": "",
                       "hatch_image": "none", "hatch_scale": 1.0, "hatch_rotation": 0.0}
-        return state, f"Room '{rid}' added (type={rt})."
+        return state, f"OK: Room '{rid}' added (type={rt})."
     if sub == "remove":
         if len(tokens) != 3: raise ValueError("room remove <id>")
         rid = tokens[2]
         if rid not in rooms: raise ValueError(f"No room '{rid}'.")
-        del rooms[rid]; return state, f"Room '{rid}' removed."
+        del rooms[rid]; return state, f"OK: Room '{rid}' removed."
     # Direct room access by ID
     rid = tokens[1]
     if rid not in rooms: raise ValueError(f"No room '{rid}'. Try 'room list'.")
@@ -1084,17 +1084,17 @@ def cmd_room(state, tokens):
         raw = " ".join(tokens[3:])
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = rm.get(field,""); rm[field] = raw
-        return state, f"Room {rid} {field} = '{raw}'. Was '{old}'."
+        return state, f"OK: Room {rid} {field} = '{raw}'. Was '{old}'."
     if field == "hatch":
         v = tokens[3]; v = "none" if v.lower() in ("none","off") else v
         old = rm.get("hatch_image","none"); rm["hatch_image"] = v
-        return state, f"Room {rid} hatch = {v}. Was {old}."
+        return state, f"OK: Room {rid} hatch = {v}. Was {old}."
     if field == "hatch_scale":
         v = _float(tokens[3],"s"); old = rm.get("hatch_scale",1.0); rm["hatch_scale"] = v
-        return state, f"Room {rid} hatch_scale = {v}. Was {old}."
+        return state, f"OK: Room {rid} hatch_scale = {v}. Was {old}."
     if field in ("hatch_rotation","hatch_rot"):
         v = _float(tokens[3],"deg"); old = rm.get("hatch_rotation",0.0); rm["hatch_rotation"] = v
-        return state, f"Room {rid} hatch_rotation = {v} deg. Was {old} deg."
+        return state, f"OK: Room {rid} hatch_rotation = {v} deg. Was {old} deg."
     raise ValueError("Room fields: label, braille, hatch, hatch_scale, hatch_rotation")
 
 def cmd_cell(state, tokens):
@@ -1137,7 +1137,7 @@ def cmd_cell(state, tokens):
     if sub == "rooms":
         rooms = _room_summary(bay)
         if not rooms:
-            return state, f"Bay {bay_name}: no cells defined."
+            return state, f"OK: Bay {bay_name}: no cells defined."
         lines = [f"Bay {bay_name} rooms:"]
         lines.append(f"  {'Name':<24} {'Cells':>5}  {'Area':>10}")
         lines.append("  " + "-" * 44)
@@ -1154,13 +1154,13 @@ def cmd_cell(state, tokens):
     # ── cell <bay> clear_all ──
     if sub == "clear_all":
         bay["cells"] = _init_cells(bay)
-        return state, f"Bay {bay_name}: all {nx*ny} cells reset."
+        return state, f"OK: Bay {bay_name}: all {nx*ny} cells reset."
 
     # ── cell <bay> auto_corridor ──
     if sub == "auto_corridor":
         cor = bay.get("corridor", {})
         if not cor.get("enabled"):
-            return state, f"Bay {bay_name} has no corridor enabled."
+            return state, f"OK: Bay {bay_name} has no corridor enabled."
         cx_arr, cy_arr = _get_spacing_arrays(bay)
         axis = cor.get("axis","x"); pos = cor.get("position",1)
         half_w = cor.get("width",8.0) / 2.0
@@ -1196,7 +1196,7 @@ def cmd_cell(state, tokens):
         if cor_cells:
             mid = cor_cells[len(cor_cells)//2]
             cells[f"{mid[0]},{mid[1]}"]["label"] = "Corridor"
-        return state, f"Bay {bay_name}: {count} cells marked as Corridor."
+        return state, f"OK: Bay {bay_name}: {count} cells marked as Corridor."
 
     # ── cell <bay> <ref> clear ──
     # ── cell <bay> <ref> <field> <value> ──
@@ -1224,7 +1224,7 @@ def cmd_cell(state, tokens):
                 "name": "", "label": "", "braille": "",
                 "hatch": "none", "hatch_scale": 1.0, "hatch_rotation": 0.0}
         n = len(targets)
-        return state, f"{n} cell{'s' if n > 1 else ''} cleared in bay {bay_name}."
+        return state, f"OK: {n} cell{'s' if n > 1 else ''} cleared in bay {bay_name}."
     if len(tokens) < 5:
         raise ValueError(f"cell {bay_name} {ref} {field} <value>")
     if field in ("name","label","braille"):
@@ -1235,26 +1235,26 @@ def cmd_cell(state, tokens):
         n = len(targets)
         if n == 1:
             c, r = targets[0]
-            return state, f"Cell {bay_name} {c},{r} {field} = \"{val}\"."
+            return state, f"OK: Cell {bay_name} {c},{r} {field} = \"{val}\"."
         total_area = sum(_cell_area(bay, c, r) for c, r in targets)
-        return state, (f"{n} cells in bay {bay_name} {field} = \"{val}\". "
+        return state, (f"OK: {n} cells in bay {bay_name} {field} = \"{val}\". "
                        f"Combined area: {total_area:,.0f} sq ft.")
     if field == "hatch":
         val = tokens[4]; val = "none" if val.lower() in ("none","off") else val
         for c, r in targets:
             cells[f"{c},{r}"]["hatch"] = val
         n = len(targets)
-        return state, f"{n} cell{'s' if n > 1 else ''} in bay {bay_name} hatch = {val}."
+        return state, f"OK: {n} cell{'s' if n > 1 else ''} in bay {bay_name} hatch = {val}."
     if field == "hatch_scale":
         val = _float(tokens[4], "scale")
         for c, r in targets:
             cells[f"{c},{r}"]["hatch_scale"] = val
-        return state, f"Cell{'s' if len(targets)>1 else ''} hatch_scale = {val}."
+        return state, f"OK: Cell{'s' if len(targets)>1 else ''} hatch_scale = {val}."
     if field in ("hatch_rotation","hatch_rot"):
         val = _float(tokens[4], "deg")
         for c, r in targets:
             cells[f"{c},{r}"]["hatch_rotation"] = val
-        return state, f"Cell{'s' if len(targets)>1 else ''} hatch_rotation = {val} deg."
+        return state, f"OK: Cell{'s' if len(targets)>1 else ''} hatch_rotation = {val} deg."
     raise ValueError("Cell fields: name, label, braille, hatch, hatch_scale, "
                      "hatch_rotation, clear")
 
@@ -1279,19 +1279,19 @@ def cmd_block(state, tokens):
     field = tokens[2].lower(); val = tokens[3] if len(tokens) > 3 else ""
     if field == "symbol":
         old = bk.get("symbol",""); bk["symbol"] = val
-        return state, f"Block {sub} symbol = {val}. Was {old}."
+        return state, f"OK: Block {sub} symbol = {val}. Was {old}."
     if field == "label":
         bk["show_label"] = val.lower() in ("on","true","yes","1")
-        return state, f"Block {sub} show_label = {bk['show_label']}."
+        return state, f"OK: Block {sub} show_label = {bk['show_label']}."
     if field == "label_height":
         v = _float(val,"h"); old = bk.get("label_height",1.5); bk["label_height"] = v
-        return state, f"Block {sub} label_height = {v}. Was {old}."
+        return state, f"OK: Block {sub} label_height = {v}. Was {old}."
     if field in ("tactile_weight","weight"):
         v = _float(val,"w"); old = bk.get("tactile_weight_mm",0.35); bk["tactile_weight_mm"] = v
-        return state, f"Block {sub} tactile_weight = {v} mm. Was {old} mm."
+        return state, f"OK: Block {sub} tactile_weight = {v} mm. Was {old} mm."
     if field == "label_prefix":
         old = bk.get("label_prefix",""); bk["label_prefix"] = val
-        return state, f"Block {sub} label_prefix = '{val}'. Was '{old}'."
+        return state, f"OK: Block {sub} label_prefix = '{val}'. Was '{old}'."
     raise ValueError("Block fields: symbol, label, label_height, tactile_weight, label_prefix")
 
 def cmd_hatch(state, tokens):
@@ -1299,7 +1299,7 @@ def cmd_hatch(state, tokens):
     sub = tokens[1].lower()
     if sub == "list":
         hlp = state.get("hatch_library_path","./hatches/")
-        if not os.path.isdir(hlp): return state, f"Folder not found: {hlp}\nUse 'hatch path <folder>'."
+        if not os.path.isdir(hlp): return state, f"ERROR: Folder not found: {hlp}\nUse 'hatch path <folder>'."
         imgs = _scan_hatch_folder(hlp)
         if not imgs: return state, f"No images in {hlp}."
         lines = [f"Hatch library: {hlp}  ({len(imgs)} images)"]
@@ -1313,7 +1313,7 @@ def cmd_hatch(state, tokens):
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = state.get("hatch_library_path","./hatches/"); state["hatch_library_path"] = raw
         exists = os.path.isdir(raw); n = len(_scan_hatch_folder(raw)) if exists else 0
-        return state, f"Hatch path = {raw}. Was {old}. {'Found' if exists else 'NOT FOUND'}: {n} images."
+        return state, f"OK: Hatch path = {raw}. Was {old}. {'Found' if exists else 'NOT FOUND'}: {n} images."
     if sub == "add":
         if len(tokens) < 4: raise ValueError("hatch add <name> <source_image_path>")
         hatch_name = tokens[2]; src_path = tokens[3]
@@ -1326,7 +1326,7 @@ def cmd_hatch(state, tokens):
         os.makedirs(hlp, exist_ok=True)
         dest = os.path.join(hlp, hatch_name + ext)
         import shutil; shutil.copy2(src_path, dest)
-        return state, f"Hatch '{hatch_name}' added: {dest}"
+        return state, f"OK: Hatch '{hatch_name}' added: {dest}"
     raise ValueError("Hatch subcommands: list, path, add")
 
 def cmd_legend(state, tokens):
@@ -1346,25 +1346,25 @@ def cmd_legend(state, tokens):
         leg["position"] = v
         if v == "custom" and len(tokens) >= 5:
             leg["custom_origin"] = [_float(tokens[3],"x"), _float(tokens[4],"y")]
-        return state, f"Legend position = {v}."
+        return state, f"OK: Legend position = {v}."
     if sub in ("title","title_braille"):
         raw = " ".join(tokens[2:])
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = leg.get(sub,""); leg[sub] = raw
-        return state, f"Legend {sub} = '{raw}'. Was '{old}'."
+        return state, f"OK: Legend {sub} = '{raw}'. Was '{old}'."
     if sub == "width":
         v = _float(tokens[2],"w"); old = leg.get("width",40); leg["width"] = v
-        return state, f"Legend width = {v} ft. Was {old} ft."
+        return state, f"OK: Legend width = {v} ft. Was {old} ft."
     bool_fields = {"show_braille","show_hatches","show_apertures"}
     if sub in bool_fields:
         v = tokens[2].lower() if len(tokens) > 2 else "on"
         leg[sub] = v in ("on","true","yes","1")
-        return state, f"Legend {sub} = {leg[sub]}."
+        return state, f"OK: Legend {sub} = {leg[sub]}."
     num_fields = {"swatch_size","row_height","text_height","braille_height",
                   "padding","border_weight_mm"}
     if sub in num_fields:
         v = _float(tokens[2], sub); old = leg.get(sub, 0); leg[sub] = v
-        return state, f"Legend {sub} = {v}. Was {old}."
+        return state, f"OK: Legend {sub} = {v}. Was {old}."
     raise ValueError("Legend subcommands: on, off, position, width, title, title_braille, "
                      "show_braille, show_hatches, show_apertures, swatch_size, "
                      "row_height, text_height, braille_height, padding, border_weight_mm")
@@ -1387,35 +1387,35 @@ def cmd_tactile3d(state, tokens):
         v = _float(tokens[2],"h")
         if v <= 0: raise ValueError("Must be > 0.")
         old = t3.get("wall_height",9.0); t3["wall_height"] = v
-        return state, f"Tactile3D wall_height = {v} ft. Was {old} ft."
+        return state, f"OK: Tactile3D wall_height = {v} ft. Was {old} ft."
     if sub == "cut_height":
         v = _float(tokens[2],"h")
         if v <= 0: raise ValueError("Must be > 0.")
         old = t3.get("cut_height",4.0); t3["cut_height"] = v
-        return state, f"Tactile3D cut_height = {v} ft. Was {old} ft."
+        return state, f"OK: Tactile3D cut_height = {v} ft. Was {old} ft."
     if sub == "floor_thickness":
         v = _float(tokens[2],"t")
         if v <= 0: raise ValueError("Must be > 0.")
         old = t3.get("floor_thickness",0.5); t3["floor_thickness"] = v
-        return state, f"Tactile3D floor_thickness = {v} ft. Was {old} ft."
+        return state, f"OK: Tactile3D floor_thickness = {v} ft. Was {old} ft."
     if sub == "floor":
         v = tokens[2].lower() if len(tokens) > 2 else "on"
         t3["floor_enabled"] = v in ("on","true","yes","1")
-        return state, f"Tactile3D floor = {'ON' if t3['floor_enabled'] else 'OFF'}."
+        return state, f"OK: Tactile3D floor = {'ON' if t3['floor_enabled'] else 'OFF'}."
     if sub == "auto_export":
         v = tokens[2].lower() if len(tokens) > 2 else "off"
         t3["auto_export"] = v in ("on","true","yes","1")
-        return state, f"Tactile3D auto_export = {'ON' if t3['auto_export'] else 'OFF'}."
+        return state, f"OK: Tactile3D auto_export = {'ON' if t3['auto_export'] else 'OFF'}."
     if sub == "export_path":
         raw = tokens[2]
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = t3.get("export_path",""); t3["export_path"] = raw
-        return state, f"Tactile3D export_path = {raw}. Was {old}."
+        return state, f"OK: Tactile3D export_path = {raw}. Was {old}."
     if sub == "scale_factor":
         v = _float(tokens[2],"s")
         if v <= 0: raise ValueError("Must be > 0.")
         old = t3.get("scale_factor",1.0); t3["scale_factor"] = v
-        return state, f"Tactile3D scale_factor = {v}. Was {old}."
+        return state, f"OK: Tactile3D scale_factor = {v}. Was {old}."
     if sub == "export":
         # Trigger a one-time export on next redraw (Rhino watcher path).
         t3["_export_once"] = True
@@ -1477,14 +1477,14 @@ def _cmd_set_site(state, tokens):
     ox, oy = site.get("origin", [0.0, 0.0])
     w, h = site.get("width", 180), site.get("height", 260)
     site["corners"] = [[ox, oy], [ox + w, oy], [ox + w, oy + h], [ox, oy + h]]
-    return state, f"Site {f} = {v} ft. Was {old} ft."
+    return state, f"OK: Site {f} = {v} ft. Was {old} ft."
 
 def _cmd_set_column(state, tokens):
     if len(tokens) != 4 or tokens[2].lower() != "size": raise ValueError("set column size <value>")
     v = _float(tokens[3],"size")
     if v <= 0: raise ValueError("Must be > 0.")
     old = state["style"]["column_size"]; state["style"]["column_size"] = v
-    return state, f"Column size = {v} ft. Was {old} ft."
+    return state, f"OK: Column size = {v} ft. Was {old} ft."
 
 def _cmd_set_style(state, tokens):
     if len(tokens) != 4: raise ValueError("set style <field> <value>")
@@ -1497,7 +1497,7 @@ def _cmd_set_style(state, tokens):
          "arc_segments":"arc_segments"}
     if f not in m: raise ValueError(f"Style fields: {', '.join(sorted(m))}")
     v = _float(tokens[3],f); old = state["style"].get(m[f],0); state["style"][m[f]] = v
-    return state, f"Style {f} = {v}. Was {old}."
+    return state, f"OK: Style {f} = {v}. Was {old}."
 
 def _cmd_set_print(state, tokens):
     if len(tokens) != 4: raise ValueError("set print scale|paper|margin|dpi|format <value>")
@@ -1506,7 +1506,7 @@ def _cmd_set_print(state, tokens):
         v = _float(tokens[3],"scale")
         if v <= 0: raise ValueError("Must be > 0.")
         old = pr.get("scale_ft_per_inch",8); pr["scale_ft_per_inch"] = v
-        return state, f"Print scale = {_scale_label(v)}. Was {_scale_label(old)}."
+        return state, f"OK: Print scale = {_scale_label(v)}. Was {_scale_label(old)}."
     if f == "paper":
         raw = tokens[3]
         if "x" not in raw.lower(): raise ValueError('Format: WxH (e.g. 24x36)')
@@ -1517,11 +1517,11 @@ def _cmd_set_print(state, tokens):
         v = _float(tokens[3],"margin"); pr["margin_in"] = v
         return state, f'Margin = {v} inches.'
     if f == "dpi":
-        v = _int_pos(tokens[3],"dpi"); pr["dpi"] = v; return state, f"DPI = {v}."
+        v = _int_pos(tokens[3],"dpi"); pr["dpi"] = v; return state, f"OK: DPI = {v}."
     if f == "format":
         v = tokens[3].lower()
         if v not in ("png","jpg"): raise ValueError("png or jpg.")
-        pr["format"] = v; return state, f"Format = {v}."
+        pr["format"] = v; return state, f"OK: Format = {v}."
     raise ValueError("Print fields: scale, paper, margin, dpi, format")
 
 def _cmd_set_bay(state, tokens):
@@ -1535,84 +1535,84 @@ def _cmd_set_bay(state, tokens):
         v = "rectangular" if v in ("rect","rectangular") else ("radial" if v in ("rad","radial") else None)
         if not v: raise ValueError("rectangular or radial.")
         old = bay.get("grid_type","rectangular"); bay["grid_type"] = v
-        return state, f"Bay {name} grid_type = {v}. Was {old}."
+        return state, f"OK: Bay {name} grid_type = {v}. Was {old}."
     if f == "z_order":
         v = _int_nn(tokens[4],"z"); old = bay.get("z_order",0); bay["z_order"] = v
-        return state, f"Bay {name} z_order = {v}. Was {old}."
+        return state, f"OK: Bay {name} z_order = {v}. Was {old}."
     if f == "origin":
         if len(tokens) < 6: raise ValueError("set bay <n> origin <x> <y>")
         old = list(bay["origin"]); bay["origin"] = [_float(tokens[4],"x"), _float(tokens[5],"y")]
-        return state, f"Bay {name} origin = {_fmt(bay['origin'])}. Was {_fmt(old)}."
+        return state, f"OK: Bay {name} origin = {_fmt(bay['origin'])}. Was {_fmt(old)}."
     if f == "rotation":
         old = bay["rotation_deg"]; bay["rotation_deg"] = _float(tokens[4],"r")
-        return state, f"Bay {name} rotation = {bay['rotation_deg']} deg. Was {old} deg."
+        return state, f"OK: Bay {name} rotation = {bay['rotation_deg']} deg. Was {old} deg."
     if f == "bays":
         if len(tokens) < 6: raise ValueError("set bay <n> bays <nx> <ny>")
         old = list(bay["bays"]); bay["bays"] = [_int_pos(tokens[4],"nx"), _int_pos(tokens[5],"ny")]
         bay["spacing_x"] = None; bay["spacing_y"] = None
-        return state, f"Bay {name} bays = {bay['bays']}. Was {old}."
+        return state, f"OK: Bay {name} bays = {bay['bays']}. Was {old}."
     if f == "spacing":
         if len(tokens) < 6: raise ValueError("set bay <n> spacing <sx> <sy>")
         sx = _float(tokens[4],"sx"); sy = _float(tokens[5],"sy")
         if sx <= 0 or sy <= 0: raise ValueError("Spacing must be > 0.")
         old = list(bay["spacing"]); bay["spacing"] = [sx,sy]
         bay["spacing_x"] = None; bay["spacing_y"] = None
-        return state, f"Bay {name} spacing = {sx} x {sy} ft. Was {old[0]} x {old[1]} ft."
+        return state, f"OK: Bay {name} spacing = {sx} x {sy} ft. Was {old[0]} x {old[1]} ft."
     if f == "spacing_x":
         nx = bay["bays"][0]; vals = tokens[4:]
         if len(vals) != nx: raise ValueError(f"Need {nx} values (one per bay span), got {len(vals)}.")
         arr = [_float(v,f"sx[{i}]") for i,v in enumerate(vals)]
         bay["spacing_x"] = arr
-        return state, f"Bay {name} spacing_x = {arr}."
+        return state, f"OK: Bay {name} spacing_x = {arr}."
     if f == "spacing_y":
         ny = bay["bays"][1]; vals = tokens[4:]
         if len(vals) != ny: raise ValueError(f"Need {ny} values (one per bay span), got {len(vals)}.")
         arr = [_float(v,f"sy[{i}]") for i,v in enumerate(vals)]
         bay["spacing_y"] = arr
-        return state, f"Bay {name} spacing_y = {arr}."
+        return state, f"OK: Bay {name} spacing_y = {arr}."
     if f == "rings":
         v = _int_pos(tokens[4],"r"); old = bay.get("rings",4); bay["rings"] = v
-        return state, f"Bay {name} rings = {v}. Was {old}."
+        return state, f"OK: Bay {name} rings = {v}. Was {old}."
     if f == "ring_spacing":
         v = _float(tokens[4],"rs")
         if v <= 0: raise ValueError("Must be > 0.")
         old = bay.get("ring_spacing",20); bay["ring_spacing"] = v
-        return state, f"Bay {name} ring_spacing = {v} ft. Was {old} ft."
+        return state, f"OK: Bay {name} ring_spacing = {v} ft. Was {old} ft."
     if f == "arms":
         v = _int_pos(tokens[4],"a"); old = bay.get("arms",8); bay["arms"] = v
-        return state, f"Bay {name} arms = {v}. Was {old}."
+        return state, f"OK: Bay {name} arms = {v}. Was {old}."
     if f == "arc_deg":
         v = _float(tokens[4],"d"); old = bay.get("arc_deg",360); bay["arc_deg"] = v
-        return state, f"Bay {name} arc_deg = {v}. Was {old}."
+        return state, f"OK: Bay {name} arc_deg = {v}. Was {old}."
     if f == "arc_start_deg":
         v = _float(tokens[4],"d"); old = bay.get("arc_start_deg",0); bay["arc_start_deg"] = v
-        return state, f"Bay {name} arc_start_deg = {v}. Was {old}."
+        return state, f"OK: Bay {name} arc_start_deg = {v}. Was {old}."
     if f == "void_center":
         if len(tokens) < 6: raise ValueError("set bay <n> void_center <x> <y>")
         old = list(bay["void_center"]); bay["void_center"] = [_float(tokens[4],"x"), _float(tokens[5],"y")]
-        return state, f"Bay {name} void_center = {_fmt(bay['void_center'])}. Was {_fmt(old)}."
+        return state, f"OK: Bay {name} void_center = {_fmt(bay['void_center'])}. Was {_fmt(old)}."
     if f == "void_size":
         if len(tokens) < 6: raise ValueError("set bay <n> void_size <w> <h>")
         w = _float(tokens[4],"w"); h = _float(tokens[5],"h")
         if w <= 0 or h <= 0: raise ValueError("Size must be > 0.")
         old = list(bay["void_size"]); bay["void_size"] = [w,h]
-        return state, f"Bay {name} void_size = {w} x {h} ft. Was {old[0]} x {old[1]} ft."
+        return state, f"OK: Bay {name} void_size = {w} x {h} ft. Was {old[0]} x {old[1]} ft."
     if f == "void_shape":
         v = tokens[4].lower()
         v = "rectangle" if v in ("rect","rectangle") else ("circle" if v in ("circ","circle") else None)
         if not v: raise ValueError("rectangle or circle.")
         old = bay.get("void_shape","rectangle"); bay["void_shape"] = v
-        return state, f"Bay {name} void_shape = {v}. Was {old}."
+        return state, f"OK: Bay {name} void_shape = {v}. Was {old}."
     if f in ("label","braille"):
         raw = " ".join(tokens[4:])
         if raw.startswith('"') and raw.endswith('"'): raw = raw[1:-1]
         old = bay.get(f,""); bay[f] = raw
-        return state, f"Bay {name} {f} = '{raw}'. Was '{old}'."
+        return state, f"OK: Bay {name} {f} = '{raw}'. Was '{old}'."
     if f == "wall_height":
         v = _float(tokens[4], "wall_height")
         if v <= 0: raise ValueError("Wall height must be > 0.")
         old = bay.get("wall_height", 10.0); bay["wall_height"] = v
-        return state, f"Bay {name} wall_height = {v} ft. Was {old} ft."
+        return state, f"OK: Bay {name} wall_height = {v} ft. Was {old} ft."
     raise ValueError("Bay fields: grid_type, z_order, origin, rotation, bays, spacing, "
                      "spacing_x, spacing_y, rings, ring_spacing, arms, arc_deg, "
                      "arc_start_deg, void_center, void_size, void_shape, label, braille, "
@@ -1702,7 +1702,7 @@ def cmd_history(state, tokens, state_file=None):
     sub = tokens[1].lower()
     if sub == "count":
         n = _history_count(state_file) if state_file else 0
-        return state, f"History: {n} entries."
+        return state, f"OK: History: {n} entries."
     if sub == "list":
         if not state_file:
             return state, "History not available (no state file)."
@@ -1771,7 +1771,7 @@ def cmd_tts(state, tokens):
     tts = state["tts"]
     if len(tokens) < 2:
         status = "ON" if tts["enabled"] else "OFF"
-        return state, f"TTS: {status}, rate={tts['rate']}."
+        return state, f"OK: TTS: {status}, rate={tts['rate']}."
     sub = tokens[1].lower()
     if sub == "on":
         tts["enabled"] = True
@@ -2103,15 +2103,15 @@ def _cmd_zone(state, tokens):
         if field == "label":
             old = zones[name].get("label", "")
             zones[name]["label"] = value
-            return state, f"Zone {name} label = '{value}'. Was '{old}'."
+            return state, f"OK: Zone {name} label = '{value}'. Was '{old}'."
         elif field == "braille":
             old = zones[name].get("braille", "")
             zones[name]["braille"] = value
-            return state, f"Zone {name} braille set."
+            return state, f"OK: Zone {name} braille set."
         elif field in ("type", "program_type"):
             old = zones[name].get("program_type", "")
             zones[name]["program_type"] = value
-            return state, f"Zone {name} type = '{value}'. Was '{old}'."
+            return state, f"OK: Zone {name} type = '{value}'. Was '{old}'."
         else:
             raise ValueError(f"Unknown zone field '{field}'. Use: label, braille, type")
 
@@ -2139,7 +2139,7 @@ def _cmd_grid(state, tokens):
         origin = old_grid.get("origin", [0.0, 0.0]) if old_grid else [0.0, 0.0]
         state["grid"] = {"spacing": spacing, "rotation": rotation, "origin": origin}
         rot_str = f", rotation {rotation:.0f} deg" if rotation != 0 else ""
-        return state, f"Grid set: {spacing:.1f} ft spacing{rot_str}."
+        return state, f"OK: Grid set: {spacing:.1f} ft spacing{rot_str}."
 
     elif sub == "origin":
         if len(tokens) < 4:
@@ -2149,7 +2149,7 @@ def _cmd_grid(state, tokens):
         if state.get("grid") is None:
             raise ValueError("No grid defined. Use 'grid set SPACING' first.")
         state["grid"]["origin"] = [x, y]
-        return state, f"Grid origin = ({x:.1f}, {y:.1f})."
+        return state, f"OK: Grid origin = ({x:.1f}, {y:.1f})."
 
     elif sub == "clear":
         state["grid"] = None
@@ -2191,7 +2191,7 @@ def _cmd_export(state, tokens, state_file=None):
         out_path = tokens[2] if len(tokens) > 2 else os.path.join(out_dir, "model.3dm")
         try:
             result = export_3dm(state, out_path)
-            return state, f"Exported to {result}."
+            return state, f"OK: Exported to {result}."
         except ImportError as e:
             return state, f"ERROR: rhino3dm not installed. Run: pip install rhino3dm"
         except Exception as e:
@@ -2203,7 +2203,7 @@ def _cmd_export(state, tokens, state_file=None):
         text = describe(state)
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(text)
-        return state, f"Description exported to {out_path}."
+        return state, f"OK: Description exported to {out_path}."
 
     else:
         raise ValueError(f"Unknown export format '{fmt}'. Use: 3dm, text")
