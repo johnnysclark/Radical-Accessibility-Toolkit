@@ -1,7 +1,7 @@
 """
-FastMCP server for tactile tactile graphics conversion.
+FastMCP server for OUTPUT — Tactile-Ready Renderer.
 
-This server exposes the tactile toolkit to Claude via MCP,
+This server exposes the OUTPUT toolkit to Claude via MCP,
 allowing natural language interaction for image-to-PIAF conversion.
 """
 

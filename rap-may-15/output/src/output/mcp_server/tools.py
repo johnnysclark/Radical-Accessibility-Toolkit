@@ -1,5 +1,5 @@
 """
-MCP tool implementations for tactile.
+MCP tool implementations for OUTPUT.
 
 These functions are exposed to Claude via MCP, enabling natural language
 interaction for converting architectural images to tactile graphics.
