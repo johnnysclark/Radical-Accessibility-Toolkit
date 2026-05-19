@@ -1379,10 +1379,10 @@ def cmd_tactile3d(state, tokens):
     sub = tokens[1].lower()
     if sub == "on":
         t3["enabled"] = True
-        return state, (f"Tactile 3D ON. Walls extruded to {t3['wall_height']} ft, "
+        return state, (f"OK: Tactile 3D ON. Walls extruded to {t3['wall_height']} ft, "
                        f"clipped at {t3['cut_height']} ft.")
     if sub == "off":
-        t3["enabled"] = False; return state, "Tactile 3D OFF."
+        t3["enabled"] = False; return state, "OK: Tactile 3D OFF."
     if sub == "wall_height":
         v = _float(tokens[2],"h")
         if v <= 0: raise ValueError("Must be > 0.")
@@ -1466,7 +1466,7 @@ def _cmd_set_site(state, tokens):
         site["width"] = max(xs) - min(xs)
         site["height"] = max(ys) - min(ys)
         site["origin"] = [min(xs), min(ys)]
-        return state, f"Site corners set ({len(corners)} corners, {site['width']:.0f} x {site['height']:.0f} ft)."
+        return state, f"OK: Site corners set ({len(corners)} corners, {site['width']:.0f} x {site['height']:.0f} ft)."
 
     if f not in ("width","height"): raise ValueError("width, height, or corners.")
     if len(tokens) != 4: raise ValueError("set site width|height <value>")
@@ -2049,7 +2049,7 @@ def _cmd_zone(state, tokens):
             zones[name] = zone
             _zone_validate(state, name)
             area = _zone_area(corners)
-            return state, f"Zone {name} added ({len(corners)} corners, {area:.0f} sq ft)."
+            return state, f"OK: Zone {name} added ({len(corners)} corners, {area:.0f} sq ft)."
 
         # Rectangle mode: zone add NAME W D [X Y] [TYPE]
         if len(tokens) < 5:
@@ -2064,7 +2064,7 @@ def _cmd_zone(state, tokens):
         zone = {"corners": corners, "program_type": ptype, "label": name, "braille": ""}
         zones[name] = zone
         _zone_validate(state, name)
-        return state, f"Zone {name} added ({w:.0f} x {d:.0f} ft at ({x:.0f}, {y:.0f}), area {w*d:.0f} sq ft)."
+        return state, f"OK: Zone {name} added ({w:.0f} x {d:.0f} ft at ({x:.0f}, {y:.0f}), area {w*d:.0f} sq ft)."
 
     elif sub == "remove":
         if len(tokens) < 3:
@@ -2073,7 +2073,7 @@ def _cmd_zone(state, tokens):
         if name not in zones:
             raise ValueError(f"Zone '{name}' not found.")
         del zones[name]
-        return state, f"Zone {name} removed."
+        return state, f"OK: Zone {name} removed."
 
     elif sub == "list":
         if not zones:

@@ -56,25 +56,20 @@ def main():
             fh.write(text)
 
     state_path = os.path.join("controller", "state.json")
-    if not os.path.exists(state_path):
-        now = datetime.datetime.utcnow().isoformat() + "Z"
-        state = {
-            "schema": "rap_controller_v1.0",
-            "meta": {"created": now},
-            "site": {
-                "origin": [0, 0],
-                "width": 100,
-                "height": 80,
-                "corners": [[0, 0], [100, 0], [100, 80], [0, 80]],
-                "units": "feet",
-            },
-            "zones": {},
-            "bays": {},
-            "walls": [],
-            "apertures": [],
-        }
-        with open(state_path, "w") as fh:
-            json.dump(state, fh, indent=2)
+    if not os.path.isfile(state_path):
+        controller_dir = os.path.join(os.getcwd(), "controller")
+        sys.path.insert(0, controller_dir)
+        try:
+            import console as _con
+            with open(state_path, "w") as fh:
+                json.dump(_con.default_state(), fh, indent=2, ensure_ascii=False)
+            print("OK: Seeded controller/state.json from default_state()")
+        except Exception as e:
+            print("ERROR: Could not seed state.json via default_state(): {}".format(e))
+            raise
+        finally:
+            if controller_dir in sys.path:
+                sys.path.remove(controller_dir)
 
     # Offer to load the case-study-house example
     example_src = os.path.join("examples", "case-study-house.state.json")
