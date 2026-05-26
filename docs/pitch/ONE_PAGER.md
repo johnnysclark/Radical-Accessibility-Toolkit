@@ -34,12 +34,11 @@ The same input/logic/output separation generalizes beyond vision loss. Build for
 
 ## What we're asking Anthropic for
 
-A staged conversation, smallest first:
+Three direct options. Any combination. Equipment, fabrication, and lab costs are covered through UIUC — this ask is about people and access.
 
-1. **Claude API / Claude Code credits** so student usage isn't capped by personal subscriptions
-2. **Reference deployment / co-marketing** — RAP as Anthropic's flagship accessibility case study for Claude Code, MCP, and Skills
-3. **Claude Code accessibility partnership** — paid pilot to upstream our webui + screen-reader hooks work
-4. **Sponsored research grant (12 months)** — student stipends, PIAF supplies, equipment, conference travel, course buyout
+1. **Money** — student stipends for Ethan, Isaac, Laura, and a co-designer stipend for Daniel. ~$60K–$80K/year covers the four of them plus modest travel for paper presentation.
+2. **Credits** — Claude API + Claude Code credits to uncap student and primary-user usage during batch image description, OCR, and day-to-day design-conversation work.
+3. **Expertise** — time from the people at Anthropic who own Claude Code accessibility, MCP, and Skills. Code review on our webui + screen-reader hooks. A design partner who can tell us what to upstream.
 
 ## Why Anthropic
 

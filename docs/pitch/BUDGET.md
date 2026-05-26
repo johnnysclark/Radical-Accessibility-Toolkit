@@ -1,76 +1,52 @@
-# 12-Month Budget — Sponsored Research Ask
+# Budget — Money Ask
 
-Tied to Ask #4 in `STRATEGY.md`. Routed through UIUC's Sponsored Research office; final numbers and indirect-cost rate to be confirmed with them before any external version goes out.
+Tied to Ask #1 in `STRATEGY.md`: stipends for the four people doing the work, plus modest travel. UIUC covers equipment, fabrication, lab space, and software. This budget is people and travel, nothing else.
 
-These figures are planning estimates. Treat as the shape of the ask, not the final number.
+Final numbers and the mechanism (sponsored research, gift, fellowship sponsorship, direct stipend) to be confirmed with UIUC's research office before any external version is sent. The shape below is the ask; the exact dollar figure flexes with how Anthropic prefers to route it.
 
-## Direct costs
+## Line items
 
-### Personnel — student researchers ($72,000)
-
-| Line | Annualized | Notes |
-|---|---|---|
-| Ethan Anderson — graduate research assistant, 20 hrs/wk | $30,000 | TACT, TASC, webui, hooks lead |
-| Isaac Tu — undergraduate research, 10 hrs/wk | $15,000 | Co-design + testing |
-| Laura Heuser — undergraduate research, 10 hrs/wk | $15,000 | Co-design + documentation |
-| Daniel Bein — co-designer stipend, 8 hrs/wk | $12,000 | Primary user; co-author on outputs |
-
-### Personnel — faculty release ($24,000)
+### Student stipends ($60,000)
 
 | Line | Annualized | Notes |
 |---|---|---|
-| John Clark — 1 course buyout | $12,000 | Project lead |
-| Hugh Swiatek — 1 course buyout | $12,000 | Co-lead |
+| Ethan Anderson — graduate research assistant, ~20 hrs/wk | $30,000 | TACT, TASC, webui, hooks lead |
+| Isaac Tu — undergraduate research, ~10 hrs/wk | $15,000 | Co-design + testing |
+| Laura Heuser — undergraduate research, ~10 hrs/wk | $15,000 | Co-design + documentation |
 
-### Equipment & consumables ($14,000)
+### Co-designer stipend ($12,000)
+
+| Line | Annualized | Notes |
+|---|---|---|
+| Daniel Bein — primary user / co-designer, ~8 hrs/wk | $12,000 | Co-author on outputs; his time has been donated to date |
+
+### Travel ($6,000)
 
 | Line | Cost | Notes |
 |---|---|---|
-| PIAF microcapsule paper (24-month supply) | $4,000 | Daily consumable for tactile printing |
-| Laser-printer carbon toner | $1,200 | Required for PIAF process |
-| Bambu Lab P1S filament + spares | $1,800 | Tactile-model output |
-| Refreshable braille display (backup unit) | $3,500 | Redundancy for primary user |
-| META Ray-Ban glasses (2 units) | $1,000 | Live-description research direction |
-| Siebel Center laser-cutter time | $1,500 | Per-job institutional rate |
-| Miscellaneous fabrication + prototyping | $1,000 | |
+| ACADIA conference (2 attendees, presenting) | $4,500 | Paper in flight this cycle |
+| One additional accessibility venue (CHI ASSETS or similar) | $1,500 | Stretch / partial coverage |
 
-### Travel & dissemination ($9,000)
+## Total direct: ~$78,000
 
-| Line | Cost | Notes |
-|---|---|---|
-| ACADIA conference (2 attendees, presentation) | $4,500 | Paper in flight |
-| One additional venue (CHI ASSETS or similar) | $3,500 | Accessibility venue |
-| Local site visits + co-design travel | $1,000 | |
-
-### Direct subtotal: **$119,000**
-
-## Indirect costs
-
-UIUC negotiated F&A rate applies. Placeholder — confirm with sponsored research office. A common rate for research grants of this type is approximately 25–30% on modified total direct cost; the institution-side number lands somewhere in the $30K–$40K range on top of direct.
-
-### Estimated total ask: **$150,000 – $160,000 over 12 months**
+Sits in the $60K–$80K range cited in `STRATEGY.md`. Indirect costs depend on the routing mechanism — a direct stipend program is typically lighter than a sponsored research agreement. We'll defer to whichever Anthropic prefers.
 
 ## Smaller-scale fallbacks
 
-If $150K is not in the cards for a first conversation, the project still gets meaningful traction from any of:
+If $78K is not the right number for a first conversation, the project gets meaningful traction from any of:
 
-- **$50K** — student stipends + consumables only; no faculty release. Keeps the lights on, doesn't expand scope.
-- **$25K** — Ethan's stipend + PIAF + filament. Floor for "this matters and we're paying attention."
-- **$0 + API credits** — uncaps usage; lets us instrument the project properly even without cash.
+- **$30K** — Ethan's stipend only. Keeps the lead engineer on the project; everything else holds its current pace.
+- **$12K** — Daniel's co-designer stipend only. The lowest floor of "we see you and we're paying attention." Recognizes that his time is the work, not a research subject's donation.
+- **$0 + credits** — uncaps usage, lets us instrument the project properly even without cash. See `STRATEGY.md` Ask #2.
+- **$0 + expertise** — code review and a design partner from inside Anthropic. See `STRATEGY.md` Ask #3.
 
-## Deliverables for a $150K, 12-month grant
+## What the money ask covers — and what it doesn't
 
-- Extended toolkit (one new tool category — likely audio simulation of designs or vibrotactile output)
-- One pilot deployment at a partner institution
-- Two peer-reviewed papers (ACADIA already in flight; one more at an accessibility venue)
-- One open-source release cycle with documented external contributions
-- A public case study Anthropic can reference
+**Covered by this ask:** people. Stipends. Travel to present the work.
 
-## Deliverables for a $0 credits-only arrangement
+**Covered by UIUC:** equipment (PIAF machine, laser printer, Bambu Lab 3D printer, laser cutter), microcapsule paper, filament, lab space, software licenses, the IT and admin overhead that makes the rest possible.
 
-- Instrumented usage data shared back to Anthropic on request
-- ACADIA paper acknowledges support
-- Anthropic gets first look at any case-study material
+**Not covered by anyone, and not part of this ask:** speculative R&D into directions listed under "Future Directions" in the README (audio simulation, vibrotactile, haptic gloves, pin-array displays). Those would be a separate conversation with a different funder once the existing toolkit is on stable footing.
 
 ## Reporting cadence
 

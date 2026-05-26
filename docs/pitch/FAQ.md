@@ -4,6 +4,18 @@ Anticipated questions and what we say. Internal team doc; some answers also get 
 
 ---
 
+### Q: What's the ask, exactly?
+
+Three options. Any combination. UIUC covers equipment, fabrication, and lab costs — this isn't about those.
+
+1. **Money** — stipends for the three students (Ethan, Isaac, Laura) and a co-designer stipend for Daniel. ~$60K–$80K/year for the four of them plus modest paper-presentation travel.
+2. **Credits** — Claude API + Claude Code credits to uncap student and primary-user usage.
+3. **Expertise** — time from whoever owns Claude Code accessibility, MCP, and Skills internally at Anthropic. Code review on our webui + hooks. A design partner.
+
+Any one of the three changes the next year materially. We are not bundling them as a single take-it-or-leave-it; pick what's available.
+
+---
+
 ### Q: Why Anthropic and not OpenAI, Google, or a foundation?
 
 Because the toolkit is already Claude-native and rebuilding it for another stack would be months of work for no user benefit. MCP is the only protocol designed for the kind of semantic, auditable, multi-tool integration accessibility requires. Claude Code is the only agentic interface a screen-reader user can reasonably extend. Skills give us a clean unit of capability alongside our existing macros. And on mission: accessibility is closer to Anthropic's beneficial-AI framing than to a generic productivity story.
@@ -34,7 +46,7 @@ But the real Anthropic-side question isn't market size. It's: does this demonstr
 
 ### Q: What happens if Claude Code or MCP changes in a way that breaks your integration?
 
-It has happened, and we've handled it. The project tracks Claude Code's release cadence and updates accordingly — the most recent example is the webui channel-server work and hooks restructuring. Closer ties to Anthropic would let us anticipate breaking changes instead of reacting to them; that is, in fact, part of the case for partnership.
+It has happened, and we've handled it. The project tracks Claude Code's release cadence and updates accordingly — the most recent example is the webui channel-server work and hooks restructuring. Closer ties to Anthropic would let us anticipate breaking changes instead of reacting to them; that is, in fact, the substance of the expertise ask.
 
 ---
 
@@ -72,4 +84,4 @@ The pitch is not "fund this or it dies." The pitch is "fund this and it becomes 
 
 ### Q: What's the smallest first step that's worth our time?
 
-A 20-minute call with someone who has scope to either approve a credits grant or refer us to someone who does. We bring the demo video. You bring whatever questions this FAQ didn't answer.
+A 20-minute call with someone who can either approve credits, route a stipend, or pull in the right Claude Code accessibility person for a code review — or refer us to someone who can do one of those three things. We bring the demo video. You bring whatever questions this FAQ didn't answer.

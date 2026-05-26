@@ -103,14 +103,13 @@ Daniel Bein is a blind graduate student at the UIUC School of Architecture. His 
 
 ---
 
-## What funding unlocks
+## What we're asking for
 
-Stair-step, smallest first. See `STRATEGY.md` and `BUDGET.md` for full detail.
+Three direct options. Any combination. Equipment, fabrication, and lab costs are covered through UIUC — this ask is about people and access.
 
-1. **API / Claude Code credits** — uncaps student usage, batch image description, OCR runs.
-2. **Co-marketing / reference deployment** — Anthropic's flagship accessibility case study.
-3. **Claude Code accessibility partnership** — paid work to upstream webui + screen-reader hooks.
-4. **Sponsored research, 12 months** — student stipends, PIAF supplies, filament, laser-cutter time, conference travel, course buyout. Outputs: extended toolkit, two more peer-reviewed papers, deployments at one or two partner institutions.
+1. **Money** — student stipends for Ethan, Isaac, Laura, plus a co-designer stipend for Daniel. ~$60K–$80K/year covers the four of them plus modest travel for paper presentation. See `BUDGET.md`.
+2. **Credits** — Claude API + Claude Code credits to uncap student and primary-user usage during batch image description, OCR, and day-to-day design-conversation work.
+3. **Expertise** — time from the people at Anthropic who own Claude Code accessibility, MCP, and Skills. Code review on our webui + screen-reader hooks. A design partner who can tell us whether what we built should be upstreamed, mirrored, or scrapped. Possibly the most valuable of the three; the cheapest for Anthropic to provide.
 
 ---
 
