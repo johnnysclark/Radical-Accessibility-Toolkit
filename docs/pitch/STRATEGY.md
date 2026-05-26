@@ -2,58 +2,51 @@
 
 Internal team doc. Not for external distribution.
 
-## Why now
+## The pitch
 
-- The toolkit already exercises Anthropic's full product stack: Claude API, Claude Code, MCP (two servers, 58 + 7 functions), Skills (Anthropic agent-skills convention), Claude Code hooks. There is no other in-the-wild accessibility deployment of this depth that we know of.
-- We have a real user (Daniel Bein) producing real artifacts daily — PIAF prints, 3D-printed tactile models, ADA audits, design reviews. That is the pitch.
-- ACADIA paper v6 ("The Full Stack of Inclusion") is in flight. Academic credibility is timed well for an outreach window.
-- We have students (Ethan Anderson, Isaac Tu, Laura Heuser) doing real engineering with no stipend structure. Funding would translate directly into person-hours.
-- No prior contact with Anthropic exists, so the field is clear.
+The Radical Accessibility Project at UIUC is a working architectural design system built around a blind primary user, Daniel Bein. Every part of it runs on Claude: two MCP servers (65 functions across the design pipeline), Skills-packaged capabilities, an accessible Claude Code client we built because the Ink TUI isn't screen-reader compatible, and lifecycle hooks that announce events through the JAWS TTS API. Daniel uses it daily — he types or speaks design commands, hears confirmations through NVDA, audits for ADA compliance, prints his floor plan on swell paper, reads it with his fingers, 3D-prints it to scale, and presents at studio review. No sighted intermediary at any step.
 
-## The stair-step asks
+It is, as far as we can tell, the deepest accessibility deployment of Claude's product stack anywhere. We did not set out to make it that — we set out to make Daniel an architect. The integration is real and the work is in flight: an ACADIA paper this cycle, working software at github.com/johnnysclark/Radical-Accessibility-Toolkit, three student researchers (Ethan Anderson, Isaac Tu, Laura Heuser) shipping code, two faculty leads (John Clark, Hugh Swiatek).
 
-Each ask de-risks the next. We do not lead with the largest number.
+Equipment, fabrication, and lab costs are covered through UIUC. What's not covered is what we want from Anthropic.
 
-1. **Claude API / Claude Code credits** — $10K–$50K equivalent. Lowest friction. Anthropic routinely grants these to research and accessibility work. Removes our personal-subscription cost ceiling on student usage, batch image-description, and OCR runs.
-2. **Reference deployment / co-marketing case study** — $0 ask; mutual value. We become Anthropic's flagship accessibility case study for Claude Code + MCP + Skills. They get a beneficial-AI story; we get visibility that compounds.
-3. **Claude Code accessibility partnership** — $25K–$75K paid pilot or consulting. The webui + JAWS/NVDA hooks address a real Claude Code product gap. Frame: pay us to upstream what we've learned, or to consult on Claude Code accessibility.
-4. **Sponsored research grant** — $75K–$200K over 12 months. Student stipends, PIAF supplies, filament, laser-cutter time, conference travel, John/Hugh course buyout. Routed through UIUC's sponsored research office. Slowest but largest. Second-conversation ask once a relationship exists.
+## The asks
 
-## Channels (run in parallel — none alone is reliable cold)
+Direct. Three options. Any combination.
 
-| Channel | Best ask | Notes |
+### 1. Money
+
+Stipends for the people doing the work. Ethan, Isaac, Laura, and a co-designer stipend for Daniel. Roughly $60K–$80K/year covers the four of them plus modest travel for paper presentation. This is the difference between students who graduate carrying institutional memory out the door and students who can keep working.
+
+### 2. Credits
+
+Claude API + Claude Code credits to uncap student and primary-user usage. Current usage hits personal-subscription rate limits during batch image description, OCR runs, and day-to-day design-conversation work. A research-tier allotment removes the ceiling.
+
+### 3. Expertise
+
+Time from the people at Anthropic who own Claude Code accessibility, MCP, and the Skills format. Code review on our webui + screen-reader hooks. A design partner who can tell us whether what we built should be upstreamed, mirrored, or scrapped. Possibly the most valuable of the three asks; the cheapest for Anthropic to provide.
+
+Any one of the three meaningfully changes the next year. All three change what's possible.
+
+## Why Anthropic specifically
+
+The project is Claude-native. MCP is the only protocol designed for the kind of semantic, auditable, multi-tool integration accessibility requires. Claude Code is the only agentic interface a screen-reader user can reasonably extend. Skills give us a clean unit of capability alongside our existing macros. Switching providers would require rebuilding the integration substrate, and we don't want to.
+
+The case for Anthropic is not "give us money because we're a good cause." It's: here is a working production deployment of your full product stack in a domain your competitors cannot credibly claim. Funding it — with money, credits, or expertise — gives Anthropic a use case its beneficial-AI framing can actually point at, in a discipline (architecture) that has been visibly hostile to non-visual practitioners for a hundred years.
+
+## Channels (run in parallel — none is reliable cold)
+
+| Channel | Best-fit ask | Notes |
 |---|---|---|
-| Anthropic societal impacts / beneficial deployments | 3, 4 | Most aligned with accessibility-as-mission |
-| Claude for Education | 1, 4 | Check first whether UIUC already has a campus relationship |
-| Claude Code product / DevRel | 2, 3 | Most likely to value the technical artifact; engage via anthropics/claude-code GitHub Issues + Discussions |
-| External researcher / API access programs | 1 | Apply through anthropic.com forms; fast turnaround |
-| Warm intros (LinkedIn) | any | Search UIUC alumni at Anthropic + Anthropic staff posting about accessibility, MCP, Claude Code |
-| Public surface (a single well-aimed thread) | 2 | Daniel using Claude Code → MCP → PIAF print, tagged appropriately |
+| Anthropic societal impacts / beneficial deployments | money, credits | Mission alignment is strongest here |
+| Claude Code product / DevRel | expertise | Engage via anthropics/claude-code GitHub Issues + Discussions; this is where the people we want already are |
+| External researcher / API access programs | credits | Apply through anthropic.com forms; fast turnaround |
+| Warm intros (LinkedIn) | any | UIUC alumni at Anthropic; Anthropic staff posting about MCP, Claude Code, accessibility |
 
-Do not send identical email to multiple addresses. Tailor per channel (see `COLD_EMAILS.md`).
-
-## Sequencing
-
-- **Week 1** — Draft & internal review of one-pager, capability summary, strategy doc. LinkedIn sweep for warm intros. Check with UIUC research office re: existing UIUC↔Anthropic agreements.
-- **Week 2** — Draft cold emails, budget, FAQ. Record demo video using `DEMO_SCRIPT.md`. Daniel reviews and signs off on `TESTIMONIAL_DRAFT.md`.
-- **Week 3** — Send outreach across all parallel channels. Submit any formal research-credits applications.
-- **Weeks 4–6** — Follow up at +7 and +14 days. Track replies below. Take meetings.
-- **Week 6 review** — If zero traction across all channels, regroup. The problem is messaging, not the project.
+Tailor per channel (see `COLD_EMAILS.md`). Do not send identical email to multiple addresses.
 
 ## Gating checks before any outreach
 
-1. John Clark, Hugh Swiatek, and Daniel Bein each sign off on all artifacts. Daniel approves his testimonial verbatim and approves being named/featured in public material.
-2. Read every artifact through NVDA before sending. If our own pitch about accessibility isn't accessible, we lose the room before we enter it.
-3. Pre-test the cold email on two friendly non-Anthropic contacts for clarity and tone. Iterate.
-
-## Contact log (fill in as outreach happens)
-
-| Date | Channel | Recipient | Ask | Status | Notes |
-|---|---|---|---|---|---|
-| | | | | | |
-
-## Decision log (fill in as we learn)
-
-| Date | Decision | Rationale |
-|---|---|---|
-| | | |
+1. John, Hugh, and Daniel sign off on all artifacts. Daniel approves his testimonial verbatim and approves any use of his name or image.
+2. Read every artifact through NVDA. If our pitch about accessibility isn't accessible, we lose the room before entering it.
+3. Pre-test the cold email on two friendly non-Anthropic contacts for tone.
