@@ -45,6 +45,22 @@ The case for Anthropic is not "give us money because we're a good cause." It's: 
 
 Tailor per channel (see `COLD_EMAILS.md`). Do not send identical email to multiple addresses.
 
+## Internal coalition (UIUC, in parallel)
+
+External outreach lands better when UIUC is already behind the project. Build the internal coalition in parallel with — not after — the external pitch. Units worth a single targeted conversation:
+
+- **DRES (Disability Resources & Educational Services)** — Daniel's primary access partner; campus office whose endorsement carries weight with any disability-focused funder.
+- **CITL (Center for Innovation in Teaching & Learning)** — funds and amplifies teaching-innovation work; aligns with RAP Studio.
+- **Beckman Institute** — interdisciplinary research center; possible home for the multimodal-interaction subproject.
+- **Siebel Center for Design** — design-research center; aligns with RAP Desk.
+- **NCSA / Illinois Computes** — research-computing capacity; possible compute/storage support and a credible co-applicant on NSF CISE proposals.
+- **School of Architecture leadership + FAA Dean's office** — administrative support, course buyouts, hiring authority.
+- **Sponsored Research Office** — required path for any federal application; engage early to avoid late-stage F&A surprises.
+- **CS / Information Sciences faculty** — potential co-PIs for NSF HCC and cross-departmental work.
+- **Provost's office digital accessibility initiatives** — campus-level accessibility owns relationships with JAWS/NVDA/AT vendors RAP also depends on.
+
+The internal pitch is shorter than the external one. UIUC can become the national testbed for accessible AI design education by turning a high-need accommodation problem into reusable research infrastructure. Lead with that.
+
 ## Gating checks before any outreach
 
 1. John, Hugh, and Daniel sign off on all artifacts. Daniel approves his testimonial verbatim and approves any use of his name or image.

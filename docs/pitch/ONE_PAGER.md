@@ -1,6 +1,6 @@
 # Radical Accessibility Project — One-Pager
 
-**An accessibility-first architectural design system, built on Claude.**
+**An accessibility harness for AI-mediated design: replacing the visual viewport as architecture's sole source of truth with a sense-agnostic design state.**
 
 UIUC School of Architecture · Led by John Clark and Hugh Swiatek · Co-designed with Daniel Bein, a blind architecture student
 
