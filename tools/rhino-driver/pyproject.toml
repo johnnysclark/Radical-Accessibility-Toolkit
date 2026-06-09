@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rhino-driver"
+version = "0.1.0"
+description = "Accessible CLI driver that renders a TASC model to Rhino as one deterministic RhinoPython script (rhinocode on macOS, RhinoMCP socket on Windows/WSL2)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Radical Accessibility Project" },
+]
+dependencies = [
+    "click>=8.1.0",
+    "tasc>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "ruff>=0.1.0"]
+
+[project.scripts]
+rhino-driver = "rhino_driver.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rhino_driver"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/rhino_driver"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["src"]
