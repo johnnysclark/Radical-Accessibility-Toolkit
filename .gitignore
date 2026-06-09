@@ -68,3 +68,5 @@ controller/pending_script.py
 
 # Logs
 *.log
+.venv-jig2/
+jig2/.venv/
