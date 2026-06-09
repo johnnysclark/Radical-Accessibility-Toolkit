@@ -67,12 +67,15 @@ def main(argv: list[str] | None = None) -> int:
 def _take_flags(args: list[str]) -> tuple[dict, list[str]]:
     flags = {"project": None, "backend": "auto", "json": False, "all": False,
              "units": "meters", "intent": None, "format": None,
-             "last": None, "search": None, "name": None}
+             "last": None, "search": None, "name": None, "dest": None,
+             "inject": False}
     kept = []
     index = 0
     valued = {"--project": "project", "-p": "project", "--backend": "backend",
               "--units": "units", "--intent": "intent", "--format": "format",
-              "--last": "last", "--search": "search", "--name": "name"}
+              "--last": "last", "--search": "search", "--name": "name",
+              "--dest": "dest"}
+    booleans = {"--json": "json", "--all": "all", "--inject": "inject"}
     while index < len(args):
         arg = args[index]
         if arg in valued:
@@ -82,11 +85,8 @@ def _take_flags(args: list[str]) -> tuple[dict, list[str]]:
                 continue
             flags[valued[arg]] = args[index + 1]
             index += 2
-        elif arg == "--json":
-            flags["json"] = True
-            index += 1
-        elif arg == "--all":
-            flags["all"] = True
+        elif arg in booleans:
+            flags[booleans[arg]] = True
             index += 1
         else:
             kept.append(arg)
