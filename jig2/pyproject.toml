@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jig"
+version = "0.1.0"
+description = "Accessibility-first semantic layout controller for Rhino 8 on macOS"
+requires-python = ">=3.9"
+dependencies = [
+    "mcp>=1.2",
+    "rhino3dm>=8.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+jig = "jig.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
