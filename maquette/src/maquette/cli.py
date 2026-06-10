@@ -68,13 +68,13 @@ def _take_flags(args: list[str]) -> tuple[dict, list[str]]:
     flags = {"project": None, "backend": "auto", "json": False, "all": False,
              "units": "meters", "intent": None, "format": None,
              "last": None, "search": None, "name": None, "dest": None,
-             "inject": False}
+             "model": None, "inject": False}
     kept = []
     index = 0
     valued = {"--project": "project", "-p": "project", "--backend": "backend",
               "--units": "units", "--intent": "intent", "--format": "format",
               "--last": "last", "--search": "search", "--name": "name",
-              "--dest": "dest"}
+              "--dest": "dest", "--model": "model"}
     booleans = {"--json": "json", "--all": "all", "--inject": "inject"}
     while index < len(args):
         arg = args[index]

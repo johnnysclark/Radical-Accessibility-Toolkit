@@ -15,6 +15,7 @@ from maquette import describe, ops
 from maquette.engine import Engine, USER_ERRORS
 from maquette.project import Project
 
+CREATE_BATCH_OPS = ops.CREATE_OPS - {"script"}
 EDIT_OPS = ops.TRANSFORM_OPS | {"copy", "delete", "set_name", "set_layer",
                                 "create_layer", "group", "ungroup"}
 
@@ -31,12 +32,11 @@ class MaquetteService:
 
     # -- mutations ------------------------------------------------------------
 
-    def create_objects(self, op_list: list[dict]) -> str:
-        return self._run_batch(op_list, ops.CREATE_OPS - {"script"},
-                               "create ops")
+    def create_objects(self, ops: list[dict]) -> str:
+        return self._run_batch(ops, CREATE_BATCH_OPS, "create ops")
 
-    def edit_objects(self, op_list: list[dict]) -> str:
-        return self._run_batch(op_list, EDIT_OPS, "edit ops")
+    def edit_objects(self, ops: list[dict]) -> str:
+        return self._run_batch(ops, EDIT_OPS, "edit ops")
 
     def run_script(self, code: str, intent: str, name: str | None = None) -> str:
         op = {"op": "script", "params": {"code": code, "intent": intent}}
