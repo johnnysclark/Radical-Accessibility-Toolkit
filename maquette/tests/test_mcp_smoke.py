@@ -13,7 +13,8 @@ from mcp.client.stdio import stdio_client  # noqa: E402
 EXPECTED_FUNCTIONS = {
     "create_objects", "edit_objects", "query_scene", "describe_scene",
     "describe_object", "measure", "run_script", "undo", "rebuild",
-    "journal_show", "export_model", "doctor", "project_info",
+    "journal_show", "export_model", "export_plan", "export_section",
+    "doctor", "project_info",
 }
 
 
@@ -80,9 +81,14 @@ def test_mcp_server_speaks_errors(project):
                                             "size": [10, 10]}}]}),
         ("describe_object", {"ref": "nothing"}),
         ("run_script", {"code": "print(1)", "intent": ""}),
+        ("export_plan", {"height": 1.0, "path": "exports/plan.svg"}),
+        ("export_section", {"axis": "q", "position": 1.0,
+                            "path": "exports/section.svg"}),
     ])
-    bad_box, missing, no_intent = results["texts"]
+    bad_box, missing, no_intent, no_cut, bad_axis = results["texts"]
     assert bad_box.startswith("ERROR: item 1:")
     assert missing.startswith("ERROR: no object called")
     assert no_intent.startswith("ERROR:")
     assert "intent" in no_intent
+    assert no_cut.startswith("ERROR: nothing to cut yet")
+    assert bad_axis.startswith("ERROR: say which way to cut")

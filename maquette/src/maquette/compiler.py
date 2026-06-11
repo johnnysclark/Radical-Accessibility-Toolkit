@@ -294,6 +294,122 @@ def _line_code(body: str) -> str:
             "    __maq_created__.append(g)\n".format(body))
 
 
+# -- read-only query snippets --------------------------------------------------
+#
+# These compile like ops but mutate nothing: no created guids, no tag,
+# no journal entry. They hand data back through __maq_result__, which
+# the listener returns verbatim. Rhino does the geometry math (meshing,
+# plane cuts); the client writes the files.
+
+_MESH_QUERY = """\
+guids = __maq__.find({ids})
+out = dict(found=len(guids), closed=False, solid=True,
+           vertices=[], faces=[], skipped=[])
+mesh = Rhino.Geometry.Mesh()
+quality = Rhino.Geometry.MeshingParameters.QualityRenderMesh
+got = False
+for guid in guids:
+    geo = rs.coercegeometry(guid)
+    if isinstance(geo, Rhino.Geometry.Mesh):
+        mesh.Append(geo)
+        got = True
+        continue
+    if isinstance(geo, Rhino.Geometry.Extrusion):
+        brep = geo.ToBrep(True)
+    elif isinstance(geo, Rhino.Geometry.Brep):
+        brep = geo
+    elif isinstance(geo, Rhino.Geometry.Surface):
+        brep = Rhino.Geometry.Brep.CreateFromSurface(geo)
+    else:
+        brep = None
+    if brep is None:
+        out['skipped'].append('not a solid, surface, or mesh')
+        continue
+    if not brep.IsSolid:
+        out['solid'] = False
+    parts = Rhino.Geometry.Mesh.CreateFromBrep(brep, quality)
+    if not parts:
+        out['skipped'].append('could not be meshed')
+        continue
+    for part in parts:
+        mesh.Append(part)
+    got = True
+if got:
+    mesh.Vertices.CombineIdentical(True, True)
+    mesh.Faces.ConvertQuadsToTriangles()
+    mesh.Compact()
+    out['closed'] = bool(mesh.IsClosed)
+    out['vertices'] = [[round(p.X, 6), round(p.Y, 6), round(p.Z, 6)]
+                       for p in mesh.Vertices.ToPoint3dArray()]
+    out['faces'] = [[f.A, f.B, f.C] for f in mesh.Faces]
+__maq_result__ = out
+"""
+
+_SECTION_QUERY = """\
+guids = __maq__.find({ids})
+plane = Rhino.Geometry.Plane(
+    Rhino.Geometry.Point3d({ox}, {oy}, {oz}),
+    Rhino.Geometry.Vector3d({nx}, {ny}, {nz}))
+tol = sc.doc.ModelAbsoluteTolerance if sc and sc.doc else 0.001
+out = dict(found=len(guids), polylines=[], skipped=[])
+
+def _points(curve):
+    ok, poly = curve.TryGetPolyline()
+    if ok:
+        return [p for p in poly]
+    params = curve.DivideByCount(96, True)
+    return [curve.PointAt(t) for t in (params or [])]
+
+def _keep(pts, closed):
+    if len(pts) < 2:
+        return
+    out['polylines'].append(dict(
+        points=[[round(p.X, 6), round(p.Y, 6), round(p.Z, 6)] for p in pts],
+        closed=bool(closed)))
+
+for guid in guids:
+    geo = rs.coercegeometry(guid)
+    if isinstance(geo, Rhino.Geometry.Mesh):
+        polys = Rhino.Geometry.Intersect.Intersection.MeshPlane(geo, plane)
+        for poly in (polys or []):
+            _keep([p for p in poly], poly.IsClosed)
+        continue
+    if isinstance(geo, Rhino.Geometry.Extrusion):
+        brep = geo.ToBrep(True)
+    elif isinstance(geo, Rhino.Geometry.Brep):
+        brep = geo
+    elif isinstance(geo, Rhino.Geometry.Surface):
+        brep = Rhino.Geometry.Brep.CreateFromSurface(geo)
+    else:
+        out['skipped'].append('not a solid, surface, or mesh')
+        continue
+    if brep is None:
+        out['skipped'].append('could not be read as a solid')
+        continue
+    rc, curves, pts = Rhino.Geometry.Intersect.Intersection.BrepPlane(
+        brep, plane, tol)
+    for curve in (curves or []):
+        _keep(_points(curve), curve.IsClosed)
+__maq_result__ = out
+"""
+
+
+def compile_mesh_query(maq_id: str) -> str:
+    """Snippet: mesh one object for printing, report closedness."""
+    return _MESH_QUERY.format(ids=_r([maq_id]))
+
+
+def compile_section_query(maq_id: str, origin: list[float],
+                          normal: list[float]) -> str:
+    """Snippet: intersect one object with a plane, return polylines."""
+    return _SECTION_QUERY.format(
+        ids=_r([maq_id]),
+        ox=_r(float(origin[0])), oy=_r(float(origin[1])),
+        oz=_r(float(origin[2])),
+        nx=_r(float(normal[0])), ny=_r(float(normal[1])),
+        nz=_r(float(normal[2])))
+
+
 _BUILDERS = {
     "create_point": _create_point, "create_line": _create_line,
     "create_polyline": _create_polyline, "create_circle": _create_circle,

@@ -28,7 +28,9 @@ HELP_LINES = [
     "  maquette journal              recent steps (--last N, --search WORD)",
     "  maquette undo [N]             undo the last N steps",
     "  maquette rebuild              replay the journal into the backend",
-    "  maquette export PATH          write a 3dm file or text description",
+    "  maquette export PATH          write 3dm, stl for printing, or txt",
+    "  maquette plan HEIGHT PATH     cut a 2D floor plan, write svg or dxf",
+    "  maquette section x|y AT PATH  cut a 2D section, write svg or dxf",
     "  maquette run-script FILE      run Python in Rhino, journaled (--intent)",
     "  maquette doctor               check the setup and say what to fix",
     "  maquette install-listener     put the listener script where Rhino finds it",
@@ -40,7 +42,8 @@ HELP_LINES = [
     '  maquette box 10 10 30 name "tower base"',
     "  maquette move m1 by 0,0,10",
     "Global flags: --project PATH, --backend record|headless|live|auto,",
-    "  --all (no output cap), --json (machine readable line at the end).",
+    "  --scale 1:100 (for stl, plan, section), --all (no output cap),",
+    "  --json (machine readable line at the end).",
 ]
 
 
@@ -68,13 +71,13 @@ def _take_flags(args: list[str]) -> tuple[dict, list[str]]:
     flags = {"project": None, "backend": "auto", "json": False, "all": False,
              "units": "meters", "intent": None, "format": None,
              "last": None, "search": None, "name": None, "dest": None,
-             "model": None, "inject": False}
+             "model": None, "inject": False, "scale": None}
     kept = []
     index = 0
     valued = {"--project": "project", "-p": "project", "--backend": "backend",
               "--units": "units", "--intent": "intent", "--format": "format",
               "--last": "last", "--search": "search", "--name": "name",
-              "--dest": "dest", "--model": "model"}
+              "--dest": "dest", "--model": "model", "--scale": "scale"}
     booleans = {"--json": "json", "--all": "all", "--inject": "inject"}
     while index < len(args):
         arg = args[index]
@@ -147,6 +150,10 @@ def _dispatch(args: list[str], flags: dict, payload: dict) -> int:
         if rest:
             ref = " ".join(rest)
             obj = scene.find(ref)
+            if obj is None and rest[0] == "object" and len(rest) > 1:
+                # Tolerate the spoken filler: describe object "tower base".
+                ref = " ".join(rest[1:])
+                obj = scene.find(ref)
             if obj is None:
                 say.err("no object called {0!r}. Try: maquette describe".format(ref))
                 payload["ok"] = False
@@ -199,10 +206,35 @@ def _dispatch(args: list[str], flags: dict, payload: dict) -> int:
 
     if command == "export":
         if not rest:
-            say.err("usage: maquette export PATH (ending in .3dm or .txt)")
+            say.err("usage: maquette export PATH "
+                    "(ending in .3dm, .stl, or .txt)")
             payload["ok"] = False
             return 1
-        result = _engine(flags).export(rest[0], flags["format"])
+        result = _engine(flags).export(rest[0], flags["format"],
+                                       flags["scale"])
+        _report(result)
+        payload.update(result)
+        return 0
+
+    if command == "plan":
+        if len(rest) != 2:
+            say.err("usage: maquette plan HEIGHT PATH "
+                    "(svg or dxf; --scale 1:100)")
+            payload["ok"] = False
+            return 1
+        result = _engine(flags).export_plan(rest[0], rest[1], flags["scale"])
+        _report(result)
+        payload.update(result)
+        return 0
+
+    if command == "section":
+        if len(rest) != 3:
+            say.err("usage: maquette section x|y POSITION PATH "
+                    "(svg or dxf; --scale 1:100)")
+            payload["ok"] = False
+            return 1
+        result = _engine(flags).export_section(rest[0], rest[1], rest[2],
+                                               flags["scale"])
         _report(result)
         payload.update(result)
         return 0

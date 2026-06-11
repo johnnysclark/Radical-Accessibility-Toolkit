@@ -1,4 +1,4 @@
-"""The 13 model-facing functions shared by the MCP server and chat REPL.
+"""The 15 model-facing functions shared by the MCP server and chat REPL.
 
 Each returns one plain-text string whose first line starts with OK: or
 ERROR: - the same contract as the CLI, because the model reads what
@@ -56,9 +56,24 @@ class MaquetteService:
         except USER_ERRORS as exc:
             return "ERROR: " + str(exc)
 
-    def export_model(self, path: str, format: str | None = None) -> str:
+    def export_model(self, path: str, format: str | None = None,
+                     scale: str | None = None) -> str:
         try:
-            return _format(self._engine().export(path, format))
+            return _format(self._engine().export(path, format, scale))
+        except USER_ERRORS as exc:
+            return "ERROR: " + str(exc)
+
+    def export_plan(self, height, path: str, scale: str | None = None) -> str:
+        try:
+            return _format(self._engine().export_plan(height, path, scale))
+        except USER_ERRORS as exc:
+            return "ERROR: " + str(exc)
+
+    def export_section(self, axis: str, position, path: str,
+                       scale: str | None = None) -> str:
+        try:
+            return _format(self._engine().export_section(
+                axis, position, path, scale))
         except USER_ERRORS as exc:
             return "ERROR: " + str(exc)
 

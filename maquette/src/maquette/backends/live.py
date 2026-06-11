@@ -78,6 +78,25 @@ class LiveBackend(BackendAPI):
     def close(self) -> None:
         self._client.close()
 
+    # -- read-only queries (no journal entry, no doc mutation) ---------------
+
+    def query_mesh(self, maq_id: str) -> dict:
+        """Mesh one object inside Rhino; report triangles and closedness."""
+        return self._query_value(compiler.compile_mesh_query(maq_id))
+
+    def query_section(self, maq_id: str, origin: list[float],
+                      normal: list[float]) -> dict:
+        """Cut one object with a plane inside Rhino; return polylines."""
+        return self._query_value(
+            compiler.compile_section_query(maq_id, origin, normal))
+
+    def _query_value(self, code: str) -> dict:
+        params = {"code": code, "tag": {}, "affected_ids": [],
+                  "capture": False}
+        response = self._connected().request("exec_code", params,
+                                             timeout=SLOW_TIMEOUT)
+        return response.get("result", {}).get("value") or {}
+
     def _connected(self) -> ListenerClient:
         if not self._client.connected:
             self._client.connect()

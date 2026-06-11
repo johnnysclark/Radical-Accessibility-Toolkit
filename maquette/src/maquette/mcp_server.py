@@ -13,7 +13,7 @@ Register in a project's .mcp.json:
     }
 
 Without --project it discovers the project from the working directory
-(or MAQUETTE_PROJECT). Thirteen MCP functions, all returning the same
+(or MAQUETTE_PROJECT). Fifteen MCP functions, all returning the same
 OK:/ERROR:-prefixed text the user hears everywhere else.
 """
 
@@ -132,10 +132,32 @@ def journal_show(last: int = 10, search: str | None = None) -> str:
 
 
 @mcp.tool()
-def export_model(path: str, format: str | None = None) -> str:
-    """Write the model to a file: .3dm (real geometry) or .txt (spoken
-    description). Format inferred from the extension."""
-    return service().export_model(path, format)
+def export_model(path: str, format: str | None = None,
+                 scale: str | None = None) -> str:
+    """Write the model to a file: .3dm (real geometry), .stl (3D print
+    mesh in millimeters, watertightness reported; needs Rhino running),
+    or .txt (spoken description). Format inferred from the extension.
+    scale applies to .stl only, written like "1:100" (the default)."""
+    return service().export_model(path, format, scale)
+
+
+@mcp.tool()
+def export_plan(height: float, path: str, scale: str | None = None) -> str:
+    """Cut a horizontal plane through the model at a height (model
+    units) and write the 2D floor plan as .svg or .dxf, in paper
+    millimeters at a scale like "1:100" (the default). Needs Rhino
+    running; Rhino computes the cut."""
+    return service().export_plan(height, path, scale)
+
+
+@mcp.tool()
+def export_section(axis: str, position: float, path: str,
+                   scale: str | None = None) -> str:
+    """Cut a vertical plane at x=position or y=position (axis "x" or
+    "y", model units) and write the 2D section as .svg or .dxf, in
+    paper millimeters at a scale like "1:100" (the default). Needs
+    Rhino running; Rhino computes the cut."""
+    return service().export_section(axis, position, path, scale)
 
 
 @mcp.tool()

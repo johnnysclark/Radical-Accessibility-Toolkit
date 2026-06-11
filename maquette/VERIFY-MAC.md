@@ -1,8 +1,9 @@
 # Verifying Maquette on the Mac
 
-Run these once on the Mac with Rhino 8 installed. Steps 1 to 6 are
-automated by `python3 maquette/scripts/mac_verify.py`; the rest need
-human ears. Every step says what you should hear.
+Run these once on the Mac with Rhino 8 installed. Steps 1 to 4 are
+automated by `python3 maquette/scripts/mac_verify.py` (step 4 also
+exports an STL, a plan, and a section); the rest need human ears.
+Every step says what you should hear.
 
 ## 1. Install
 
@@ -32,7 +33,8 @@ than 8.11). Exit code 0.
     python3 maquette/scripts/mac_verify.py
 
 Hear: PASS on every line, then RESULT: n passed, 0 failed. This
-creates a box in Rhino, measures it, moves it, queries it back, and
+creates a box in Rhino, measures it, moves it, queries it back,
+exports a watertight STL plus a plan SVG and a section DXF, and
 undoes it.
 
 ## 5. First real model
@@ -52,7 +54,18 @@ size matches 10 by 10 by 30 and says quality measured.
 
 Hear: the union is created with no pending note (live computes it).
 
-## 7. Crash recovery (the big one)
+## 7. Drawings and prints
+
+    maquette plan 1.2 exports/plan.svg
+    maquette section x 5 exports/section.svg
+    maquette export exports/model.stl --scale 1:200
+
+Hear, per command: wrote the file, what was cut or meshed, the scale,
+and the sheet or print size in millimeters. The STL line ends with
+"watertight: yes". Open the SVG in a browser to spot-check; drop the
+STL into your slicer and confirm the size matches what was spoken.
+
+## 8. Crash recovery (the big one)
 
 Force-quit Rhino mid-session (Command Option Escape). Then:
 
@@ -64,7 +77,7 @@ Hear: rebuilt N journal steps on backend live, objects realized, and
 the model is back in Rhino. WARNING lines only for script ops that
 moved (drift detection working).
 
-## 8. No-GUI listener recovery
+## 9. No-GUI listener recovery
 
     maquette listener-stop
     maquette connect --inject
@@ -72,13 +85,13 @@ moved (drift detection working).
 Hear: the listener comes back without touching the Rhino interface.
 (Needs `_StartScriptServer` from step 2 and Rhino 8.11 or newer.)
 
-## 9. VoiceOver contract
+## 10. VoiceOver contract
 
 With VoiceOver in Terminal.app, run `maquette describe --all` and
 `maquette journal`. Every line should read cleanly: no symbols, no
 tables, short lines, OK or ERROR up front, READY at the end.
 
-## 10. Chat
+## 11. Chat
 
     maquette chat
     maq> box 2 2 2 name "test cube"        <- instant OK line

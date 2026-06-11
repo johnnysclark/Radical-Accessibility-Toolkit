@@ -141,7 +141,7 @@ def test_client_error_is_spoken_not_raised(project, capsys, monkeypatch):
     asyncio.run(repl._close())
 
 
-def test_tool_server_exposes_all_thirteen(project):
+def test_tool_server_exposes_all_fifteen(project):
     repl = make_repl(project)
     tools = repl._build_tools()
     assert {tool.name for tool in tools} == set(chat.TOOL_NAMES)

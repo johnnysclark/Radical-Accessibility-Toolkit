@@ -5,7 +5,7 @@ spinners. Three kinds of line:
 
   /commands        meta: /help /scene /journal N /undo N /transcript /quit
   grammar words    run locally, instantly, no model: box 10 10 30
-  anything else    goes to Claude, who models through the same thirteen
+  anything else    goes to Claude, who models through the same fifteen
                    functions the MCP server exposes
 
 Claude's replies print complete (never token by token); every tool call
@@ -61,12 +61,16 @@ Rules:
   user can refer to them by name.
 - Objects from booleans, lofts, and scripts may be pending until a live
   rebuild in Rhino; their notes say so. Mention it only when relevant.
+- Deliverables: export_model writes .3dm, .txt, or .stl for 3D printing;
+  export_plan and export_section write 2D drawings as .svg or .dxf.
+  STL, plans, and sections need Rhino connected and take a paper scale
+  like 1:100. Default file home is the exports folder.
 """
 
 TOOL_NAMES = ("create_objects", "edit_objects", "query_scene",
               "describe_scene", "describe_object", "measure", "run_script",
-              "undo", "rebuild", "journal_show", "export_model", "doctor",
-              "project_info")
+              "undo", "rebuild", "journal_show", "export_model",
+              "export_plan", "export_section", "doctor", "project_info")
 
 
 def auth_hint() -> list[str]:
@@ -335,10 +339,31 @@ class ChatREPL:
                  schema({"last": {"type": "integer"},
                          "search": {"type": "string"}}, []))(
                 echoing(service.journal_show)),
-            tool("export_model", "Write the model to a .3dm or .txt file.",
+            tool("export_model",
+                 "Write the model to a file: .3dm, .stl (3D print mesh "
+                 "in millimeters, scale like 1:100), or .txt.",
                  schema({"path": {"type": "string"},
-                         "format": {"type": "string"}}, ["path"]))(
+                         "format": {"type": "string"},
+                         "scale": {"type": "string"}}, ["path"]))(
                 echoing(service.export_model)),
+            tool("export_plan",
+                 "Cut a horizontal plane at a height (model units) and "
+                 "write the 2D floor plan as .svg or .dxf at a paper "
+                 "scale like 1:100. Needs Rhino connected.",
+                 schema({"height": {"type": "number"},
+                         "path": {"type": "string"},
+                         "scale": {"type": "string"}}, ["height", "path"]))(
+                echoing(service.export_plan)),
+            tool("export_section",
+                 "Cut a vertical plane at x or y (axis plus position in "
+                 "model units) and write the 2D section as .svg or .dxf "
+                 "at a paper scale like 1:100. Needs Rhino connected.",
+                 schema({"axis": {"type": "string"},
+                         "position": {"type": "number"},
+                         "path": {"type": "string"},
+                         "scale": {"type": "string"}},
+                        ["axis", "position", "path"]))(
+                echoing(service.export_section)),
             tool("doctor", "Check the setup; say what to fix.",
                  schema({}, []))(echoing(service.doctor)),
             tool("project_info", "Project name, units, journal, listener.",

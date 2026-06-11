@@ -9,6 +9,7 @@ repeatedly; it models into a throwaway project under /tmp.
 
 import os
 import shutil
+import struct
 import sys
 import tempfile
 
@@ -93,6 +94,7 @@ def _live_round_trip(client):
         moved = objects and objects[0]["bbox"][0][0] == 5
         report(bool(moved), "live move verified by query",
                str(objects[0]["bbox"] if objects else "missing"))
+        _fabrication_outputs(engine, project_dir)
         engine.undo_steps(2)
         response = client.request("query", {"what": "tagged", "ids": ["m1"]})
         report(not response["result"]["objects"],
@@ -102,6 +104,36 @@ def _live_round_trip(client):
             type(exc).__name__, exc))
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _fabrication_outputs(engine, project_dir):
+    """STL, plan, and section against the live box (it sits at x 5..7)."""
+    exports = os.path.join(project_dir, "exports")
+
+    stl_path = os.path.join(exports, "verify.stl")
+    result = engine.export(stl_path)
+    spoken = " ".join(result["lines"])
+    with open(stl_path, "rb") as handle:
+        blob = handle.read()
+    count = struct.unpack_from("<I", blob, 80)[0] if len(blob) >= 84 else 0
+    report(count >= 12 and len(blob) == 84 + 50 * count,
+           "STL export written and complete",
+           "{0} triangles".format(count))
+    report("watertight: yes" in spoken, "STL is watertight", spoken)
+
+    plan_path = os.path.join(exports, "verify-plan.svg")
+    result = engine.export_plan(1.0, plan_path)
+    with open(plan_path, "r", encoding="utf-8") as handle:
+        svg = handle.read()
+    report("<path" in svg, "plan SVG has cut outlines",
+           result["lines"][1] if len(result["lines"]) > 1 else "")
+
+    section_path = os.path.join(exports, "verify-section.dxf")
+    result = engine.export_section("x", 6.0, section_path)
+    with open(section_path, "r", encoding="utf-8") as handle:
+        dxf = handle.read()
+    report("POLYLINE" in dxf, "section DXF has cut outlines",
+           result["lines"][1] if len(result["lines"]) > 1 else "")
 
 
 def finish():

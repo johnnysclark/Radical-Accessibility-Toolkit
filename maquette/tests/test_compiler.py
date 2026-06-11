@@ -120,3 +120,28 @@ def test_layer_ops(engine):
     assert "__maq__.ensure_layer('MAQ::Walls')" in code
     code = compiler.compile_entry(entry_for(engine, "put m1 on Walls"))
     assert "rs.ObjectLayer" in code
+
+
+def test_mesh_query_snippet_is_valid_and_read_only():
+    code = compiler.compile_mesh_query("m3")
+    compile(code, "<snippet>", "exec")
+    assert "__maq__.find(['m3'])" in code
+    assert "MeshingParameters.QualityRenderMesh" in code
+    assert "ConvertQuadsToTriangles" in code
+    assert "IsClosed" in code
+    assert "__maq_result__" in code
+    # Read-only: nothing is created or tagged in the document.
+    assert "__maq_created__" not in code
+    assert "Add" not in code.replace("Append", "")
+
+
+def test_section_query_snippet_carries_the_plane():
+    code = compiler.compile_section_query("m3", [0, 0, 1.2], [0, 0, 1])
+    compile(code, "<snippet>", "exec")
+    assert "__maq__.find(['m3'])" in code
+    assert "Point3d(0.0, 0.0, 1.2)" in code
+    assert "Vector3d(0.0, 0.0, 1.0)" in code
+    assert "Intersection.BrepPlane" in code
+    assert "Intersection.MeshPlane" in code
+    assert "__maq_result__" in code
+    assert "__maq_created__" not in code
