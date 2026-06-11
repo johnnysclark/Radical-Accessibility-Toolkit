@@ -41,6 +41,12 @@ def test_create_describe_round_trip(proj_dir, capsys):
     assert "kind: box." in out
     assert "size: 10 wide, 10 deep, 30 tall." in out
 
+    # The spoken filler word works too: describe object "tower base".
+    code, out = run_cli(capsys, "describe", "object", "tower base",
+                        "--project", proj_dir)
+    assert code == 0
+    assert "kind: box." in out
+
 
 def test_error_lines_start_with_error(proj_dir, capsys):
     code, out = run_cli(capsys, "describe", "nothing here", "--project", proj_dir)
