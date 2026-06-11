@@ -93,6 +93,10 @@ OK: Bay A walls ON, 6-inch thick.
 (full model description, screen-reader-friendly)
 ```
 
+### [Maquette](maquette/) — Crash-Only Rhino Modeling for Mac
+
+Model anything in Rhino 8 for Mac by typing or talking. Journal-first: every command appends to `journal.jsonl` and Rhino just renders it, so a Rhino crash loses nothing. Speakable commands (`box 12 10 9 at 2,2,0 name "north wing"`), deep undo, live/headless/record backends, and deliverables out the other end: 2D plans and sections (SVG/DXF), watertight STL scaled for 3D printing, .3dm, or plain text. Includes an MCP server (fifteen functions) and `maquette chat` for talking to Claude. See [maquette/README.md](maquette/README.md).
+
 ### [Image Describer](image-describer/) — Image Description
 
 Takes an architectural image — a plan, photo, section, diagram — and produces a structured text description at three scales: Macro (what the image is), Meso (how it's organized), Micro (specific elements and measurements). Replaces "looking at a drawing" with text a screen reader can parse.
@@ -622,6 +626,8 @@ radical-accessibility/
     macros/ ................. Bundled reusable command sequences
     scripts/ ................ Generated IronPython scripts (Mode 3)
     state.json .............. Canonical Model Artifact (created on first run)
+  maquette/ ................. Crash-only Rhino 8 Mac modeler (journal, CLI,
+                              MCP server, chat, STL/plan/section export)
   mcp/ ...................... AI integration layer
     mcp_server.py ........... MCP server v3.3 (49 functions)
     requirements.txt ........ Python dependencies (mcp only)

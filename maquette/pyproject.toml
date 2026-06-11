@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maquette"
+version = "0.1.0"
+description = "Accessible, crash-only CLI that models anything in Rhino 8 for Mac, with an LLM wrapper."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Radical Accessibility Toolkit" }]
+# The engine is stdlib-only by design (enforced by tests/test_stdlib_only.py).
+dependencies = []
+
+[project.optional-dependencies]
+headless = ["rhino3dm>=8.6"]
+mcp = ["mcp>=1.2"]
+chat = ["claude-agent-sdk>=0.1.0", "mcp>=1.2"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+maquette = "maquette.cli:main"
+maq = "maquette.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"maquette.listener" = ["*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
