@@ -1115,6 +1115,13 @@ def _draw_tactile3d(state):
         slab = _create_floor_slab(state, floor_thick)
         if slab: created_ids.append(slab)
 
+    # ── Raised tactile floor textures (one pattern per room) ──
+    if t3.get("floor_hatch_enabled", True):
+        try:
+            _draw_floor_tactile_hatch(state, created_ids)
+        except Exception as e:
+            print("[PLJ TACTILE3D] floor hatch: {0}".format(e))
+
     # ── Clipping plane ──
     _add_clipping_plane(state, cut_height)
 
@@ -1209,6 +1216,124 @@ def _create_floor_slab(state, thickness):
         rs.CapPlanarHoles(brep)
         return brep
     return None
+
+
+def _tactile_floor_style(hatch_name):
+    """Map a room/cell hatch name to a raised floor texture style.
+
+    Returns one of "lines" (parallel ridges), "grid" (waffle), or
+    "bumps" (a field of dots). Different rooms feel different by touch.
+    """
+    base = os.path.splitext(str(hatch_name))[0].lower()
+    if base in ("dots", "dot", "sand", "gravel", "stipple", "bumps"):
+        return "bumps"
+    if base in ("grid", "crosshatch", "cross", "waffle", "tile"):
+        return "grid"
+    return "lines"
+
+
+def _raise_box_local(lx0, ly0, lx1, ly1, h, origin, rot, out):
+    """Extrude one raised box from a local-coordinate footprint rectangle.
+
+    The footprint is given in bay-local coordinates and transformed to
+    world space (honoring bay rotation) before extruding straight up by h.
+    """
+    if not IN_RHINO or lx1 <= lx0 or ly1 <= ly0:
+        return
+    pts = [_local_to_world(lx0, ly0, origin, rot),
+           _local_to_world(lx1, ly0, origin, rot),
+           _local_to_world(lx1, ly1, origin, rot),
+           _local_to_world(lx0, ly1, origin, rot)]
+    pts.append(pts[0])
+    profile = rs.AddPolyline(pts)
+    if not profile:
+        return
+    brep = rs.ExtrudeCurveStraight(profile, (0, 0, 0), (0, 0, h))
+    rs.DeleteObject(profile)
+    if brep:
+        rs.CapPlanarHoles(brep)
+        out.append(brep)
+
+
+def _floor_texture_rect(lx0, ly0, lx1, ly1, origin, rot,
+                        style, spacing, rib_w, h, out):
+    """Fill one local rectangle with a raised tactile texture."""
+    half = rib_w / 2.0
+    if spacing <= 0:
+        spacing = 1.5
+    # Parallel ridges running along local X (step in local Y).
+    if style in ("lines", "grid"):
+        y = ly0 + spacing
+        while y < ly1:
+            _raise_box_local(lx0, y - half, lx1, y + half, h, origin, rot, out)
+            y += spacing
+    # Cross ridges running along local Y (step in local X) -> waffle.
+    if style == "grid":
+        x = lx0 + spacing
+        while x < lx1:
+            _raise_box_local(x - half, ly0, x + half, ly1, h, origin, rot, out)
+            x += spacing
+    # A field of small raised bumps.
+    if style == "bumps":
+        y = ly0 + spacing
+        while y < ly1:
+            x = lx0 + spacing
+            while x < lx1:
+                _raise_box_local(x - half, y - half, x + half, y + half,
+                                 h, origin, rot, out)
+                x += spacing
+            y += spacing
+
+
+def _draw_floor_tactile_hatch(state, created_ids):
+    """Add raised, touchable textures to the floor top, one per room.
+
+    Prefers per-cell room hatches (so a subdivided bay gets a different
+    texture in each room); falls back to the whole-bay room hatch when a
+    bay has no named cells. Rectangular bays only — radial floors stay flat.
+    """
+    if not IN_RHINO:
+        return
+    t3 = state.get("tactile3d", {})
+    h = t3.get("floor_hatch_height", 0.25)
+    spacing = t3.get("floor_hatch_spacing", 1.5)
+    rib_w = t3.get("floor_hatch_width", 0.3)
+    rooms = state.get("rooms", {})
+    for bay_name, bay in state["bays"].items():
+        if bay.get("grid_type", "rectangular") != "rectangular":
+            continue
+        ox, oy = bay["origin"]
+        rot = bay["rotation_deg"]
+        cx, cy = _get_spacing_arrays(bay)
+        cells = bay.get("cells")
+        drew_cell = False
+        if cells:
+            for key, cl in cells.items():
+                ht = cl.get("hatch", "none")
+                if ht in ("none", ""):
+                    continue
+                parts = key.split(",")
+                if len(parts) != 2:
+                    continue
+                c, r = int(parts[0]), int(parts[1])
+                if c >= len(cx) - 1 or r >= len(cy) - 1:
+                    continue
+                sc = spacing * cl.get("hatch_scale", 1.0)
+                _floor_texture_rect(cx[c], cy[r], cx[c + 1], cy[r + 1],
+                                    (ox, oy), rot, _tactile_floor_style(ht),
+                                    sc, rib_w, h, created_ids)
+                drew_cell = True
+        if drew_cell:
+            continue
+        # Fall back to a single whole-bay texture.
+        rm = rooms.get("bay_" + bay_name, {})
+        ht = rm.get("hatch_image", "none")
+        if ht in ("none", ""):
+            continue
+        sc = spacing * rm.get("hatch_scale", 1.0)
+        _floor_texture_rect(cx[0], cy[0], cx[-1], cy[-1],
+                            (ox, oy), rot, _tactile_floor_style(ht),
+                            sc, rib_w, h, created_ids)
 
 
 def _add_clipping_plane(state, cut_height):

@@ -991,6 +991,10 @@ try:
 except ImportError as _e:
     test("style: import style_manager", lambda: "ERROR: {}".format(_e))
 
+# Optional swell/view tests are gated on this flag. Default off so the
+# suite always runs to completion even when the swell renderer is absent.
+_swell_ok = False
+
 if _style_ok:
     # Test 1: Load styles
     _sm = style_manager.StyleManager()
