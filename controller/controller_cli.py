@@ -258,6 +258,13 @@ def _default_tactile3d():
         "cut_height": 4.0,
         "floor_thickness": 0.5,
         "floor_enabled": True,
+        # Raised tactile textures on the floor top, one pattern per room.
+        # The watcher reads room/cell hatches and extrudes ridges or bumps
+        # so a blind reader can feel which room is which on the 3D model.
+        "floor_hatch_enabled": True,
+        "floor_hatch_height": 0.25,
+        "floor_hatch_spacing": 1.5,
+        "floor_hatch_width": 0.3,
         "auto_export": False,
         "export_path": "./tactile3d_export.stl",
         "scale_factor": 1.0,
@@ -818,6 +825,10 @@ def describe(state):
                  f"cut_height={t3.get('cut_height',4.0)} ft  "
                  f"floor={'ON' if t3.get('floor_enabled') else 'OFF'}  "
                  f"floor_thickness={t3.get('floor_thickness',0.5)} ft")
+    fh = "ON" if t3.get("floor_hatch_enabled", True) else "OFF"
+    lines.append(f"  floor_hatch={fh}  "
+                 f"hatch_height={t3.get('floor_hatch_height',0.25)} ft  "
+                 f"hatch_spacing={t3.get('floor_hatch_spacing',1.5)} ft")
     lines.append(f"  auto_export={t3.get('auto_export',False)}  "
                  f"export_path={t3.get('export_path','')}  "
                  f"scale_factor={t3.get('scale_factor',1.0)}")
@@ -1416,6 +1427,22 @@ def cmd_tactile3d(state, tokens):
         v = tokens[2].lower() if len(tokens) > 2 else "on"
         t3["floor_enabled"] = v in ("on","true","yes","1")
         return state, f"Tactile3D floor = {'ON' if t3['floor_enabled'] else 'OFF'}."
+    if sub == "floor_hatch":
+        v = tokens[2].lower() if len(tokens) > 2 else "on"
+        t3["floor_hatch_enabled"] = v in ("on","true","yes","1")
+        st = "ON" if t3["floor_hatch_enabled"] else "OFF"
+        return state, (f"Tactile3D floor_hatch = {st}. Raised room textures "
+                       f"on the floor are {st.lower()}.")
+    if sub == "floor_hatch_height":
+        v = _float(tokens[2],"h")
+        if v <= 0: raise ValueError("Must be > 0.")
+        old = t3.get("floor_hatch_height",0.25); t3["floor_hatch_height"] = v
+        return state, f"Tactile3D floor_hatch_height = {v} ft. Was {old} ft."
+    if sub == "floor_hatch_spacing":
+        v = _float(tokens[2],"s")
+        if v <= 0: raise ValueError("Must be > 0.")
+        old = t3.get("floor_hatch_spacing",1.5); t3["floor_hatch_spacing"] = v
+        return state, f"Tactile3D floor_hatch_spacing = {v} ft. Was {old} ft."
     if sub == "auto_export":
         v = tokens[2].lower() if len(tokens) > 2 else "off"
         t3["auto_export"] = v in ("on","true","yes","1")
@@ -1435,7 +1462,8 @@ def cmd_tactile3d(state, tokens):
         t3["_export_once"] = True
         return state, f"Tactile3D export queued to: {t3.get('export_path','./tactile3d_export.stl')}"
     raise ValueError("Tactile3D subcommands: on, off, wall_height, cut_height, "
-                     "floor_thickness, floor, auto_export, export_path, scale_factor, export")
+                     "floor_thickness, floor, floor_hatch, floor_hatch_height, "
+                     "floor_hatch_spacing, auto_export, export_path, scale_factor, export")
 
 
 def cmd_bambu(state, tokens):
@@ -2940,6 +2968,8 @@ TACTILE 3D (printable plan model):
   tactile3d on|off
   tactile3d wall_height|cut_height|floor_thickness <feet>
   tactile3d floor on|off
+  tactile3d floor_hatch on|off ...... raised room textures on the floor
+  tactile3d floor_hatch_height|floor_hatch_spacing <feet>
   tactile3d auto_export on|off
   tactile3d export_path <filepath>
   tactile3d scale_factor <value>
