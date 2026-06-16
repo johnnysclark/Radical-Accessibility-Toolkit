@@ -68,3 +68,6 @@ controller/pending_script.py
 
 # Logs
 *.log
+
+# rap-may-15: user-side artifacts created by setup.py
+rap-may-15/controller/macros/case-study-house.macro.json

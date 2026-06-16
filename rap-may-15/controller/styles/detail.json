@@ -1,0 +1,119 @@
+{
+  "name": "detail",
+  "description": "Maximum information. Fine lines, all annotations, tabloid.",
+  "lineweights": {
+    "column": 2.5,
+    "wall_exterior": 2.0,
+    "wall_interior": 1.2,
+    "corridor_edge": 0.8,
+    "corridor_dash": 0.6,
+    "door_swing": 0.5,
+    "door_frame": 0.6,
+    "window_line": 0.5,
+    "portal_line": 0.5,
+    "grid_line": 0.2,
+    "section_cut": 3.0,
+    "section_beyond": 0.6,
+    "hatch_line": 0.3,
+    "dimension_line": 0.2,
+    "leader_line": 0.2,
+    "site_boundary": 1.5,
+    "north_arrow": 1.0
+  },
+  "hatches": {
+    "diagonal": {
+      "spacing_mm": 6.0,
+      "angle_deg": 45,
+      "weight_pt": 0.3
+    },
+    "crosshatch": {
+      "spacing_mm": 6.0,
+      "angle_deg": [45, 135],
+      "weight_pt": 0.3
+    },
+    "horizontal": {
+      "spacing_mm": 5.0,
+      "angle_deg": 0,
+      "weight_pt": 0.3
+    },
+    "vertical": {
+      "spacing_mm": 5.0,
+      "angle_deg": 90,
+      "weight_pt": 0.3
+    },
+    "dots": {
+      "spacing_mm": 4.0,
+      "radius_mm": 0.8,
+      "filled": true
+    },
+    "dense_diagonal": {
+      "spacing_mm": 4.0,
+      "angle_deg": 45,
+      "weight_pt": 0.4
+    },
+    "sparse_diagonal": {
+      "spacing_mm": 10.0,
+      "angle_deg": 45,
+      "weight_pt": 0.2
+    }
+  },
+  "labels": {
+    "braille_pt": 28,
+    "room_name_pt": 10,
+    "dimension_pt": 7,
+    "legend_title_pt": 12,
+    "legend_entry_pt": 9,
+    "bay_label_pt": 12,
+    "grid_label_pt": 8
+  },
+  "layout": {
+    "paper": "tabloid",
+    "orientation": "landscape",
+    "margin_inches": 0.5,
+    "scale": "auto",
+    "title_block": true,
+    "legend": true,
+    "north_arrow": true,
+    "grid_labels": true,
+    "braille_labels": true,
+    "english_labels": true,
+    "dimensions": true,
+    "section_marks": true
+  },
+  "density": {
+    "target_percent": 35,
+    "warning_percent": 45,
+    "reject_percent": 50,
+    "auto_adjust": true,
+    "priority": [
+      "column",
+      "wall_exterior",
+      "wall_interior",
+      "corridor_edge",
+      "section_cut",
+      "door_frame",
+      "labels",
+      "hatches",
+      "grid_line"
+    ]
+  },
+  "drawing_overrides": {
+    "plan": {},
+    "section": {
+      "poche_fill": true,
+      "beyond_weight_factor": 0.4,
+      "hatches_beyond_cut": true
+    },
+    "axon": {
+      "hatches": false,
+      "depth_fade": true,
+      "depth_fade_min_factor": 0.2,
+      "hidden_line": true,
+      "projection_angle": [30, 60]
+    },
+    "elevation": {
+      "hatches": true,
+      "depth_fade": false
+    }
+  }
+}

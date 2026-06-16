@@ -1,0 +1,323 @@
+{
+  "schema": "rap_controller_v1.0",
+  "meta": {
+    "created": "2026-05-16 00:00:00",
+    "last_saved": "2026-05-16 05:19:16",
+    "notes": "Canonical demo for the Radical Accessibility paper. The three tactile layers are structure (column grid), panels (perimeter walls with apertures), and slabs (the floor under the cut height). Printable as a PIAF JPG, SVG, or STL from one state file."
+  },
+  "site": {
+    "origin": [
+      0.0,
+      0.0
+    ],
+    "width": 80.0,
+    "height": 60.0,
+    "corners": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        80.0,
+        0.0
+      ],
+      [
+        80.0,
+        60.0
+      ],
+      [
+        0.0,
+        60.0
+      ]
+    ]
+  },
+  "zones": {
+    "living": {
+      "corners": [
+        [
+          32.1,
+          18.0
+        ],
+        [
+          64.0,
+          18.0
+        ],
+        [
+          64.0,
+          42.0
+        ],
+        [
+          32.1,
+          42.0
+        ]
+      ],
+      "program_type": "living",
+      "label": "living",
+      "braille": ""
+    },
+    "service": {
+      "corners": [
+        [
+          16.0,
+          18.0
+        ],
+        [
+          31.9,
+          18.0
+        ],
+        [
+          31.9,
+          42.0
+        ],
+        [
+          16.0,
+          42.0
+        ]
+      ],
+      "program_type": "service",
+      "label": "service",
+      "braille": ""
+    }
+  },
+  "grid": null,
+  "style": {
+    "column_size": 1.5,
+    "heavy_lineweight_mm": 1.4,
+    "light_lineweight_mm": 0.08,
+    "corridor_lineweight_mm": 0.35,
+    "wall_lineweight_mm": 0.25,
+    "label_text_height": 0.3,
+    "braille_text_height": 0.5,
+    "corridor_dash_len": 3.0,
+    "corridor_gap_len": 2.0,
+    "background_pad": 2.0,
+    "label_offset": 3.0,
+    "arc_segments": 16
+  },
+  "bays": {
+    "A": {
+      "grid_type": "rectangular",
+      "z_order": 0,
+      "origin": [
+        16.0,
+        18.0
+      ],
+      "rotation_deg": 0.0,
+      "bays": [
+        3,
+        2
+      ],
+      "spacing": [
+        16.0,
+        12.0
+      ],
+      "spacing_x": null,
+      "spacing_y": null,
+      "rings": 4,
+      "ring_spacing": 20.0,
+      "arms": 8,
+      "arc_deg": 360.0,
+      "arc_start_deg": 0.0,
+      "corridor": {
+        "enabled": false,
+        "axis": "x",
+        "position": 1,
+        "width": 8.0,
+        "loading": "double",
+        "hatch": "none",
+        "hatch_scale": 4.0
+      },
+      "walls": {
+        "enabled": true,
+        "thickness": 0.5
+      },
+      "apertures": [
+        {
+          "id": "w_s1",
+          "type": "window",
+          "axis": "x",
+          "gridline": 0,
+          "corner": 4.0,
+          "width": 8.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w_s2",
+          "type": "window",
+          "axis": "x",
+          "gridline": 0,
+          "corner": 36.0,
+          "width": 8.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "d_n1",
+          "type": "door",
+          "axis": "x",
+          "gridline": 2,
+          "corner": 6.0,
+          "width": 3.0,
+          "height": 7.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w_n1",
+          "type": "window",
+          "axis": "x",
+          "gridline": 2,
+          "corner": 24.0,
+          "width": 12.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w_e1",
+          "type": "window",
+          "axis": "y",
+          "gridline": 3,
+          "corner": 6.0,
+          "width": 12.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        },
+        {
+          "id": "w_w1",
+          "type": "window",
+          "axis": "y",
+          "gridline": 0,
+          "corner": 6.0,
+          "width": 12.0,
+          "height": 4.0,
+          "hinge": "start",
+          "swing": "positive"
+        }
+      ],
+      "void_center": [
+        40.0,
+        30.0
+      ],
+      "void_size": [
+        0.0,
+        0.0
+      ],
+      "void_shape": "rectangle",
+      "label": "Case Study House",
+      "braille": ""
+    }
+  },
+  "blocks": {
+    "door": {
+      "symbol": "arc_swing",
+      "label_prefix": "D",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.35
+    },
+    "window": {
+      "symbol": "glass_line",
+      "label_prefix": "W",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.25
+    },
+    "portal": {
+      "symbol": "bracket_arrow",
+      "label_prefix": "P",
+      "show_label": true,
+      "label_height": 1.5,
+      "tactile_weight_mm": 0.35
+    },
+    "room": {
+      "symbol": "boundary_label",
+      "show_label": true,
+      "label_height": 3.0,
+      "tactile_weight_mm": 0.5
+    }
+  },
+  "rooms": {
+    "bay_A": {
+      "type": "bay",
+      "source_bay": "A",
+      "label": "Case Study House",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "void_A": {
+      "type": "void",
+      "source_bay": "A",
+      "label": "Case Study House Void",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    },
+    "landscape": {
+      "type": "landscape",
+      "source_bay": null,
+      "label": "Landscape",
+      "braille": "",
+      "hatch_image": "none",
+      "hatch_scale": 1.0,
+      "hatch_rotation": 0.0
+    }
+  },
+  "legend": {
+    "enabled": true,
+    "position": "bottom-right",
+    "custom_origin": [
+      0,
+      0
+    ],
+    "width": 40.0,
+    "title": "Legend",
+    "title_braille": "",
+    "show_braille": true,
+    "show_hatches": true,
+    "show_apertures": true,
+    "swatch_size": 5.0,
+    "row_height": 7.0,
+    "text_height": 2.0,
+    "braille_height": 2.5,
+    "border_weight_mm": 0.5,
+    "padding": 3.0
+  },
+  "tactile3d": {
+    "enabled": true,
+    "wall_height": 10.0,
+    "cut_height": 4.0,
+    "floor_thickness": 0.5,
+    "floor_enabled": true,
+    "auto_export": false,
+    "export_path": "./tactile3d_export.stl",
+    "scale_factor": 1.0,
+    "_export_once": false
+  },
+  "tts": {
+    "enabled": false,
+    "rate": 2
+  },
+  "section": {
+    "axis": null,
+    "offset": null,
+    "last_export_path": null
+  },
+  "hatch_library_path": "./hatches/",
+  "print": {
+    "scale_ft_per_inch": 8,
+    "paper_width_in": 24.0,
+    "paper_height_in": 36.0,
+    "margin_in": 0.5,
+    "dpi": 300,
+    "format": "png",
+    "request_id": 0
+  }
+}
